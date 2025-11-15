@@ -66,30 +66,44 @@ function updateParticipantCount() {
 
 /**
  * Aggiorna la lista dei partecipanti nel pannello laterale e aggiunge il listener per il focus.
+ * FIX: Corretto per evitare duplicati (controllando l'esistenza dell'elemento)
  */
 function updateParticipantList(id, nickname, isLocal = false) {
+    // 1. Cerchiamo l'elemento esistente tramite l'ID
     let li = document.getElementById(`list-${id}`);
+
     if (!li) {
+        // 2. Se l'elemento NON esiste, lo creiamo
         li = document.createElement('li');
         li.id = `list-${id}`;
         li.dataset.peerId = id; 
+        
+        // Impostiamo il contenuto iniziale
         li.innerHTML = `<span class="participant-name">${nickname}</span> <span class="status-indicator">•</span>`;
         participantsList.appendChild(li);
 
-        // Listener per mettere il video in focus cliccando sulla lista
+        // 3. Listener per mettere il video in focus cliccando sulla lista
         li.addEventListener('click', () => {
+             // Chiama la funzione di focus con l'ID del peer cliccato
              setMainVideo(id); 
         });
     }
     
-    // Aggiorna il testo per l'utente locale
+    // 4. Aggiorna il testo e lo stato
     if (isLocal) {
+        // Se è l'utente locale, aggiorna il testo per includere "(Tu)"
         li.querySelector('.participant-name').textContent = nickname + " (Tu)";
+    } else {
+        // Aggiorna il nickname remoto (utile se il server invia aggiornamenti)
+        li.querySelector('.participant-name').textContent = nickname;
     }
     
-    // Imposta il focus iniziale sull'utente locale nella lista
+    // 5. Imposta il focus visivo se è il peer attualmente in focus
+    // Questo viene gestito principalmente in setMainVideo, ma lo impostiamo qui all'inizio
     if (id === focusedPeerId) {
          li.classList.add('participant-focused');
+    } else {
+         li.classList.remove('participant-focused');
     }
 
     updateParticipantCount(); 
@@ -116,51 +130,60 @@ function setMainVideo(peerId) {
     } else {
         const remoteVideoElement = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`);
         
+        // FIX: Controlliamo che l'elemento remoto esista prima di procedere
         if (!remoteVideoElement) {
-            console.error(`Impossibile trovare l'elemento video per ID: ${peerId}`);
+            console.error(`Impossibile trovare l'elemento video o lo stream per ID: ${peerId}. Tornando al focus locale.`);
+            setMainVideo('local');
             return;
         }
         
-        // Lo stream dovrebbe essere disponibile sull'elemento video della miniatura
         stream = remoteVideoElement.querySelector('video').srcObject;
         nickname = remoteNicknames[peerId];
     }
     
     if (!stream) {
         mainVideoFeed.innerHTML = `<div class="video-placeholder">Stream non disponibile per ${nickname}</div>`;
-        return;
-    }
-    
-    // 2. Sposta lo stream nel contenitore principale
-    
-    let videoEl = mainVideoFeed.querySelector('video');
-    if (!videoEl) {
-        videoEl = document.createElement('video');
-        videoEl.autoplay = true;
-        videoEl.playsinline = true;
-    }
-    
-    videoEl.muted = isLocal; // Muta solo se è il video locale
-    videoEl.srcObject = stream;
+        focusedPeerId = peerId;
+        // Se lo stream non c'è, non facciamo nulla con l'elemento video, ma aggiorniamo comunque l'UI di focus
+    } else {
+        // 2. Sposta lo stream nel contenitore principale
+        let videoEl = mainVideoFeed.querySelector('video');
+        if (!videoEl) {
+            // Se l'elemento video non esiste, lo ricreiamo (non dovrebbe succedere se index.html è corretto)
+            videoEl = document.createElement('video');
+            videoEl.autoplay = true;
+            videoEl.playsinline = true;
+            mainVideoFeed.innerHTML = ''; // Pulisce il vecchio contenuto
+            mainVideoFeed.appendChild(videoEl);
+        }
+        
+        videoEl.muted = isLocal; // Muta solo se è il video locale
+        videoEl.srcObject = stream;
 
-    mainVideoFeed.innerHTML = ''; // Pulisce il vecchio contenuto
-    mainVideoFeed.appendChild(videoEl);
+        // Rimuoviamo il vecchio label se esiste
+        mainVideoFeed.querySelector('.video-label')?.remove();
 
-    // Aggiungi l'etichetta
-    const videoLabel = document.createElement('div');
-    videoLabel.className = 'video-label';
-    videoLabel.textContent = nickname;
-    mainVideoFeed.appendChild(videoLabel);
+        // Aggiungi l'etichetta
+        const videoLabel = document.createElement('div');
+        videoLabel.className = 'video-label';
+        videoLabel.textContent = nickname;
+        mainVideoFeed.appendChild(videoLabel);
+    }
     
     focusedPeerId = peerId;
 
 
     // 3. Reimposta il focus visivo: lista partecipanti e miniature
+    
+    // Rimuove il focus da tutti gli elementi della lista
     document.querySelectorAll('#participants-list li').forEach(el => el.classList.remove('participant-focused'));
+    // Imposta il focus sull'elemento corretto della lista
     const focusedLi = document.getElementById(`list-${peerId}`);
     if (focusedLi) focusedLi.classList.add('participant-focused');
 
+    // Rimuove il focus da tutte le miniature
     document.querySelectorAll('.remote-feed').forEach(el => el.classList.remove('is-focused'));
+    // Imposta il focus sulla miniatura corretta, solo se non è locale
     if (!isLocal) {
         const remoteFeed = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`);
         if (remoteFeed) remoteFeed.classList.add('is-focused');
@@ -177,7 +200,6 @@ joinButton.addEventListener('click', () => {
     if (nickname) {
         userNickname = nickname;
         
-        // Avvia la webcam e poi inizializza la connessione di rete
         startLocalMedia()
             .then(() => {
                 nicknameOverlay.classList.add('hidden');
@@ -227,7 +249,6 @@ toggleAudioButton.addEventListener('click', () => {
         audioTrack.enabled = !audioTrack.enabled;
         const icon = audioTrack.enabled ? '🎤' : '🔇';
         toggleAudioButton.textContent = icon;
-        console.log(`Audio locale: ${audioTrack.enabled ? 'Attivato' : 'Disattivato'}`);
     }
 });
 
@@ -237,7 +258,6 @@ toggleVideoButton.addEventListener('click', () => {
         videoTrack.enabled = !videoTrack.enabled;
         const icon = videoTrack.enabled ? '📹' : '⬛';
         toggleVideoButton.textContent = icon;
-        console.log(`Video locale: ${videoTrack.enabled ? 'Attivato' : 'Disattivato'}`);
     }
 });
 
@@ -250,7 +270,6 @@ disconnectButton.addEventListener('click', () => {
         if (peerConnections[socketId]) {
             peerConnections[socketId].close();
         }
-        // Rimuovi anche dalla UI senza avvisare il server (lo fa la disconnessione socket)
         removePeer(socketId, false); 
     });
     
@@ -259,12 +278,10 @@ disconnectButton.addEventListener('click', () => {
         socket.disconnect();
     }
     
-    // 4. Ripristina l'interfaccia utente
+    // 4. Ripristina l'interfaccia utente (PULIZIA FINALE)
     nicknameOverlay.classList.remove('hidden');
     conferenceContainer.classList.add('hidden');
-    // Reimposta il main feed al suo stato iniziale (locale)
     mainVideoFeed.innerHTML = `<video id="local-video" autoplay muted playsinline></video><div class="video-label">Tu</div>`; 
-    // Reimposta il contenitore remoto al suo placeholder
     remoteVideosContainer.innerHTML = `<div id="remote-video-placeholder" class="video-placeholder">In attesa di altri partecipanti...</div>`;
     participantsList.innerHTML = '';
     
@@ -289,7 +306,6 @@ function initializeSocket() {
 
     socket.on('connect', () => {
         console.log('Connesso al server di segnalazione.');
-        // Invia il nickname al server al momento dell'unione alla stanza
         socket.emit('join-room', roomId, userNickname);
     });
 
@@ -298,7 +314,7 @@ function initializeSocket() {
         updateParticipantList(socket.id, userNickname, true);
 
         // Nasconde il placeholder
-        if (userList.length > 1) { // 1 (locale) + N remoti
+        if (userList.length > 1) { 
              remoteVideoPlaceholder?.classList.add('hidden');
         }
 
@@ -320,22 +336,18 @@ function initializeSocket() {
         remoteVideoPlaceholder?.classList.add('hidden');
     });
 
-    // 3. Ricevi l'Offer SDP dal Caller
     socket.on('offer', (id, description) => {
         handleOffer(id, description);
     });
 
-    // 4. Ricevi l'Answer SDP dal Callee
     socket.on('answer', (id, description) => {
         handleAnswer(id, description);
     });
 
-    // 5. Ricevi i candidati ICE
     socket.on('candidate', (id, candidate) => {
         handleCandidate(id, candidate);
     });
 
-    // 6. Gestione disconnessione utente
     socket.on('user-left', (leavingSocketId) => {
         removePeer(leavingSocketId, true);
     });
@@ -382,7 +394,6 @@ function getOrCreatePeerConnection(socketId) {
         let remoteVideoItem = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`);
 
         if (!remoteVideoItem) {
-            // Se l'elemento non esiste, crealo e collegaci lo stream
             remoteVideoItem = createRemoteVideoElement(socketId, event.streams[0]);
             remoteVideosContainer.appendChild(remoteVideoItem);
             
@@ -392,7 +403,6 @@ function getOrCreatePeerConnection(socketId) {
             }
 
         } else {
-            // Collega lo stream a un video già esistente, se necessario
             const video = remoteVideoItem.querySelector('video');
             if (video && !video.srcObject) {
                 video.srcObject = event.streams[0];
@@ -403,7 +413,6 @@ function getOrCreatePeerConnection(socketId) {
     // GESTIONE DELLO SCAMBIO DEI CANDIDATI ICE
     pc.onicecandidate = (event) => {
         if (event.candidate) {
-            // Invia il candidato all'altro peer tramite il server di segnalazione
             socket.emit('candidate', socketId, event.candidate);
         }
     };
@@ -448,13 +457,11 @@ async function callUser(socketId, isCaller) {
 
     if (isCaller) {
         try {
-            console.log(`Creazione Offer per ${socketId}`);
             const offer = await pc.createOffer({
                 offerToReceiveAudio: true,
                 offerToReceiveVideo: true
             });
             await pc.setLocalDescription(offer);
-            // Invia l'Offer SDP all'altro peer tramite il server
             socket.emit('offer', socketId, pc.localDescription);
         } catch (error) {
             console.error('Errore nella creazione dell\'Offer:', error);
@@ -472,7 +479,6 @@ async function handleOffer(socketId, description) {
         await pc.setRemoteDescription(new RTCSessionDescription(description));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        // Invia l'Answer SDP al Caller tramite il server
         socket.emit('answer', socketId, pc.localDescription);
     } catch (error) {
         console.error('Errore nella gestione dell\'Offer:', error);
@@ -485,7 +491,6 @@ async function handleOffer(socketId, description) {
 async function handleAnswer(socketId, description) {
     const pc = getOrCreatePeerConnection(socketId);
     try {
-        // L'Answer viene impostata come descrizione remota
         await pc.setRemoteDescription(new RTCSessionDescription(description));
         console.log(`Connessione WebRTC stabilita con ${socketId}`);
     } catch (error) {
@@ -500,7 +505,6 @@ async function handleCandidate(socketId, candidate) {
     try {
         const pc = peerConnections[socketId];
         if (pc && candidate) {
-            // Aggiunge il candidato ricevuto alla connessione
             await pc.addIceCandidate(new RTCIceCandidate(candidate));
         }
     } catch (error) {
@@ -510,30 +514,32 @@ async function handleCandidate(socketId, candidate) {
 
 /**
  * Pulisce la connessione e l'interfaccia utente quando un utente lascia.
+ * FIX: Garantisce la rimozione corretta di tutti gli elementi.
  * @param {string} socketId - ID del socket del peer che ha lasciato.
  * @param {boolean} isExternalEvent - True se l'evento arriva dal server (user-left).
  */
 function removePeer(socketId, isExternalEvent = true) {
-    // Chiude la connessione P2P (se non è già chiusa)
+    // 1. Chiude la connessione P2P (se non è già chiusa)
     const pc = peerConnections[socketId];
     if (pc && isExternalEvent) {
         pc.close();
     }
     delete peerConnections[socketId];
 
-    // Rimuovi gli elementi dal DOM
+    // 2. Rimuovi gli elementi dal DOM (Miniatura)
     const videoElement = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`);
     if (videoElement) {
         videoElement.remove();
     }
 
+    // 3. Rimuovi gli elementi dal DOM (Lista Partecipanti)
     const liElement = document.getElementById(`list-${socketId}`);
     if (liElement) {
         liElement.remove();
     }
     delete remoteNicknames[socketId];
 
-    // LOGICA PER IL FOCUS: se il peer che ha lasciato era in focus, sposta il focus
+    // 4. LOGICA PER IL FOCUS: se il peer che ha lasciato era in focus, sposta il focus
     if (focusedPeerId === socketId) {
         const remainingPeerIds = Object.keys(peerConnections);
         if (remainingPeerIds.length > 0) {
@@ -542,13 +548,15 @@ function removePeer(socketId, isExternalEvent = true) {
         } else {
             // Torna al video locale
             setMainVideo('local');
-            // Mostra il placeholder se non ci sono più peer remoti
-            remoteVideoPlaceholder?.classList.remove('hidden');
         }
     }
 
-    // Aggiorna il contatore
+    // 5. Aggiorna il contatore e il placeholder remoto
     updateParticipantCount();
+
+    if (Object.keys(peerConnections).length === 0) {
+        remoteVideoPlaceholder?.classList.remove('hidden');
+    }
 
     console.log(`Utente ${socketId} rimosso.`);
 }
