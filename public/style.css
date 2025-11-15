@@ -1,20 +1,21 @@
 :root {
-    --primary-color: #00bcd4; /* Ciano moderno */
-    --accent-color: #ff9800; /* Arancione per focus/highlight */
-    --background-dark: #121212; /* Sfondo molto scuro */
-    --surface-dark: #1e1e1e; /* Superfici (pannelli, card) */
-    --text-light: #ffffff;
-    --red-danger: #ef5350;
-    --border-color: rgba(255, 255, 255, 0.1);
+    --primary-color: #1a73e8; /* Blu di Google */
+    --accent-color: #fbbc04; /* Giallo (per highlight) */
+    --background-light: #f1f3f4; /* Grigio chiaro di sfondo */
+    --surface-white: #ffffff; /* Superfici (card, pannelli) */
+    --text-dark: #202124;
+    --text-muted: #5f6368;
+    --red-danger: #d93025; /* Rosso per disconnessione */
+    --border-color: #dadce0;
 }
 
 /* Reset Base & Sfondo */
 body {
-    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Roboto', Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: var(--background-dark);
-    color: var(--text-light);
+    background-color: var(--background-light); /* Sfondo chiaro */
+    color: var(--text-dark);
     min-height: 100vh;
     display: flex;
     overflow: hidden;
@@ -33,10 +34,10 @@ body {
 
 /* --- Pannello Partecipanti (Aside) --- */
 #participants-panel {
-    width: 250px; /* Più stretto per focus sul video */
-    background-color: var(--surface-dark);
+    width: 250px;
+    background-color: var(--surface-white);
     padding: 20px;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
     z-index: 10;
     overflow-y: auto;
     border-right: 1px solid var(--border-color);
@@ -50,38 +51,39 @@ body {
     padding-bottom: 8px;
     margin-top: 0;
     color: var(--primary-color);
+    font-weight: 500;
 }
 
 #participants-list {
     list-style: none;
     padding: 0;
     flex-grow: 1;
-    cursor: default;
 }
 
 #participants-list li {
     padding: 10px 10px;
     margin-bottom: 5px;
     font-size: 1em;
-    border-radius: 4px;
+    border-radius: 8px; /* Bordi più arrotondati */
     transition: background-color 0.2s;
     cursor: pointer;
+    color: var(--text-dark);
 }
 
 #participants-list li:hover {
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(26, 115, 232, 0.1); /* Leggera sfumatura blu */
 }
 
 /* Stile per il partecipante in focus */
 #participants-list li.participant-focused {
-    background-color: var(--accent-color);
-    color: var(--background-dark);
+    background-color: var(--primary-color);
+    color: var(--surface-white);
     font-weight: bold;
 }
 
 .status-indicator {
     float: right;
-    color: #4caf50; /* Verde per connesso */
+    color: #34a853; /* Verde di Google per connesso */
 }
 
 
@@ -89,8 +91,8 @@ body {
 #video-area {
     flex-grow: 1;
     display: flex;
-    flex-direction: column; /* Focus in alto, miniature in basso */
-    padding: 20px;
+    flex-direction: column; 
+    padding: 30px 20px 20px 20px; /* Più spazio sopra */
     gap: 15px;
     min-width: 0;
 }
@@ -102,10 +104,10 @@ body {
     padding-top: 56.25%; /* 16:9 aspect ratio */
     height: 0;
     
-    background-color: var(--surface-dark);
-    border-radius: 12px;
+    background-color: var(--text-dark); /* Sfondo scuro all'interno del riquadro video */
+    border-radius: 8px; 
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.2), 0 1px 1px 0 rgba(0,0,0,0.14), 0 2px 1px -1px rgba(0,0,0,0.12); /* Ombra discreta */
     flex-shrink: 0;
 }
 
@@ -115,7 +117,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Mostra l'intero video */
+    object-fit: contain; 
 }
 
 .video-placeholder {
@@ -123,55 +125,57 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 1.2em;
-    color: #888;
+    font-size: 1.5em;
+    color: var(--text-muted);
 }
 
 .video-label {
     position: absolute;
     bottom: 10px;
     left: 10px;
-    background-color: var(--primary-color);
-    color: var(--background-dark);
-    padding: 4px 10px;
+    background-color: rgba(0, 0, 0, 0.5); /* Etichetta semitrasparente */
+    color: var(--surface-white);
+    padding: 5px 12px;
     border-radius: 4px;
-    font-size: 0.8em;
-    font-weight: bold;
+    font-size: 0.9em;
+    font-weight: 500;
     z-index: 2;
 }
 
 /* Contenitore Video Remoti (Gallery di Miniature) */
 #remote-videos-container {
     display: flex; /* Layout orizzontale */
-    gap: 10px;
-    padding: 5px 0;
+    gap: 12px;
+    padding: 10px 0;
     overflow-x: auto;
     flex-shrink: 0;
-    max-height: 120px; /* Altezza adatta per miniature da 150px */
+    max-height: 120px; 
     width: 100%;
+    /* Striscia di miniature discreta */
+    background-color: var(--background-light); 
 }
 
 /* Stile per i singoli video remoti (Miniature) */
 .remote-feed {
     position: relative;
-    background-color: #000;
-    border-radius: 6px;
+    background-color: var(--text-dark);
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     cursor: pointer;
-    border: 3px solid transparent; /* Border per l'indicatore di focus */
+    border: 3px solid transparent; 
 
-    /* Nuove dimensioni compatte (150px di larghezza) */
+    /* Dimensioni compatte (150px di larghezza) */
     width: 150px;
     min-width: 150px;
     padding-top: 84.375px; /* 16:9 aspect ratio */
     height: 0;
 
-    transition: border-color 0.2s, transform 0.1s;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .remote-feed:hover {
-    transform: scale(1.02);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
 }
 
 .remote-feed video {
@@ -180,106 +184,112 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover; /* Riempie la miniatura */
+    object-fit: cover; 
 }
 
 /* Stile per la miniatura in focus */
 .remote-feed.is-focused {
-    border-color: var(--accent-color);
+    border-color: var(--primary-color);
 }
 
-/* --- Controlli Media --- */
+/* --- Controlli Media (Stile a "Pillola") --- */
 #media-controls {
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid var(--border-color);
+    padding: 15px 0 10px 0;
     display: flex;
     justify-content: center;
-    gap: 30px;
+    gap: 15px;
     flex-shrink: 0;
 }
 
 #media-controls button {
-    background-color: var(--surface-dark);
-    color: var(--text-light);
-    border: 2px solid var(--primary-color);
-    border-radius: 50%;
-    width: 55px;
-    height: 55px;
+    background-color: var(--surface-white);
+    color: var(--text-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 25px; /* Forma a pillola o cerchio */
+    width: 50px;
+    height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
-    font-size: 1.6em;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    font-size: 1.4em;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-#media-controls button:hover {
+/* Pulsanti principali (Audio/Video) */
+#toggle-audio-button, #toggle-video-button {
+    background-color: var(--surface-white); 
+    color: var(--text-dark);
+}
+
+#toggle-audio-button:hover, #toggle-video-button:hover {
     background-color: var(--primary-color);
-    color: var(--background-dark);
+    color: var(--surface-white);
+    border-color: var(--primary-color);
 }
 
-#media-controls button:active {
-    transform: scale(0.95);
+/* Pulsante Muto (attivo/disattivo) - Potrebbe richiedere una classe .muted in JS se vuoi un colore fisso quando muto */
+/* Esempio di stato attivo/disattivo: */
+/*
+#toggle-audio-button.active { 
+    background-color: var(--primary-color);
+    color: var(--surface-white);
 }
+*/
 
-/* Stile per il pulsante Disconnetti */
+/* Pulsante Disconnetti */
 #disconnect-button {
+    background-color: var(--red-danger);
+    color: var(--surface-white);
     border-color: var(--red-danger);
-    color: var(--red-danger);
 }
 
 #disconnect-button:hover {
-    background-color: var(--red-danger);
-    color: var(--text-light);
+    background-color: #a50e0e; /* Rosso più scuro */
+    border-color: #a50e0e;
 }
+
 
 /* --- Overlay Nickname (Modal) --- */
 #nickname-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.95);
-    backdrop-filter: blur(5px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
+    /* ... (Manteniamo lo sfondo scuro per l'overlay) ... */
+    background-color: rgba(0, 0, 0, 0.9);
 }
 
 .card {
-    background: var(--surface-dark);
-    color: var(--text-light);
+    background: var(--surface-white);
+    color: var(--text-dark);
     padding: 40px 50px;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
-    text-align: center;
-    max-width: 400px;
+    border-radius: 8px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
 }
 
 .card h2 {
     color: var(--primary-color);
-    margin-bottom: 30px;
 }
 
 #nickname-input {
-    background-color: #333;
-    color: var(--text-light);
+    background-color: #f8f8f8;
+    color: var(--text-dark);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 6px;
 }
 
 #nickname-input:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.3); /* Anello di focus blu */
     outline: none;
 }
 
 #join-button {
     background-color: var(--primary-color);
-    color: var(--background-dark);
-    font-weight: bold;
-    border-radius: 8px;
+    color: var(--surface-white);
+    font-weight: 500;
+    padding: 12px 25px;
+    border-radius: 6px;
+}
+
+#join-button:hover {
+    background-color: #1565c0; 
 }
