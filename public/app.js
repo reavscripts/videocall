@@ -2,7 +2,8 @@
 // CONFIGURAZIONE WEB RTC E SOCKET.IO
 // ==============================================================================
 
-const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
+// !!! IMPORTANTE: SOSTITUISCI CON IL TUO URL DI RENDER EFFETTIVO !!!
+const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com/"; 
 
 // --- ELEMENTI DOM ---
 const localVideo = document.getElementById('local-video');
@@ -15,8 +16,7 @@ const participantsList = document.getElementById('participants-list');
 let socket = null;
 let localStream = null;
 let userNickname = 'Ospite';
-// ID fisso della stanza per il test
-const roomId = 'mia_stanza_video'; 
+const roomId = 'mia_stanza_video'; // ID fisso della stanza per il test
 const peerConnections = {}; // Mappa per RTCPeerConnection: { socketId: RTCPeerConnection }
 const remoteNicknames = {}; // Mappa per i nickname remoti
 
@@ -30,15 +30,6 @@ const iceConfiguration = {
 // ==============================================================================
 // FUNZIONI DI BASE DELL'INTERFACCIA UTENTE
 // ==============================================================================
-
-/**
- * Funzione helper per mostrare un messaggio di errore (sostituisce alert()).
- * Logga un avviso nella console.
- * @param {string} message 
- */
-function showStatusMessage(message) {
-    console.warn(`[AVVISO UI] ${message}`);
-}
 
 /**
  * Gestisce il click sul pulsante "Entra" e avvia il processo.
@@ -56,17 +47,14 @@ document.getElementById('join-button').addEventListener('click', () => {
                 initializeSocket();
             })
             .catch(error => {
-                // Gestione dell'errore senza alert()
-                console.error("Non è stato possibile avviare la webcam:", error.name, error);
-                showStatusMessage(`Impossibile avviare la webcam. Controlla i permessi. Errore: ${error.name}`);
-                
+                console.error("Non è stato possibile avviare la webcam:", error);
+                alert("Non è stato possibile avviare la webcam. Controlla i permessi e riprova.");
                 // Ritorna all'overlay in caso di errore
                 nicknameOverlay.classList.remove('hidden');
                 conferenceContainer.classList.add('hidden');
             });
     } else {
-        // Gestione dell'errore senza alert()
-        showStatusMessage('Per favore, inserisci un nickname.');
+        alert('Per favore, inserisci un nickname.');
     }
 });
 
@@ -74,11 +62,10 @@ document.getElementById('join-button').addEventListener('click', () => {
  * Aggiorna la lista dei partecipanti nel pannello laterale.
  */
 function updateParticipantList(id, nickname, isLocal = false) {
-    // Uso 'list-' come prefisso per l'ID del li per coerenza
-    let li = document.getElementById(`list-${id}`); 
+    let li = document.getElementById(id);
     if (!li) {
         li = document.createElement('li');
-        li.id = `list-${id}`; 
+        li.id = id;
         participantsList.appendChild(li);
     }
     li.textContent = nickname + (isLocal ? " (Tu)" : "");
@@ -91,13 +78,13 @@ function updateParticipantList(id, nickname, isLocal = false) {
 
 /**
  * Avvia la webcam e il microfono e mostra lo stream locale.
- * Usa restrizioni minimali per massimizzare la compatibilità.
  * @returns {Promise<MediaStream>} Il flusso media locale.
  */
 async function startLocalMedia() {
+    // Restrizioni MINIMALI per aumentare la compatibilità
     const constraints = {
         audio: true,
-        video: true // Richiede la prima videocamera disponibile
+        video: true // Chiede semplicemente la prima videocamera disponibile
     };
     
     try {
@@ -105,6 +92,7 @@ async function startLocalMedia() {
         localVideo.srcObject = localStream;
         return localStream; 
     } catch (error) {
+        // Se non funziona neanche questo, controlla il nome dell'errore
         throw error; 
     }
 }
@@ -123,11 +111,12 @@ function initializeSocket() {
 
     socket.on('connect', () => {
         console.log('Connesso al server di segnalazione.');
+        // Unisciti alla stanza non appena connesso e notifica il tuo nickname
         socket.emit('join-room', roomId, userNickname);
     });
 
     // 1. Ricevi la lista degli utenti già presenti (il nuovo utente chiama loro)
-    socket.on('users-in-room', (userList) => {
+    socket.on('users-in-room', (userList, socketIdCaller) => {
         updateParticipantList(socket.id, userNickname, true); 
         
         userList.forEach(user => {
@@ -144,7 +133,7 @@ function initializeSocket() {
     socket.on('user-joined', (newSocketId, newNickname) => {
         console.log(`Nuovo utente ${newNickname} unito: ${newSocketId}`);
         remoteNicknames[newSocketId] = newNickname;
-        // Inizializza la connessione con il nuovo utente (aspetterà l'Offer)
+        // Inizializza la connessione con il nuovo utente
         callUser(newSocketId, false);
         updateParticipantList(newSocketId, newNickname);
     });
@@ -199,9 +188,8 @@ function getOrCreatePeerConnection(socketId) {
     // GESTIONE DELLA RICEZIONE DEL VIDEO REMOTO (ONTRAK)
     pc.ontrack = (event) => {
         console.log(`Ricevuto track da ${socketId}`);
-        
         // Impedisce di aggiungere lo stesso stream due volte
-        if (remoteVideosContainer.querySelector(`[data-peer-id="${socketId}"]`)) return;
+        if (remoteVideosContainer.querySelector(`[data-peer-id="${socketId}"] video`)) return;
         
         const remoteStream = event.streams[0];
         const remoteVideoItem = createRemoteVideoElement(socketId, remoteStream);
@@ -243,7 +231,7 @@ function createRemoteVideoElement(socketId, stream) {
 }
 
 
-/** * Invia la chiamata (Offer SDP) - Viene chiamato solo se isCaller è true
+/** * Invia la chiamata (Offer SDP) - Viene chiamato sia dal Caller che dal Callee (se isCaller=false, attende l'Offer)
  */
 async function callUser(socketId, isCaller) {
     const pc = getOrCreatePeerConnection(socketId);
@@ -259,6 +247,7 @@ async function callUser(socketId, isCaller) {
             console.error('Errore nella creazione dell\'Offer:', error);
         }
     }
+    // Se non è il Caller, aspetta di ricevere l'Offer (handleOffer)
 }
 
 /** * Gestisce la ricezione dell'Offer e risponde con l'Answer.
@@ -280,8 +269,7 @@ async function handleOffer(socketId, description) {
 /** * Gestisce la ricezione dell'Answer.
  */
 async function handleAnswer(socketId, description) {
-    // Usiamo getOrCreatePeerConnection per garantire che esista se l'Answer arriva prima dei candidati
-    const pc = getOrCreatePeerConnection(socketId); 
+    const pc = getOrCreatePeerConnection(socketId);
     await pc.setRemoteDescription(description);
     console.log(`Connessione WebRTC stabilita con ${socketId}`);
 }
@@ -316,14 +304,11 @@ function removePeer(socketId) {
         videoElement.remove();
     }
     
-    // Rimuovi dalla lista partecipanti (usando il prefisso 'list-')
-    const liElement = document.getElementById(`list-${socketId}`);
+    // Rimuovi dalla lista partecipanti
+    const liElement = document.getElementById(socketId);
     if (liElement) {
         liElement.remove();
     }
     
     console.log(`Utente ${socketId} rimosso.`);
 }
-```eof
-
-Ora hai il codice JavaScript completo, corretto per il tuo ambiente e ottimizzato per la compatibilità della webcam. Non ti resta che aggiornare il file nel tuo repository e fare il push.
