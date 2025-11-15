@@ -81,12 +81,10 @@ function updateParticipantList(id, nickname, isLocal = false) {
  * @returns {Promise<MediaStream>} Il flusso media locale.
  */
 async function startLocalMedia() {
+    // Restrizioni MINIMALI per aumentare la compatibilità
     const constraints = {
         audio: true,
-        video: {
-            width: { ideal: 640, min: 480 },
-            height: { ideal: 480, min: 360 },
-        }
+        video: true // Chiede semplicemente la prima videocamera disponibile
     };
     
     try {
@@ -94,6 +92,7 @@ async function startLocalMedia() {
         localVideo.srcObject = localStream;
         return localStream; 
     } catch (error) {
+        // Se non funziona neanche questo, controlla il nome dell'errore
         throw error; 
     }
 }
