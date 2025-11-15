@@ -140,24 +140,21 @@ body {
     padding: 5px 0;
     overflow-x: auto; /* Aggiunge scroll orizzontale se necessario */
     flex-shrink: 0; /* Non permettere che si restringa */
-    max-height: 150px; /* Limita l'altezza per le miniature */
+    max-height: 120px; /* Limita l'altezza per le miniature */
     width: 100%;
 }
 
 /* Stile per i singoli video remoti (Miniature) */
 .remote-feed {
     position: relative;
-    background-color: #1a1a1a;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-    cursor: pointer;
-    border: 3px solid transparent; /* Border per l'indicatore di focus */
-
-    /* Dimensione fissa per la miniatura (es. 200px di larghezza per un 16:9) */
-    width: 200px;
-    min-width: 200px;
-    padding-top: 112.5px; /* 16:9 aspect ratio (200 * 0.5625) */
+    /* ... (altre proprietà) ... */
+    
+    /* MODIFICA QUI: Riduci la larghezza della miniatura */
+    width: 150px;       /* Nuova larghezza (es. 150px) */
+    min-width: 150px;   /* Assicura che non si restringa */
+    
+    /* Ricalcola padding-top per mantenere l'aspect ratio 16:9 (150 * 0.5625 = 84.375) */
+    padding-top: 84.375px; 
     height: 0;
 
     transition: border-color 0.2s;
