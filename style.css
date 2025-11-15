@@ -1,0 +1,179 @@
+:root {
+    --primary-color: #007bff; /* Blu vibrante */
+    --secondary-color: #f8f9fa; /* Grigio chiaro */
+    --dark-bg: #212529; /* Sfondo scuro */
+    --text-light: #ffffff;
+    --text-dark: #333;
+}
+
+/* Reset base */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, var(--dark-bg) 0%, #343a40 100%);
+    color: var(--text-light);
+    min-height: 100vh;
+    display: flex;
+    overflow: hidden;
+}
+
+/* Nasconde gli elementi fino all'inserimento del nickname */
+.hidden {
+    display: none !important;
+}
+
+/* Contenitore Principale Conferenza */
+#conference-container {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+}
+
+/* Pannello Partecipanti (Aside) */
+#participants-panel {
+    width: 250px;
+    background-color: rgba(0, 0, 0, 0.4);
+    padding: 20px;
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+    overflow-y: auto;
+}
+
+#participants-panel h3 {
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 10px;
+    margin-top: 0;
+    color: var(--primary-color);
+}
+
+#participants-list {
+    list-style: none;
+    padding: 0;
+}
+
+#participants-list li {
+    padding: 8px 0;
+    font-size: 1.1em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Area Video Principale (Main) */
+#video-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 15px;
+}
+
+#main-video-feed {
+    position: relative;
+    flex-grow: 1;
+    min-height: 40%;
+    background-color: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+#main-video-feed video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-label {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9em;
+}
+
+/* Contenitore Video Remoti */
+#remote-videos-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    min-height: 200px; /* Altezza minima per la sezione */
+}
+
+/* Stile per i video remoti */
+.remote-video-item {
+    position: relative;
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.remote-video-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Overlay Nickname (Modal) */
+#nickname-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.card {
+    background: var(--secondary-color);
+    color: var(--text-dark);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    text-align: center;
+}
+
+.card h2 {
+    color: var(--primary-color);
+    margin-bottom: 25px;
+}
+
+#nickname-input {
+    padding: 12px;
+    width: 250px;
+    margin-bottom: 20px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+#nickname-input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+#join-button {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+#join-button:hover {
+    background-color: #0056b3;
+}
+
+#join-button:active {
+    transform: scale(0.98);
+}

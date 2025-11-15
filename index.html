@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conferenza Video Moderna - WebRTC</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="nickname-overlay">
+        <div class="card">
+            <h2>👋 Scegli un Nickname</h2>
+            <input type="text" id="nickname-input" placeholder="Il tuo Nickname (es. Alice)">
+            <button id="join-button">Entra nella Conferenza</button>
+        </div>
+    </div>
+
+    <div id="conference-container" class="hidden">
+        
+        <aside id="participants-panel">
+            <h3>👥 Partecipanti</h3>
+            <ul id="participants-list">
+                </ul>
+        </aside>
+
+        <main id="video-area">
+            <div id="main-video-feed">
+                <video id="local-video" autoplay muted></video> 
+                <div class="video-label">Tu</div>
+            </div>
+            
+            <div id="remote-videos-container">
+                <div class="video-placeholder">In attesa di altri partecipanti...</div>
+            </div>
+        </main>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
