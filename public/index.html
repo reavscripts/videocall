@@ -3,40 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conferenza Video - WebRTC</title>
+    <title>Video Conferenza WebRTC</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <!-- Overlay per l'inserimento del Nickname -->
     <div id="nickname-overlay">
-        <div class="card">
-            <h2>👋 Scegli un Nickname</h2>
-            <input type="text" id="nickname-input" placeholder="Il tuo Nickname (es. Alice)">
-            <button id="join-button">Entra nella Conferenza</button>
-        </div>
+        <h1>Entra nella Conferenza</h1>
+        <input type="text" id="nickname-input" placeholder="Il tuo Nickname" maxlength="15">
+        <button id="join-button">Entra</button>
+        <p class="status-info">Assicurati che la telecamera sia sbloccata.</p>
     </div>
 
+    <!-- Contenitore della Conferenza (Visibile dopo l'accesso) -->
     <div id="conference-container" class="hidden">
         
-        <aside id="participants-panel">
-            <h3>👥 Partecipanti</h3>
-            <ul id="participants-list">
-                </ul>
-        </aside>
-
-        <main id="video-area">
-            <div id="main-video-feed">
-                <video id="local-video" autoplay muted></video> 
+        <!-- Area Video Principale -->
+        <main id="video-grid">
+            
+            <!-- Video Locale (Il tuo) -->
+            <div id="local-video-item" class="local-video-item">
+                <video id="local-video" autoplay muted></video>
                 <div class="video-label">Tu</div>
             </div>
-            
+
+            <!-- Contenitore per i Video Remoti -->
             <div id="remote-videos-container">
-                <div class="video-placeholder">In attesa di altri partecipanti...</div>
+                <!-- I video remoti verranno aggiunti qui dal JavaScript -->
             </div>
+
         </main>
 
+        <!-- Pannello Laterale dei Partecipanti -->
+        <aside id="sidebar">
+            <h2>Partecipanti</h2>
+            <ul id="participants-list">
+                <!-- I partecipanti verranno aggiunti qui dal JavaScript -->
+            </ul>
+        </aside>
+
     </div>
-	<script src="/socket.io/socket.io.js"></script>
+
+    <!-- Carica Socket.IO (necessario per la connessione al server Render) -->
+    <script src="/socket.io/socket.io.js"></script> 
+    <!-- Carica la tua logica JavaScript -->
     <script src="app.js"></script>
+
 </body>
 </html>
