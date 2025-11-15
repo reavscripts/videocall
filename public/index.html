@@ -11,7 +11,7 @@
     <div id="nickname-overlay">
         <div class="card">
             <h2>👋 Scegli un Nickname</h2>
-            <input type="text" id="nickname-input" placeholder="Il tuo Nickname (es. Alice)">
+            <input type="text" id="nickname-input" placeholder="Il tuo Nickname (es. Alice)" required>
             <button id="join-button">Entra nella Conferenza</button>
         </div>
     </div>
@@ -19,24 +19,40 @@
     <div id="conference-container" class="hidden">
         
         <aside id="participants-panel">
-            <h3>👥 Partecipanti</h3>
-            <ul id="participants-list">
+            <h3>👥 Partecipanti (<span id="participant-count">0</span>)</h3>
+            <ul id="participants-list" aria-label="Elenco dei partecipanti alla conferenza">
                 </ul>
         </aside>
 
         <main id="video-area">
-            <div id="main-video-feed">
-                <video id="local-video" autoplay muted></video> 
+            
+            <div id="local-video-feed" class="video-feed">
+                <video id="local-video" autoplay muted playsinline></video>
                 <div class="video-label">Tu</div>
             </div>
             
-            <div id="remote-videos-container">
-                <div class="video-placeholder">In attesa di altri partecipanti...</div>
-            </div>
-        </main>
+            <section id="remote-videos-container" aria-label="Video dei partecipanti remoti">
+                <h4 class="sr-only">Video Remoti</h4> <div id="remote-video-placeholder" class="video-placeholder">In attesa di altri partecipanti...</div>
+                </section>
+            
+            </main>
 
     </div>
-	<script src="/socket.io/socket.io.js"></script>
+
+    <template id="remote-video-template">
+        <div class="video-feed remote-feed">
+            <video autoplay playsinline></video>
+            <div class="video-label">Nome Utente Remoto</div>
+        </div>
+    </template>
+
+    <template id="participant-item-template">
+        <li data-peer-id="">
+            <span class="participant-name">Nome</span>
+            <span class="status-indicator">●</span> </li>
+    </template>
+    
+    <script src="/socket.io/socket.io.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
