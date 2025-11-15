@@ -384,4 +384,122 @@ function getOrCreatePeerConnection(socketId) {
  * Funzione helper per creare l'elemento video remoto nel DOM (Miniatura).
  */
 function createRemoteVideoElement(socketId, stream) {
-    const
+    const template = document.getElementById('remote-video-template');
+    
+    // Clona il template
+    const remoteVideoItem = template.content.cloneNode(true).firstElementChild;
+    const remoteVideo = remoteVideoItem.querySelector('video');
+    const videoLabel = remoteVideoItem.querySelector('.video-label');
+
+    remoteVideoItem.dataset.peerId = socketId;
+    remoteVideo.srcObject = stream;
+    remoteVideo.setAttribute('playsinline', '');
+    videoLabel.textContent = remoteNicknames[socketId] || `Peer ${socketId.substring(0, 4)}...`;
+
+    // Listener per mettere il video in focus cliccando sulla miniatura
+    remoteVideoItem.addEventListener('click', () => {
+        setMainVideo(socketId);
+    });
+
+    return remoteVideoItem;
+}
+
+
+async function callUser(socketId, isCaller) {
+    const pc = getOrCreatePeerConnection(socketId);
+
+    if (isCaller) {
+        try {
+            const offer = await pc.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+            });
+            await pc.setLocalDescription(offer);
+            socket.emit('offer', socketId, pc.localDescription);
+        } catch (error) {
+            console.error('Errore nella creazione dell\'Offer:', error);
+        }
+    }
+}
+
+async function handleOffer(socketId, description) {
+    const pc = getOrCreatePeerConnection(socketId);
+
+    try {
+        await pc.setRemoteDescription(new RTCSessionDescription(description));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit('answer', socketId, pc.localDescription);
+    } catch (error) {
+        console.error('Errore nella gestione dell\'Offer:', error);
+    }
+}
+
+async function handleAnswer(socketId, description) {
+    const pc = getOrCreatePeerConnection(socketId);
+    try {
+        await pc.setRemoteDescription(new RTCSessionDescription(description));
+        console.log(`Connessione WebRTC stabilita con ${socketId}`);
+    } catch (error) {
+        console.error('Errore nella gestione dell\'Answer:', error);
+    }
+}
+
+async function handleCandidate(socketId, candidate) {
+    try {
+        const pc = peerConnections[socketId];
+        if (pc && candidate) {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+    } catch (error) {
+        console.error('Errore nell\'aggiunta del candidato ICE. Potrebbe essere gestito internamente:', error);
+    }
+}
+
+/**
+ * Pulisce la connessione e l'interfaccia utente quando un utente lascia.
+ * @param {string} socketId - ID del socket del peer che ha lasciato.
+ * @param {boolean} isExternalEvent - True se l'evento arriva dal server (user-left).
+ */
+function removePeer(socketId, isExternalEvent = true) {
+    // Chiude la connessione P2P (se non è già chiusa)
+    const pc = peerConnections[socketId];
+    if (pc && isExternalEvent) {
+        pc.close();
+    }
+    delete peerConnections[socketId];
+
+    // Rimuovi gli elementi dal DOM
+    const videoElement = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`);
+    if (videoElement) {
+        videoElement.remove();
+    }
+
+    const liElement = document.getElementById(`list-${socketId}`);
+    if (liElement) {
+        liElement.remove();
+    }
+    delete remoteNicknames[socketId];
+
+    // LOGICA PER IL FOCUS: se il peer che ha lasciato era in focus, sposta il focus
+    if (focusedPeerId === socketId) {
+        const remainingPeerIds = Object.keys(peerConnections);
+        if (remainingPeerIds.length > 0) {
+            // Metti in focus il primo peer rimasto
+            setMainVideo(remainingPeerIds[0]);
+        } else {
+            // Torna al video locale
+            setMainVideo('local');
+        }
+    }
+
+    // Aggiorna il contatore
+    updateParticipantCount();
+
+    // Mostra il placeholder se non ci sono più peer remoti
+    if (Object.keys(peerConnections).length === 0) {
+        remoteVideoPlaceholder?.classList.remove('hidden');
+    }
+
+    console.log(`Utente ${socketId} rimosso.`);
+}
