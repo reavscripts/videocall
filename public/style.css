@@ -1,27 +1,25 @@
 :root {
-    --primary-color: #007bff; /* Blu vibrante */
-    --secondary-color: #f8f9fa; /* Grigio chiaro */
-    --dark-bg: #212529; /* Sfondo scuro per il corpo */
-    --panel-bg: rgba(0, 0, 0, 0.4); /* Sfondo semi-trasparente per il pannello */
+    --primary-color: #00bcd4; /* Ciano moderno */
+    --accent-color: #ff9800; /* Arancione per focus/highlight */
+    --background-dark: #121212; /* Sfondo molto scuro */
+    --surface-dark: #1e1e1e; /* Superfici (pannelli, card) */
     --text-light: #ffffff;
-    --text-dark: #333;
-    --red-danger: #dc3545; /* Rosso per pulsanti importanti (es. disconnessione) */
+    --red-danger: #ef5350;
+    --border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Reset base */
+/* Reset Base & Sfondo */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
-    /* Sfondo moderno con gradiente */
-    background: linear-gradient(135deg, var(--dark-bg) 0%, #343a40 100%);
+    background-color: var(--background-dark);
     color: var(--text-light);
     min-height: 100vh;
     display: flex;
-    overflow: hidden; /* Evita le barre di scorrimento indesiderate */
+    overflow: hidden;
 }
 
-/* Utilizzo generale */
 .hidden {
     display: none !important;
 }
@@ -35,20 +33,21 @@ body {
 
 /* --- Pannello Partecipanti (Aside) --- */
 #participants-panel {
-    width: 280px;
-    background-color: var(--panel-bg);
+    width: 250px; /* Più stretto per focus sul video */
+    background-color: var(--surface-dark);
     padding: 20px;
-    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
     z-index: 10;
     overflow-y: auto;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
 }
 
 #participants-panel h3 {
+    font-size: 1.2em;
     border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 10px;
+    padding-bottom: 8px;
     margin-top: 0;
     color: var(--primary-color);
 }
@@ -57,31 +56,40 @@ body {
     list-style: none;
     padding: 0;
     flex-grow: 1;
-    cursor: pointer; /* Indica che gli elementi sono cliccabili */
+    cursor: default;
 }
 
 #participants-list li {
-    padding: 10px 5px;
-    font-size: 1.1em;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 10px;
+    margin-bottom: 5px;
+    font-size: 1em;
+    border-radius: 4px;
     transition: background-color 0.2s;
+    cursor: pointer;
 }
 
 #participants-list li:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Stile per il partecipante in focus */
 #participants-list li.participant-focused {
-    background-color: var(--primary-color);
+    background-color: var(--accent-color);
+    color: var(--background-dark);
     font-weight: bold;
 }
+
+.status-indicator {
+    float: right;
+    color: #4caf50; /* Verde per connesso */
+}
+
 
 /* --- Area Video Principale (Main) --- */
 #video-area {
     flex-grow: 1;
     display: flex;
-    flex-direction: column; /* Imposta layout verticale: Focus in alto, miniature in basso */
+    flex-direction: column; /* Focus in alto, miniature in basso */
     padding: 20px;
     gap: 15px;
     min-width: 0;
@@ -91,15 +99,14 @@ body {
 #main-video-feed {
     position: relative;
     width: 100%;
-    /* TRUCCO CSS PER 16:9: altezza calcolata come 56.25% della larghezza */
     padding-top: 56.25%; /* 16:9 aspect ratio */
     height: 0;
     
-    background-color: #000;
+    background-color: var(--surface-dark);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
-    flex-shrink: 0; /* Non permettere che si restringa */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+    flex-shrink: 0;
 }
 
 #main-video-feed video {
@@ -108,7 +115,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Assicura che l'intero video sia visibile */
+    object-fit: contain; /* Mostra l'intero video */
 }
 
 .video-placeholder {
@@ -116,7 +123,7 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 1.5em;
+    font-size: 1.2em;
     color: #888;
 }
 
@@ -125,10 +132,10 @@ body {
     bottom: 10px;
     left: 10px;
     background-color: var(--primary-color);
-    color: var(--text-light);
-    padding: 6px 12px;
-    border-radius: 5px;
-    font-size: 0.9em;
+    color: var(--background-dark);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.8em;
     font-weight: bold;
     z-index: 2;
 }
@@ -138,30 +145,33 @@ body {
     display: flex; /* Layout orizzontale */
     gap: 10px;
     padding: 5px 0;
-    overflow-x: auto; /* Aggiunge scroll orizzontale se necessario */
-    flex-shrink: 0; /* Non permettere che si restringa */
-    max-height: 120px; /* Limita l'altezza per le miniature */
+    overflow-x: auto;
+    flex-shrink: 0;
+    max-height: 120px; /* Altezza adatta per miniature da 150px */
     width: 100%;
 }
 
 /* Stile per i singoli video remoti (Miniature) */
 .remote-feed {
     position: relative;
-    /* ... (altre proprietà) ... */
-    
-    /* MODIFICA QUI: Riduci la larghezza della miniatura */
-    width: 150px;       /* Nuova larghezza (es. 150px) */
-    min-width: 150px;   /* Assicura che non si restringa */
-    
-    /* Ricalcola padding-top per mantenere l'aspect ratio 16:9 (150 * 0.5625 = 84.375) */
-    padding-top: 84.375px; 
+    background-color: #000;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    border: 3px solid transparent; /* Border per l'indicatore di focus */
+
+    /* Nuove dimensioni compatte (150px di larghezza) */
+    width: 150px;
+    min-width: 150px;
+    padding-top: 84.375px; /* 16:9 aspect ratio */
     height: 0;
 
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, transform 0.1s;
 }
 
 .remote-feed:hover {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+    transform: scale(1.02);
 }
 
 .remote-feed video {
@@ -173,40 +183,40 @@ body {
     object-fit: cover; /* Riempie la miniatura */
 }
 
-/* Stile per la miniatura in focus (visivo) */
+/* Stile per la miniatura in focus */
 .remote-feed.is-focused {
-    border-color: var(--primary-color);
+    border-color: var(--accent-color);
 }
 
 /* --- Controlli Media --- */
 #media-controls {
     margin-top: 20px;
     padding-top: 15px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: center;
-    gap: 20px;
+    gap: 30px;
     flex-shrink: 0;
 }
 
 #media-controls button {
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
+    background-color: var(--surface-dark);
+    color: var(--text-light);
+    border: 2px solid var(--primary-color);
     border-radius: 50%;
-    width: 50px;
-    height: 50px;
+    width: 55px;
+    height: 55px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
-    font-size: 1.5em;
-    line-height: 1;
+    transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+    font-size: 1.6em;
 }
 
 #media-controls button:hover {
-    background-color: #0056b3;
+    background-color: var(--primary-color);
+    color: var(--background-dark);
 }
 
 #media-controls button:active {
@@ -215,13 +225,14 @@ body {
 
 /* Stile per il pulsante Disconnetti */
 #disconnect-button {
-    background-color: var(--red-danger);
+    border-color: var(--red-danger);
+    color: var(--red-danger);
 }
 
 #disconnect-button:hover {
-    background-color: #c82333;
+    background-color: var(--red-danger);
+    color: var(--text-light);
 }
-
 
 /* --- Overlay Nickname (Modal) --- */
 #nickname-overlay {
@@ -230,7 +241,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.9);
+    background-color: rgba(0, 0, 0, 0.95);
     backdrop-filter: blur(5px);
     display: flex;
     justify-content: center;
@@ -239,11 +250,11 @@ body {
 }
 
 .card {
-    background: var(--secondary-color);
-    color: var(--text-dark);
+    background: var(--surface-dark);
+    color: var(--text-light);
     padding: 40px 50px;
-    border-radius: 15px;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
     text-align: center;
     max-width: 400px;
 }
@@ -253,40 +264,22 @@ body {
     margin-bottom: 30px;
 }
 
-#nickname-input, #room-input {
-    padding: 14px;
-    width: 100%;
-    box-sizing: border-box;
-    margin-bottom: 25px;
-    border: 2px solid #ccc;
-    border-radius: 10px;
-    font-size: 1.1em;
-    transition: border-color 0.3s, box-shadow 0.3s;
+#nickname-input {
+    background-color: #333;
+    color: var(--text-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
 }
 
-#nickname-input:focus, #room-input:focus {
+#nickname-input:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+    box-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
     outline: none;
 }
 
 #join-button {
     background-color: var(--primary-color);
-    color: white;
-    padding: 14px 30px;
-    border: none;
-    border-radius: 10px;
-    font-size: 1.2em;
+    color: var(--background-dark);
     font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.1s, box-shadow 0.3s;
-}
-
-#join-button:hover {
-    background-color: #0056b3;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
-
-#join-button:active {
-    transform: scale(0.98);
+    border-radius: 8px;
 }
