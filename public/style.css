@@ -1,17 +1,16 @@
 :root {
-    /* ... (I colori del tema dark rimangono gli stessi) ... */
-    --primary-color: #00bcd4; 
-    --accent-color: #ff9800; 
-    --background-dark: #121212; 
-    --surface-dark: #1e1e1e; 
-    --input-dark: #2c2c2c; 
+    --primary-color: #00bcd4; /* Ciano moderno per gli accenti */
+    --accent-color: #ff9800; /* Arancione per focus/highlight */
+    --background-dark: #121212; /* Sfondo molto scuro (quasi nero) */
+    --surface-dark: #1e1e1e; /* Superfici dei pannelli e delle card */
+    --input-dark: #2c2c2c; /* Sfondo dei campi di input */
     --text-light: #ffffff;
     --text-muted: #b0b0b0;
-    --red-danger: #ef5350; 
+    --red-danger: #ef5350; /* Rosso per disconnessione */
     --border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* ... (Reset Base & Partecipanti rimangono gli stessi) ... */
+/* Reset Base & Sfondo */
 body {
     font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
@@ -27,6 +26,7 @@ body {
     display: none !important;
 }
 
+/* --- Contenitore Principale Conferenza --- */
 #conference-container {
     display: flex;
     width: 100%;
@@ -61,7 +61,7 @@ body {
 }
 
 #participants-list li {
-    padding: 12px 10px; 
+    padding: 12px 10px; /* Più spazio interno */
     margin-bottom: 8px;
     font-size: 1.1em;
     border-radius: 6px;
@@ -70,9 +70,10 @@ body {
 }
 
 #participants-list li:hover {
-    background-color: rgba(0, 188, 212, 0.1);
+    background-color: rgba(0, 188, 212, 0.1); /* Leggera sfumatura ciano */
 }
 
+/* Stile per il partecipante in focus */
 #participants-list li.participant-focused {
     background-color: var(--primary-color);
     color: var(--background-dark);
@@ -81,26 +82,26 @@ body {
 
 .status-indicator {
     float: right;
-    color: #4caf50;
+    color: #4caf50; /* Verde per connesso */
 }
-/* --- Fine Pannello Partecipanti --- */
----
+
+
 /* --- Area Video Principale (Main) --- */
 #video-area {
     flex-grow: 1;
     display: flex;
     flex-direction: column; 
-    padding: 25px; /* Spazio intorno al contenuto */
+    padding: 25px;
     gap: 15px;
     min-width: 0;
 }
 
-/* Contenitore del Video in Focus (DIMENSIONI BILANCIATE) */
+/* Contenitore del Video in Focus (IL PIÙ GRANDE) */
 #main-video-feed {
     position: relative;
     width: 100%;
-    /* RIDUCIAMO QUESTO VALORE: 50% vs 60% precedente */
-    padding-top: 50%; /* Circa 16:9, ma leggermente più grande verticalmente */
+    /* Aumenta l'altezza visiva per renderlo GRANDE */
+    padding-top: 60%; 
     height: 0;
     
     background-color: #000; 
@@ -148,8 +149,7 @@ body {
     padding: 5px 0;
     overflow-x: auto; 
     flex-shrink: 0;
-    /* Mini-gallery più alta per ospitare miniature più piccole */
-    max-height: 100px; 
+    max-height: 100px; /* Altezza limitata per farle sembrare più piccole */
     width: 100%;
 }
 
@@ -189,8 +189,7 @@ body {
 .remote-feed.is-focused {
     border-color: var(--accent-color);
 }
-/* --- Fine Miniature --- */
----
+
 /* --- Controlli Media --- */
 #media-controls {
     margin-top: 20px;
@@ -207,7 +206,7 @@ body {
     color: var(--primary-color);
     border: 2px solid var(--primary-color);
     border-radius: 50%;
-    width: 60px; 
+    width: 60px; /* Controlli leggermente più grandi */
     height: 60px;
     display: flex;
     align-items: center;
@@ -222,6 +221,7 @@ body {
     color: var(--background-dark);
 }
 
+/* Stile per il pulsante Disconnetti */
 #disconnect-button {
     border-color: var(--red-danger);
     color: var(--red-danger);
@@ -231,8 +231,8 @@ body {
     background-color: var(--red-danger);
     color: var(--text-light);
 }
-/* --- Fine Controlli Media --- */
----
+
+
 /* --- Overlay Nickname (Modal) --- */
 #nickname-overlay {
     position: fixed;
@@ -263,15 +263,16 @@ body {
     margin-bottom: 40px;
 }
 
+/* BARRE DI TESTO PIÙ GRANDI */
 #nickname-input {
-    padding: 18px; 
+    padding: 18px; /* Aumenta l'altezza del padding */
     width: 100%;
     box-sizing: border-box;
     margin-bottom: 30px;
     border: 1px solid var(--border-color);
     border-radius: 10px;
-    font-size: 1.2em;
-    background-color: var(--input-dark); 
+    font-size: 1.2em; /* Testo più grande */
+    background-color: var(--input-dark); /* Sfondo input scuro */
     color: var(--text-light);
     transition: border-color 0.3s, box-shadow 0.3s;
 }
