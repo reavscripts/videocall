@@ -1,29 +1,39 @@
-// --- VARIABILI GLOBALI ---
+// ==============================================================================
+// CONFIGURAZIONE WEB RTC E SOCKET.IO
+// ==============================================================================
+
+// !!! IMPORTANTE: SOSTITUISCI CON IL TUO URL DI RENDER EFFETTIVO !!!
+const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com/"; 
+
+// --- ELEMENTI DOM ---
 const localVideo = document.getElementById('local-video');
 const remoteVideosContainer = document.getElementById('remote-videos-container');
 const nicknameOverlay = document.getElementById('nickname-overlay');
 const conferenceContainer = document.getElementById('conference-container');
 const participantsList = document.getElementById('participants-list');
 
-// Variabili di Connessione WebRTC
+// --- VARIABILI DI STATO ---
 let socket = null;
-let peerConnection = null;
 let localStream = null;
 let userNickname = 'Ospite';
-const roomId = 'mia_stanza_video'; // ID fisso della stanza
-const peerConnections = {}; // Mappa per gestire più connessioni P2P (per le chiamate multi-utente)
+const roomId = 'mia_stanza_video'; // ID fisso della stanza per il test
+const peerConnections = {}; // Mappa per RTCPeerConnection: { socketId: RTCPeerConnection }
+const remoteNicknames = {}; // Mappa per i nickname remoti
 
-// Configurazione STUN/TURN (necessaria per il routing attraverso NAT e Firewall)
+// Configurazione STUN (Server Traversal Utilities for NAT)
 const iceConfiguration = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        // Aggiungere server TURN è consigliato per una robustezza maggiore
     ]
 };
 
-// --- FUNZIONI DI BASE ---
+// ==============================================================================
+// FUNZIONI DI BASE DELL'INTERFACCIA UTENTE
+// ==============================================================================
 
-/** Gestisce l'ingresso dell'utente e avvia tutto. */
+/**
+ * Gestisce il click sul pulsante "Entra" e avvia il processo.
+ */
 document.getElementById('join-button').addEventListener('click', () => {
     const nickname = document.getElementById('nickname-input').value.trim();
     if (nickname) {
@@ -31,17 +41,27 @@ document.getElementById('join-button').addEventListener('click', () => {
         nicknameOverlay.classList.add('hidden');
         conferenceContainer.classList.remove('hidden');
 
-        // Avvia la connessione Socket.IO e la webcam
-        initializeSocket();
-        startLocalMedia();
+        // Avvia la webcam e poi inizializza la connessione di rete
+        startLocalMedia()
+            .then(() => {
+                initializeSocket();
+            })
+            .catch(error => {
+                console.error("Non è stato possibile avviare la webcam:", error);
+                alert("Non è stato possibile avviare la webcam. Controlla i permessi e riprova.");
+                // Ritorna all'overlay in caso di errore
+                nicknameOverlay.classList.remove('hidden');
+                conferenceContainer.classList.add('hidden');
+            });
     } else {
         alert('Per favore, inserisci un nickname.');
     }
 });
 
-/** Aggiunge o aggiorna un partecipante nella lista */
-function updateParticipantList(nickname, isLocal = false) {
-    const id = isLocal ? 'local-user' : nickname.replace(/\s/g, '-');
+/**
+ * Aggiorna la lista dei partecipanti nel pannello laterale.
+ */
+function updateParticipantList(id, nickname, isLocal = false) {
     let li = document.getElementById(id);
     if (!li) {
         li = document.createElement('li');
@@ -51,65 +71,15 @@ function updateParticipantList(nickname, isLocal = false) {
     li.textContent = nickname + (isLocal ? " (Tu)" : "");
 }
 
-// --- FUNZIONI SOCKET.IO (Segnalazione) ---
 
-/** Inizializza la connessione con il server di segnalazione */
-function initializeSocket() {
-    // La connessione Socket.IO è il canale di segnalazione
-    socket = io();
+// ==============================================================================
+// FUNZIONI ACQUISIZIONE MEDIA (WEBCAM)
+// ==============================================================================
 
-    socket.on('connect', () => {
-        console.log('Connesso al server di segnalazione.');
-        // Unisciti alla stanza non appena connesso
-        socket.emit('join-room', roomId, userNickname);
-    });
-
-    // Ricevi la lista degli utenti già presenti (per sapere chi chiamare)
-    socket.on('users-in-room', (userList, socketIdCaller) => {
-        updateParticipantList(userNickname, true); // Aggiorna il proprio stato
-        
-        // Itera sugli utenti esistenti e avvia una connessione Offer
-        userList.forEach(user => {
-            if (user.socketId !== socket.id) {
-                // Inizia la chiamata (come Caller)
-                callUser(user.socketId, true);
-                updateParticipantList(user.nickname);
-            }
-        });
-    });
-
-    // Ricevi un nuovo utente (come Callee)
-    socket.on('user-joined', (newSocketId, newNickname) => {
-        console.log(`Nuovo utente ${newNickname} unito: ${newSocketId}`);
-        // Inizializza la connessione con il nuovo utente
-        callUser(newSocketId, false);
-        updateParticipantList(newNickname);
-    });
-
-    // Ricevi l'Offer SDP dal Caller
-    socket.on('offer', (id, description) => {
-        handleOffer(id, description);
-    });
-
-    // Ricevi l'Answer SDP dal Callee
-    socket.on('answer', (id, description) => {
-        handleAnswer(id, description);
-    });
-
-    // Ricevi i candidati ICE
-    socket.on('candidate', (id, candidate) => {
-        handleCandidate(id, candidate);
-    });
-
-    // Gestione disconnessione utente
-    socket.on('user-left', (leavingSocketId) => {
-        removePeer(leavingSocketId);
-    });
-}
-
-// --- FUNZIONI WEBRTC ---
-
-/** 1. Avvia la webcam e il microfono */
+/**
+ * Avvia la webcam e il microfono e mostra lo stream locale.
+ * @returns {Promise<MediaStream>} Il flusso media locale.
+ */
 async function startLocalMedia() {
     const constraints = {
         audio: true,
@@ -122,13 +92,88 @@ async function startLocalMedia() {
     try {
         localStream = await navigator.mediaDevices.getUserMedia(constraints); 
         localVideo.srcObject = localStream;
+        return localStream; 
     } catch (error) {
-        console.error('Errore nell\'accesso ai media (Webcam/Mic):', error);
-        alert('Impossibile accedere alla webcam e al microfono. Controlla i permessi.');
+        throw error; 
     }
 }
 
-/** 2. Crea/Ottiene la RTCPeerConnection per un peer specifico */
+
+// ==============================================================================
+// FUNZIONI SOCKET.IO (Segnalazione)
+// ==============================================================================
+
+/**
+ * Inizializza la connessione con il server di segnalazione (Render).
+ */
+function initializeSocket() {
+    // Si connette all'URL del server Render
+    socket = io(RENDER_SERVER_URL);
+
+    socket.on('connect', () => {
+        console.log('Connesso al server di segnalazione.');
+        // Unisciti alla stanza non appena connesso e notifica il tuo nickname
+        socket.emit('join-room', roomId, userNickname);
+    });
+
+    // 1. Ricevi la lista degli utenti già presenti (il nuovo utente chiama loro)
+    socket.on('users-in-room', (userList, socketIdCaller) => {
+        updateParticipantList(socket.id, userNickname, true); 
+        
+        userList.forEach(user => {
+            if (user.socketId !== socket.id) {
+                remoteNicknames[user.socketId] = user.nickname;
+                // Inizia la chiamata (come Caller)
+                callUser(user.socketId, true);
+                updateParticipantList(user.socketId, user.nickname);
+            }
+        });
+    });
+
+    // 2. Ricevi un nuovo utente (loro chiamano te)
+    socket.on('user-joined', (newSocketId, newNickname) => {
+        console.log(`Nuovo utente ${newNickname} unito: ${newSocketId}`);
+        remoteNicknames[newSocketId] = newNickname;
+        // Inizializza la connessione con il nuovo utente
+        callUser(newSocketId, false);
+        updateParticipantList(newSocketId, newNickname);
+    });
+
+    // 3. Ricevi l'Offer SDP dal Caller
+    socket.on('offer', (id, description) => {
+        handleOffer(id, description);
+    });
+
+    // 4. Ricevi l'Answer SDP dal Callee
+    socket.on('answer', (id, description) => {
+        handleAnswer(id, description);
+    });
+
+    // 5. Ricevi i candidati ICE
+    socket.on('candidate', (id, candidate) => {
+        handleCandidate(id, candidate);
+    });
+
+    // 6. Gestione disconnessione utente
+    socket.on('user-left', (leavingSocketId) => {
+        removePeer(leavingSocketId);
+    });
+    
+    socket.on('disconnect', () => {
+        console.log('Disconnesso dal server.');
+    });
+}
+
+
+// ==============================================================================
+// FUNZIONI WEBRTC
+// ==============================================================================
+
+/**
+ * Crea o recupera la RTCPeerConnection per un peer specifico.
+ * @param {string} socketId - ID del socket dell'altro peer.
+ * @returns {RTCPeerConnection} La connessione P2P.
+ */
 function getOrCreatePeerConnection(socketId) {
     if (peerConnections[socketId]) {
         return peerConnections[socketId];
@@ -141,33 +186,18 @@ function getOrCreatePeerConnection(socketId) {
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
     }
     
-    // Gestisci la ricezione del video remoto (il video dell'altro peer)
+    // GESTIONE DELLA RICEZIONE DEL VIDEO REMOTO (ONTRAK)
     pc.ontrack = (event) => {
-        // Ignora se lo stream è già attaccato
+        console.log(`Ricevuto track da ${socketId}`);
+        // Impedisce di aggiungere lo stesso stream due volte
         if (remoteVideosContainer.querySelector(`[data-peer-id="${socketId}"] video`)) return;
-
+        
         const remoteStream = event.streams[0];
-        
-        const remoteVideoItem = document.createElement('div');
-        remoteVideoItem.className = 'remote-video-item';
-        remoteVideoItem.dataset.peerId = socketId; // ID del peer per la rimozione
-
-        const remoteVideo = document.createElement('video');
-        remoteVideo.autoplay = true;
-        remoteVideo.srcObject = remoteStream;
-        
-        // Aggiungi la label (nickname remoto, se lo hai scambiato)
-        const videoLabel = document.createElement('div');
-        videoLabel.className = 'video-label';
-        // QUI: In un'implementazione reale, useresti il nickname ricevuto dal server
-        videoLabel.textContent = `Peer ${socketId.substring(0, 4)}...`; 
-
-        remoteVideoItem.appendChild(remoteVideo);
-        remoteVideoItem.appendChild(videoLabel);
+        const remoteVideoItem = createRemoteVideoElement(socketId, remoteStream);
         remoteVideosContainer.appendChild(remoteVideoItem);
     };
 
-    // Gestisci lo scambio di candidati ICE (indirizzi di rete)
+    // GESTIONE DELLO SCAMBIO DEI CANDIDATI ICE
     pc.onicecandidate = (event) => {
         if (event.candidate) {
             // Invia il candidato all'altro peer tramite il server di segnalazione
@@ -180,12 +210,36 @@ function getOrCreatePeerConnection(socketId) {
     return pc;
 }
 
-/** 3. Invia la chiamata (Offer SDP) */
+/**
+ * Funzione helper per creare l'elemento video remoto nel DOM.
+ */
+function createRemoteVideoElement(socketId, stream) {
+    const remoteVideoItem = document.createElement('div');
+    remoteVideoItem.className = 'remote-video-item';
+    remoteVideoItem.dataset.peerId = socketId; 
+
+    const remoteVideo = document.createElement('video');
+    remoteVideo.autoplay = true;
+    remoteVideo.srcObject = stream;
+    
+    const videoLabel = document.createElement('div');
+    videoLabel.className = 'video-label';
+    videoLabel.textContent = remoteNicknames[socketId] || `Peer ${socketId.substring(0, 4)}...`; 
+
+    remoteVideoItem.appendChild(remoteVideo);
+    remoteVideoItem.appendChild(videoLabel);
+    return remoteVideoItem;
+}
+
+
+/** * Invia la chiamata (Offer SDP) - Viene chiamato sia dal Caller che dal Callee (se isCaller=false, attende l'Offer)
+ */
 async function callUser(socketId, isCaller) {
     const pc = getOrCreatePeerConnection(socketId);
 
     if (isCaller) {
         try {
+            console.log(`Creazione Offer per ${socketId}`);
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             // Invia l'Offer SDP all'altro peer tramite il server
@@ -194,14 +248,18 @@ async function callUser(socketId, isCaller) {
             console.error('Errore nella creazione dell\'Offer:', error);
         }
     }
+    // Se non è il Caller, aspetta di ricevere l'Offer (handleOffer)
 }
 
-/** 4. Gestisce la ricezione dell'Offer e risponde con l'Answer */
+/** * Gestisce la ricezione dell'Offer e risponde con l'Answer.
+ */
 async function handleOffer(socketId, description) {
     const pc = getOrCreatePeerConnection(socketId);
     
+    // Imposta l'Offer ricevuta come descrizione remota
     await pc.setRemoteDescription(description);
 
+    // Crea l'Answer
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     
@@ -209,18 +267,21 @@ async function handleOffer(socketId, description) {
     socket.emit('answer', socketId, pc.localDescription);
 }
 
-/** 5. Gestisce la ricezione dell'Answer */
+/** * Gestisce la ricezione dell'Answer.
+ */
 async function handleAnswer(socketId, description) {
     const pc = getOrCreatePeerConnection(socketId);
     await pc.setRemoteDescription(description);
-    // La connessione è stabilita!
+    console.log(`Connessione WebRTC stabilita con ${socketId}`);
 }
 
-/** 6. Aggiunge i Candidati ICE ricevuti */
+/** * Aggiunge i Candidati ICE ricevuti per stabilire la connettività di rete.
+ */
 async function handleCandidate(socketId, candidate) {
     try {
         const pc = peerConnections[socketId];
         if (pc && candidate) {
+            // Aggiunge il candidato ricevuto alla connessione
             await pc.addIceCandidate(new RTCIceCandidate(candidate));
         }
     } catch (error) {
@@ -228,7 +289,9 @@ async function handleCandidate(socketId, candidate) {
     }
 }
 
-/** 7. Pulisce la connessione quando un utente lascia */
+/**
+ * Pulisce la connessione e l'interfaccia utente quando un utente lascia.
+ */
 function removePeer(socketId) {
     const pc = peerConnections[socketId];
     if (pc) {
@@ -242,7 +305,11 @@ function removePeer(socketId) {
         videoElement.remove();
     }
     
-    // Rimuovi dalla lista partecipanti (dovresti avere un modo per mappare ID a Nickname)
-    // Logica di rimozione lista...
-    console.log(`Utente ${socketId} disconnesso.`);
+    // Rimuovi dalla lista partecipanti
+    const liElement = document.getElementById(socketId);
+    if (liElement) {
+        liElement.remove();
+    }
+    
+    console.log(`Utente ${socketId} rimosso.`);
 }
