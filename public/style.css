@@ -35,7 +35,7 @@ body {
 
 /* --- Pannello Partecipanti (Aside) --- */
 #participants-panel {
-    width: 280px; /* Leggermente più largo */
+    width: 280px;
     background-color: var(--panel-bg);
     padding: 20px;
     box-shadow: 4px 0 10px rgba(0, 0, 0, 0.5);
@@ -57,6 +57,7 @@ body {
     list-style: none;
     padding: 0;
     flex-grow: 1;
+    cursor: pointer; /* Indica che gli elementi sono cliccabili */
 }
 
 #participants-list li {
@@ -64,7 +65,6 @@ body {
     font-size: 1.1em;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     transition: background-color 0.2s;
-    cursor: pointer;
 }
 
 #participants-list li:hover {
@@ -72,7 +72,7 @@ body {
 }
 
 /* Stile per il partecipante in focus */
-.participant-focused {
+#participants-list li.participant-focused {
     background-color: var(--primary-color);
     font-weight: bold;
 }
@@ -81,18 +81,17 @@ body {
 #video-area {
     flex-grow: 1;
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Imposta layout verticale: Focus in alto, miniature in basso */
     padding: 20px;
     gap: 15px;
-    min-width: 0; /* Permette il ridimensionamento flessibile */
+    min-width: 0;
 }
 
-/* Contenitore Video Principale (4:3) */
+/* Contenitore del Video in Focus (il più grande) */
 #main-video-feed {
     position: relative;
     width: 100%;
-    
-    /* TRUCCO CSS PER 4:3: altezza calcolata come 75% della larghezza */
+    /* TRUCCO CSS PER 16:9: altezza calcolata come 56.25% della larghezza */
     padding-top: 56.25%; /* 16:9 aspect ratio */
     height: 0;
     
@@ -100,7 +99,7 @@ body {
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
-    flex-shrink: 0; 
+    flex-shrink: 0; /* Non permettere che si restringa */
 }
 
 #main-video-feed video {
@@ -109,12 +108,10 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    /* Riempi il contenitore 16:9 senza tagliare nulla */
-    object-fit: contain; 
+    object-fit: contain; /* Assicura che l'intero video sia visibile */
 }
 
-/* Stile per il placeholder quando non c'è video in focus */
-#main-video-feed div {
+.video-placeholder {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -136,38 +133,52 @@ body {
     z-index: 2;
 }
 
-/* Contenitore Video Remoti (Gallery) */
+/* Contenitore Video Remoti (Gallery di Miniature) */
 #remote-videos-container {
-    display: grid;
-    /* Adatta in automatico le colonne con un minimo di 200px */
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-    gap: 15px;
-    padding-top: 5px;
-    flex-grow: 1;
-    overflow-y: auto;
+    display: flex; /* Layout orizzontale */
+    gap: 10px;
+    padding: 5px 0;
+    overflow-x: auto; /* Aggiunge scroll orizzontale se necessario */
+    flex-shrink: 0; /* Non permettere che si restringa */
+    max-height: 150px; /* Limita l'altezza per le miniature */
+    width: 100%;
 }
 
-/* Stile per i singoli video remoti (4:3) */
-.remote-video-item {
+/* Stile per i singoli video remoti (Miniature) */
+.remote-feed {
     position: relative;
     background-color: #1a1a1a;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     cursor: pointer;
+    border: 3px solid transparent; /* Border per l'indicatore di focus */
 
-    /* TRUCCO CSS PER 4:3 */
-    padding-top: 75%;
+    /* Dimensione fissa per la miniatura (es. 200px di larghezza per un 16:9) */
+    width: 200px;
+    min-width: 200px;
+    padding-top: 112.5px; /* 16:9 aspect ratio (200 * 0.5625) */
     height: 0;
+
+    transition: border-color 0.2s;
 }
 
-.remote-video-item video {
+.remote-feed:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+}
+
+.remote-feed video {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: cover; /* Riempie la miniatura */
+}
+
+/* Stile per la miniatura in focus (visivo) */
+.remote-feed.is-focused {
+    border-color: var(--primary-color);
 }
 
 /* --- Controlli Media --- */
@@ -176,7 +187,9 @@ body {
     padding-top: 15px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
+    gap: 20px;
+    flex-shrink: 0;
 }
 
 #media-controls button {
@@ -191,6 +204,8 @@ body {
     justify-content: center;
     cursor: pointer;
     transition: background-color 0.2s, transform 0.1s;
+    font-size: 1.5em;
+    line-height: 1;
 }
 
 #media-controls button:hover {
@@ -219,7 +234,7 @@ body {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.9);
-    backdrop-filter: blur(5px); /* Effetto moderno di sfocatura */
+    backdrop-filter: blur(5px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -244,7 +259,7 @@ body {
 #nickname-input, #room-input {
     padding: 14px;
     width: 100%;
-    box-sizing: border-box; /* Include padding e border nella larghezza */
+    box-sizing: border-box;
     margin-bottom: 25px;
     border: 2px solid #ccc;
     border-radius: 10px;

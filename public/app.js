@@ -10,10 +10,16 @@ const remoteVideosContainer = document.getElementById('remote-videos-container')
 const nicknameOverlay = document.getElementById('nickname-overlay');
 const conferenceContainer = document.getElementById('conference-container');
 const participantsList = document.getElementById('participants-list');
-// Assumendo che esista un elemento con questo ID nell'HTML aggiornato
 const participantCountSpan = document.getElementById('participant-count'); 
 const joinButton = document.getElementById('join-button');
 const nicknameInput = document.getElementById('nickname-input');
+
+// Nuovi elementi DOM per il focus e i controlli
+const mainVideoFeed = document.getElementById('main-video-feed');
+const remoteVideoPlaceholder = document.getElementById('remote-video-placeholder');
+const toggleAudioButton = document.getElementById('toggle-audio-button');
+const toggleVideoButton = document.getElementById('toggle-video-button');
+const disconnectButton = document.getElementById('disconnect-button');
 
 
 // --- VARIABILI DI STATO ---
@@ -24,10 +30,12 @@ let userNickname = 'Ospite';
 const roomId = 'mia_stanza_video';
 const peerConnections = {}; // Mappa per RTCPeerConnection: { socketId: RTCPeerConnection }
 const remoteNicknames = {}; // Mappa per i nickname remoti
+// Contiene l'ID del socket il cui video è attualmente mostrato nel mainVideoFeed ('local' o 'socketId')
+let focusedPeerId = 'local'; 
+
 
 // Configurazione STUN (Server Traversal Utilities for NAT)
 const iceConfiguration = {
-    // Si possono aggiungere altri STUN/TURN per maggiore robustezza
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
@@ -38,65 +46,145 @@ const iceConfiguration = {
 // FUNZIONI DI BASE DELL'INTERFACCIA UTENTE
 // ==============================================================================
 
-/**
- * Funzione helper per mostrare un messaggio di stato/errore nella console.
- * @param {string} message
- */
 function showStatusMessage(message) {
     console.warn(`[AVVISO UI] ${message}`);
 }
 
-/**
- * Aggiorna il contatore dei partecipanti.
- */
 function updateParticipantCount() {
     if (participantCountSpan) {
-        // La lista include l'utente locale, quindi il conteggio è: 1 (locale) + numero di peer
         participantCountSpan.textContent = 1 + Object.keys(peerConnections).length;
     }
 }
 
 /**
- * Aggiorna la lista dei partecipanti nel pannello laterale.
+ * Aggiorna la lista dei partecipanti nel pannello laterale e aggiunge il listener per il focus.
  */
 function updateParticipantList(id, nickname, isLocal = false) {
     let li = document.getElementById(`list-${id}`);
     if (!li) {
         li = document.createElement('li');
         li.id = `list-${id}`;
-        // Aggiunge un indicatore di stato
+        li.dataset.peerId = id; // Assicura che l'ID sia nel dataset
         li.innerHTML = `<span class="participant-name">${nickname}</span> <span class="status-indicator">•</span>`;
         participantsList.appendChild(li);
+
+        // Listener per mettere il video in focus cliccando sulla lista
+        li.addEventListener('click', () => {
+             setMainVideo(id);
+             // Aggiorna la classe CSS nella lista per l'evidenziazione
+             document.querySelectorAll('#participants-list li').forEach(el => el.classList.remove('participant-focused'));
+             li.classList.add('participant-focused');
+        });
     }
+    
     // Aggiorna il testo per l'utente locale
     if (isLocal) {
         li.querySelector('.participant-name').textContent = nickname + " (Tu)";
     }
-    updateParticipantCount(); // Aggiorna il contatore ogni volta che la lista cambia
+    
+    // Imposta il focus iniziale sull'utente locale nella lista
+    if (id === focusedPeerId) {
+         li.classList.add('participant-focused');
+    }
+
+    updateParticipantCount(); 
 }
 
 
+// ==============================================================================
+// GESTIONE FOCUS VIDEO
+// ==============================================================================
+
 /**
- * Gestisce il click sul pulsante "Entra" e avvia il processo.
+ * Sposta lo stream del peer specificato nel mainVideoFeed.
+ * @param {string} peerId - ID del socket del peer (o 'local' per il tuo video).
  */
+function setMainVideo(peerId) {
+    // 1. Determina lo stream e il nickname
+    let stream, nickname, isLocal = false;
+
+    if (peerId === 'local') {
+        stream = localStream;
+        nickname = userNickname + " (Tu)";
+        isLocal = true;
+    } else {
+        const remoteVideoElement = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`);
+        
+        if (!remoteVideoElement) {
+            console.error(`Impossibile trovare l'elemento video per ID: ${peerId}`);
+            return;
+        }
+        
+        stream = remoteVideoElement.querySelector('video').srcObject;
+        nickname = remoteNicknames[peerId];
+    }
+    
+    if (!stream) {
+        mainVideoFeed.innerHTML = `<div class="video-placeholder">Stream non disponibile per ${nickname}</div>`;
+        return;
+    }
+    
+    // 2. Sposta lo stream nel contenitore principale
+    
+    // Cerca o crea l'elemento video nel main feed
+    let videoEl = mainVideoFeed.querySelector('video');
+    if (!videoEl) {
+        videoEl = document.createElement('video');
+        videoEl.autoplay = true;
+        videoEl.playsinline = true;
+    }
+    
+    // Muta se è locale, altrimenti no
+    videoEl.muted = isLocal;
+
+    // Collega il nuovo stream
+    videoEl.srcObject = stream;
+
+    // Aggiorna il contenitore principale
+    mainVideoFeed.innerHTML = ''; // Pulisce il vecchio contenuto
+    mainVideoFeed.appendChild(videoEl);
+
+    // Aggiungi l'etichetta
+    const videoLabel = document.createElement('div');
+    videoLabel.className = 'video-label';
+    videoLabel.textContent = nickname;
+    mainVideoFeed.appendChild(videoLabel);
+    
+    focusedPeerId = peerId;
+
+
+    // 3. Reimposta il focus visivo: lista partecipanti e miniature
+    document.querySelectorAll('#participants-list li').forEach(el => el.classList.remove('participant-focused'));
+    const focusedLi = document.getElementById(`list-${peerId}`);
+    if (focusedLi) focusedLi.classList.add('participant-focused');
+
+    document.querySelectorAll('.remote-feed').forEach(el => el.classList.remove('is-focused'));
+    if (!isLocal) {
+        const remoteFeed = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`);
+        if (remoteFeed) remoteFeed.classList.add('is-focused');
+    }
+}
+
+
+// ==============================================================================
+// GESTIONE INGRESSO UTENTE E MEDIA
+// ==============================================================================
+
 joinButton.addEventListener('click', () => {
     const nickname = nicknameInput.value.trim();
     if (nickname) {
         userNickname = nickname;
-        nicknameOverlay.classList.add('hidden');
-        conferenceContainer.classList.remove('hidden');
-
+        
         // Avvia la webcam e poi inizializza la connessione di rete
         startLocalMedia()
             .then(() => {
+                nicknameOverlay.classList.add('hidden');
+                conferenceContainer.classList.remove('hidden');
                 initializeSocket();
             })
             .catch(error => {
-                // Gestione dell'errore
                 console.error("Non è stato possibile avviare la webcam:", error.name, error);
                 showStatusMessage(`Impossibile avviare la webcam. Controlla i permessi. Errore: ${error.name}`);
-
-                // Ritorna all'overlay in caso di errore
                 nicknameOverlay.classList.remove('hidden');
                 conferenceContainer.classList.add('hidden');
             });
@@ -106,14 +194,6 @@ joinButton.addEventListener('click', () => {
 });
 
 
-// ==============================================================================
-// FUNZIONI ACQUISIZIONE MEDIA (WEBCAM)
-// ==============================================================================
-
-/**
- * Avvia la webcam e il microfono e mostra lo stream locale.
- * @returns {Promise<MediaStream>} Il flusso media locale.
- */
 async function startLocalMedia() {
     const constraints = {
         audio: true,
@@ -122,95 +202,115 @@ async function startLocalMedia() {
 
     try {
         localStream = await navigator.mediaDevices.getUserMedia(constraints);
-        // Usa playsinline per compatibilità iOS
-        localVideo.setAttribute('playsinline', '');
-        localVideo.srcObject = localStream;
+        
+        // Imposta il tuo video come video principale di default
+        setMainVideo('local'); 
+
         return localStream;
     } catch (error) {
         throw error;
     }
 }
 
-/**
- * Aggiunge i track del flusso locale alla connessione RTCPeerConnection.
- * @param {RTCPeerConnection} pc
- */
-function addLocalTracks(pc) {
-    if (localStream) {
-        localStream.getTracks().forEach(track => {
-            // Usa addTrack al posto di addStream (deprecato)
-            pc.addTrack(track, localStream);
-        });
+// ==============================================================================
+// GESTIONE CONTROLLI MEDIA
+// ==============================================================================
+
+toggleAudioButton.addEventListener('click', () => {
+    const audioTrack = localStream?.getAudioTracks()[0];
+    if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        const icon = audioTrack.enabled ? '🎤' : '🔇';
+        toggleAudioButton.textContent = icon;
     }
-}
+});
+
+toggleVideoButton.addEventListener('click', () => {
+    const videoTrack = localStream?.getVideoTracks()[0];
+    if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        const icon = videoTrack.enabled ? '📹' : '⬛';
+        toggleVideoButton.textContent = icon;
+    }
+});
+
+disconnectButton.addEventListener('click', () => {
+    // 1. Chiudi lo stream locale
+    localStream?.getTracks().forEach(track => track.stop());
+    
+    // 2. Chiudi tutte le RTCPeerConnections
+    Object.keys(peerConnections).forEach(socketId => {
+        peerConnections[socketId].close();
+        delete peerConnections[socketId];
+        // Rimuovi anche dalla UI
+        removePeer(socketId, false); // Il server gestirà l'avviso
+    });
+    
+    // 3. Disconnetti da Socket.IO
+    if (socket) {
+        socket.disconnect();
+    }
+    
+    // 4. Ripristina l'interfaccia utente
+    nicknameOverlay.classList.remove('hidden');
+    conferenceContainer.classList.add('hidden');
+    mainVideoFeed.innerHTML = `<video id="local-video" autoplay muted playsinline></video><div class="video-label">Tu</div>`; // Reimposta l'elemento locale
+    remoteVideosContainer.innerHTML = `<div id="remote-video-placeholder" class="video-placeholder">In attesa di altri partecipanti...</div>`;
+    participantsList.innerHTML = '';
+    focusedPeerId = 'local';
+    updateParticipantCount();
+    
+    console.log("Conferenza lasciata.");
+});
 
 
 // ==============================================================================
 // FUNZIONI SOCKET.IO (Segnalazione)
 // ==============================================================================
 
-/**
- * Inizializza la connessione con il server di segnalazione.
- */
 function initializeSocket() {
     socket = io(RENDER_SERVER_URL);
 
     socket.on('connect', () => {
         console.log('Connesso al server di segnalazione.');
-        // Invia il nickname al server al momento dell'unione alla stanza
         socket.emit('join-room', roomId, userNickname);
     });
 
-    // 1. Ricevi la lista degli utenti già presenti (il nuovo utente chiama loro)
     socket.on('users-in-room', (userList) => {
         updateParticipantList(socket.id, userNickname, true);
-
-        // Nasconde il placeholder quando ci sono peer remoti
-        document.getElementById('remote-video-placeholder')?.classList.add('hidden');
+        remoteVideoPlaceholder?.classList.add('hidden');
 
         userList.forEach(user => {
             if (user.socketId !== socket.id) {
                 remoteNicknames[user.socketId] = user.nickname;
                 updateParticipantList(user.socketId, user.nickname);
-                // Inizia la chiamata (come Caller)
-                callUser(user.socketId, true);
+                callUser(user.socketId, true); // Caller
             }
         });
     });
 
-    // 2. Ricevi un nuovo utente (loro chiamano te)
     socket.on('user-joined', (newSocketId, newNickname) => {
         console.log(`Nuovo utente ${newNickname} unito: ${newSocketId}`);
         remoteNicknames[newSocketId] = newNickname;
-        // Inizializza la connessione con il nuovo utente (aspetterà l'Offer)
-        callUser(newSocketId, false);
+        callUser(newSocketId, false); // Callee (aspetta l'Offer)
         updateParticipantList(newSocketId, newNickname);
-        // Nasconde il placeholder
-        document.getElementById('remote-video-placeholder')?.classList.add('hidden');
+        remoteVideoPlaceholder?.classList.add('hidden');
     });
 
-    // 3. Ricevi l'Offer SDP dal Caller
     socket.on('offer', (id, description) => {
         handleOffer(id, description);
     });
 
-    // 4. Ricevi l'Answer SDP dal Callee
     socket.on('answer', (id, description) => {
         handleAnswer(id, description);
     });
 
-    // 5. Ricevi i candidati ICE
     socket.on('candidate', (id, candidate) => {
         handleCandidate(id, candidate);
     });
 
-    // 6. Gestione disconnessione utente
     socket.on('user-left', (leavingSocketId) => {
-        removePeer(leavingSocketId);
-        // Mostra il placeholder se non ci sono più peer
-        if (Object.keys(peerConnections).length === 0) {
-            document.getElementById('remote-video-placeholder')?.classList.remove('hidden');
-        }
+        removePeer(leavingSocketId, true);
     });
 
     socket.on('disconnect', () => {
@@ -223,10 +323,16 @@ function initializeSocket() {
 // FUNZIONI WEBRTC
 // ==============================================================================
 
+function addLocalTracks(pc) {
+    if (localStream) {
+        localStream.getTracks().forEach(track => {
+            pc.addTrack(track, localStream);
+        });
+    }
+}
+
 /**
  * Crea o recupera la RTCPeerConnection per un peer specifico.
- * @param {string} socketId - ID del socket dell'altro peer.
- * @returns {RTCPeerConnection} La connessione P2P.
  */
 function getOrCreatePeerConnection(socketId) {
     if (peerConnections[socketId]) {
@@ -234,192 +340,48 @@ function getOrCreatePeerConnection(socketId) {
     }
 
     const pc = new RTCPeerConnection(iceConfiguration);
-
-    // Aggiungi i track locali
     addLocalTracks(pc);
 
     // GESTIONE DELLA RICEZIONE DEL VIDEO REMOTO (ONTRAK)
     pc.ontrack = (event) => {
         console.log(`Ricevuto track da ${socketId}`);
 
-        // Trova o crea l'elemento video remoto
-        let remoteVideoItem = remoteVideosContainer.querySelector(`[data-peer-id="${socketId}"]`);
+        let remoteVideoItem = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`);
 
         if (!remoteVideoItem) {
-             // Utilizza la funzione che ora usa un template (se hai aggiornato l'HTML)
-             remoteVideoItem = createRemoteVideoElement(socketId, event.streams[0]);
-             remoteVideosContainer.appendChild(remoteVideoItem);
+            remoteVideoItem = createRemoteVideoElement(socketId, event.streams[0]);
+            remoteVideosContainer.appendChild(remoteVideoItem);
+            
+            // Se è il primo remoto, mettilo subito in focus
+            if (Object.keys(peerConnections).length === 1 && focusedPeerId === 'local') {
+                setMainVideo(socketId);
+            }
+
         } else {
-             // Collega lo stream a un video già esistente, se necessario
-             const video = remoteVideoItem.querySelector('video');
-             if (video && !video.srcObject) {
-                 video.srcObject = event.streams[0];
-             }
+            const video = remoteVideoItem.querySelector('video');
+            if (video && !video.srcObject) {
+                video.srcObject = event.streams[0];
+            }
         }
     };
 
     // GESTIONE DELLO SCAMBIO DEI CANDIDATI ICE
     pc.onicecandidate = (event) => {
         if (event.candidate) {
-            // Invia il candidato all'altro peer tramite il server di segnalazione
             socket.emit('candidate', socketId, event.candidate);
         }
     };
     
-    // GESTIONE CAMBIO DI STATO DI CONNESSIONE (utile per debug/UI)
     pc.oniceconnectionstatechange = () => {
         console.log(`Stato di connessione per ${socketId}: ${pc.iceConnectionState}`);
-        // Implementare UI status qui (es. un puntino verde/rosso nella lista)
     };
 
-    // Salva la connessione
     peerConnections[socketId] = pc;
     return pc;
 }
 
 /**
- * Funzione helper per creare l'elemento video remoto nel DOM.
- * Utilizza la logica di clonazione del template (se l'HTML è stato aggiornato)
+ * Funzione helper per creare l'elemento video remoto nel DOM (Miniatura).
  */
 function createRemoteVideoElement(socketId, stream) {
-    const template = document.getElementById('remote-video-template');
-    let remoteVideoItem;
-
-    if (template) {
-        // Usa il template se disponibile
-        remoteVideoItem = template.content.cloneNode(true).firstElementChild;
-        const remoteVideo = remoteVideoItem.querySelector('video');
-        const videoLabel = remoteVideoItem.querySelector('.video-label');
-
-        remoteVideoItem.dataset.peerId = socketId;
-        // Usa playsinline per compatibilità iOS
-        remoteVideo.setAttribute('playsinline', '');
-        remoteVideo.srcObject = stream;
-        videoLabel.textContent = remoteNicknames[socketId] || `Peer ${socketId.substring(0, 4)}...`;
-
-    } else {
-        // Fallback al tuo codice originale se non usi il template
-        remoteVideoItem = document.createElement('div');
-        remoteVideoItem.className = 'remote-video-item';
-        remoteVideoItem.dataset.peerId = socketId;
-
-        const remoteVideo = document.createElement('video');
-        remoteVideo.autoplay = true;
-        remoteVideo.setAttribute('playsinline', '');
-        remoteVideo.srcObject = stream;
-
-        const videoLabel = document.createElement('div');
-        videoLabel.className = 'video-label';
-        videoLabel.textContent = remoteNicknames[socketId] || `Peer ${socketId.substring(0, 4)}...`;
-
-        remoteVideoItem.appendChild(remoteVideo);
-        remoteVideoItem.appendChild(videoLabel);
-    }
-    return remoteVideoItem;
-}
-
-
-/**
- * Invia la chiamata (Offer SDP) - Viene chiamato solo se isCaller è true
- */
-async function callUser(socketId, isCaller) {
-    const pc = getOrCreatePeerConnection(socketId);
-
-    if (isCaller) {
-        try {
-            console.log(`Creazione Offer per ${socketId}`);
-            // Usa 'offerToReceiveAudio' e 'offerToReceiveVideo' per indicare che si vuole ricevere.
-            const offer = await pc.createOffer({
-                offerToReceiveAudio: true,
-                offerToReceiveVideo: true
-            });
-            await pc.setLocalDescription(offer);
-            // Invia l'Offer SDP all'altro peer tramite il server
-            socket.emit('offer', socketId, pc.localDescription);
-        } catch (error) {
-            console.error('Errore nella creazione dell\'Offer:', error);
-        }
-    }
-}
-
-/**
- * Gestisce la ricezione dell'Offer e risponde con l'Answer.
- */
-async function handleOffer(socketId, description) {
-    const pc = getOrCreatePeerConnection(socketId);
-
-    try {
-        // Imposta l'Offer ricevuta come descrizione remota
-        await pc.setRemoteDescription(new RTCSessionDescription(description));
-
-        // Crea l'Answer
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        // Invia l'Answer SDP al Caller tramite il server
-        socket.emit('answer', socketId, pc.localDescription);
-    } catch (error) {
-        console.error('Errore nella gestione dell\'Offer:', error);
-    }
-}
-
-/**
- * Gestisce la ricezione dell'Answer.
- */
-async function handleAnswer(socketId, description) {
-    const pc = getOrCreatePeerConnection(socketId);
-    try {
-        // L'Answer viene impostata come descrizione remota
-        await pc.setRemoteDescription(new RTCSessionDescription(description));
-        console.log(`Connessione WebRTC stabilita con ${socketId}`);
-    } catch (error) {
-        console.error('Errore nella gestione dell\'Answer:', error);
-    }
-}
-
-/**
- * Aggiunge i Candidati ICE ricevuti per stabilire la connettività di rete.
- */
-async function handleCandidate(socketId, candidate) {
-    try {
-        const pc = peerConnections[socketId];
-        if (pc && candidate) {
-            // Aggiunge il candidato ricevuto alla connessione
-            await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        }
-    } catch (error) {
-        // Spesso si verifica un "rollback" logico se un candidato arriva prima dell'SDP.
-        // WebRTC lo gestisce internamente, ma è bene loggarlo.
-        console.error('Errore nell\'aggiunta del candidato ICE. Potrebbe essere gestito internamente:', error);
-    }
-}
-
-/**
- * Pulisce la connessione e l'interfaccia utente quando un utente lascia.
- */
-function removePeer(socketId) {
-    const pc = peerConnections[socketId];
-    if (pc) {
-        // Chiude la connessione P2P
-        pc.close();
-        delete peerConnections[socketId];
-    }
-
-    // Rimuovi l'elemento video dal DOM
-    const videoElement = remoteVideosContainer.querySelector(`[data-peer-id="${socketId}"]`);
-    if (videoElement) {
-        videoElement.remove();
-    }
-
-    // Rimuovi dalla lista partecipanti
-    const liElement = document.getElementById(`list-${socketId}`);
-    if (liElement) {
-        liElement.remove();
-    }
-    delete remoteNicknames[socketId];
-
-    // Aggiorna il contatore
-    updateParticipantCount();
-
-    console.log(`Utente ${socketId} rimosso.`);
-}
+    const
