@@ -46,64 +46,66 @@ body {
    Colonna 1 = MAIN (flex)
    Colonna 2 = Galleria remota (larghezza fissa)
    -------------------- */
-#video-area{
+#video-area {
     display: grid;
-    grid-template-columns: 1fr 320px; /* MAIN | REMOTE BAR */
-    grid-template-rows: 1fr;
+    grid-template-columns: 350px 1fr; /* video piccolo + galleria */
+    grid-template-rows: auto;
     gap: 12px;
     padding: 12px;
     height: 100%;
     background: #000;
+    overflow: hidden;
 }
 
 /* Main video grande (sinistra) */
-#main-video-feed{
+#main-video-feed {
     grid-column: 1 / 2;
-    grid-row: 1 / 2;
-    border-radius: 12px;
-    overflow: hidden;
+    grid-row: 1;
+    width: 100%;
+    height: 260px;      /* video piccolo */
+    border-radius: 10px;
     background: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    overflow: hidden;
     position: relative;
-    min-width: 0; /* importante per evitare overflow in flex/grid */
-    box-shadow: 0 6px 22px rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
 #main-video-feed video {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* mantiene il video visibile senza crop */
+    object-fit: cover;
 }
 
-/* Etichetta principale */
 #main-video-feed .video-label {
     position: absolute;
-    left: 12px;
-    bottom: 12px;
-    z-index: 30;
+    bottom: 10px;
+    left: 10px;
     background: rgba(0,0,0,0.55);
-    padding: 6px 10px;
+    padding: 4px 10px;
     border-radius: 6px;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
 }
 
 /* --------------------
    Colonna destra: galleria remota (miniature)
    -------------------- */
-#remote-videos-container{
+#remote-videos-container {
     grid-column: 2 / 3;
-    grid-row: 1 / 2;
+    grid-row: 1;
     width: 100%;
     height: 100%;
-    background: transparent;
-    overflow-y: auto;       /* scroll solo qui */
-    padding: 6px;
+    overflow-y: auto;
+
     display: grid;
-    grid-template-columns: 1fr; /* colonna singola di miniature */
-    grid-auto-rows: minmax(140px, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-auto-rows: 150px;
+
     gap: 10px;
+    padding: 6px;
     align-content: start;
 }
 
