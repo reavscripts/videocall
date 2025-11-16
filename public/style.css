@@ -46,14 +46,16 @@ body {
     position: relative;
     background-color: #000;
     
-    /* DEFINIZIONE GRIGLIA PRINCIPALE (MODIFICATA): 
+    /* DEFINIZIONE GRIGLIA PRINCIPALE: 
        Colonna 1 (Video Principale): Fissa (max 600px, min 300px)
        Colonna 2 (Galleria Remota): Spazio rimanente (1fr) */
     grid-template-columns: minmax(300px, 600px) 1fr;
     grid-template-rows: 1fr;
 }
 
-/* --- Dettagli Stanza (Overlay, invariato) --- */
+/* --- Dettagli Stanza (Overlay) --- */
+/* Questa sezione è utile se vuoi mostrare il nome della stanza. 
+   L'ho lasciata per completezza, anche se non era nell'HTML originale. */
 #room-header {
     position: absolute;
     top: 20px;
@@ -80,11 +82,10 @@ body {
 
 /* --- 2. Video Principale (Colonna 1 - In Focus) --- */
 #main-video-feed {
-    /* Posizionamento nella prima colonna della griglia */
     grid-column: 1 / 2;
     grid-row: 1 / 2;
     
-    height: 100%; /* Occupa tutta l'altezza della riga */
+    height: 100%; 
     position: relative;
     border-radius: 12px;
     overflow: hidden;
@@ -99,7 +100,6 @@ body {
 #main-video-feed video {
     width: 100%;
     height: 100%;
-    /* Il video principale si adatta allo spazio senza riempirlo, per non tagliare l'immagine */
     object-fit: contain; 
 }
 
@@ -117,24 +117,25 @@ body {
 
 /* --- 3. Area Galleria (Colonna 2 - GRIGLIA DINAMICA) --- */
 #remote-videos-container {
-    /* Posizionamento nella seconda colonna della griglia */
     grid-column: 2 / 3; 
     grid-row: 1 / 2;
     
     /* Configurazione GRID per i video remoti */
     display: grid;
-    /* Colonne DINAMICHE: min 200px, max 1fr (si riempie automaticamente in base allo spazio) */
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-    /* Righe DINAMICHE: Altezza minima 120px, altrimenti si basa sul contenuto */
-    grid-auto-rows: minmax(120px, auto); 
+    /* Colonne DINAMICHE: Aumento minmax a 250px per forzare il wrapping prima */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+    /* Le righe si adattano automaticamente */
+    grid-auto-rows: auto; 
     gap: 10px;
-    overflow-y: auto; /* Scroll verticale necessario se ci sono troppi video */
-    padding-bottom: 70px; /* Spazio per i controlli media in basso */
+    overflow-y: auto; 
+    padding-bottom: 70px; 
+    
+    /* Forza gli elementi ad allinearsi in alto e a non espandersi per riempire lo spazio verticale */
+    align-content: start; 
 }
 
 
 /* --- Stile per i Video-Feed (Miniature) --- */
-/* NOTA: Usiamo .video-feed per lo stile base e .remote-feed per le remore */
 .video-feed {
     width: 100%;
     /* Mantiene il formato 16:9 per tutte le miniature in griglia */
@@ -158,19 +159,18 @@ body {
 }
 
 .remote-feed.is-focused {
-    /* Evidenziazione per la miniatura attualmente in focus */
     border: 3px solid var(--primary-color);
 }
 
 .video-feed video {
     width: 100%;
     height: 100%;
-    /* I video in griglia DEVONO coprire l'area per evitare barre nere */
+    /* I video in griglia coprono l'area */
     object-fit: cover; 
 }
 
 #remote-video-placeholder {
-    grid-column: 1 / -1; /* Occupa tutta la larghezza della griglia */
+    grid-column: 1 / -1; 
     height: 150px;
     display: flex;
     justify-content: center;
@@ -185,7 +185,7 @@ body {
 
 /* --- Controlli Media (Bottom Center) --- */
 #media-controls {
-    /* Posizione assoluta centrata sull'intera #video-area */
+    /* Posizione assoluta centrata sull'intera #video-area, ma visibile */
     position: absolute;
     bottom: 20px;
     left: 50%; 
@@ -260,8 +260,6 @@ body {
 }
 
 /* Campi di testo */
-/* NOTA: Usiamo #roomid-input perché era nel tuo CSS originale. 
-   Se in index.html hai #room-id-input, devi correggere qui! */
 #nickname-input, #roomid-input {
     padding: 18px;
     width: 100%;
