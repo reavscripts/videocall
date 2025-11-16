@@ -1,3 +1,4 @@
+```javascript
 // ==============================================================================
 // CONFIGURAZIONE WEB RTC E SOCKET.IO
 // ==============================================================================
@@ -201,7 +202,7 @@ function setMainVideo(peerId) {
 // ==============================================================================
 
 /**
- * [NUOVA FUNZIONE] Analizza l'URL per pre-impostare nickname e ID stanza.
+ * Analizza l'URL per pre-impostare nickname e ID stanza.
  */
 function checkUrlParams() {
     const params = new URLSearchParams(window.location.search);
@@ -214,6 +215,11 @@ function checkUrlParams() {
     
     if (urlNickname) {
         nicknameInput.value = urlNickname;
+    }
+    
+    // NEW: Se l'ID stanza è fornito nell'URL, lo impostiamo come roomId iniziale
+    if (urlRoomId) {
+        roomId = urlRoomId;
     }
 }
 
@@ -247,14 +253,17 @@ joinButton.addEventListener('click', () => {
     }
 
     // [LOGICA ROOMID DINAMICA]
-    if (!requestedRoomId) {
-        // Se l'utente lascia vuoto il campo, genera un ID stanza casuale
+    // 1. Controlla se l'utente ha inserito un ID stanza
+    if (requestedRoomId) {
+        roomId = requestedRoomId;
+    } 
+    // 2. Altrimenti, controlla se era già impostato tramite URL
+    else if (!roomId) { 
+        // 3. Se non è fornito dall'utente NÉ dall'URL, genera un nuovo ID stanza
         roomId = generateRoomId();
         console.log(`Creazione di una nuova stanza con ID: ${roomId}`);
-    } else {
-        // Altrimenti, usa l'ID fornito per unirsi
-        roomId = requestedRoomId;
     }
+    // else: usa l'ID stanza già impostato dalla funzione checkUrlParams()
 
     userNickname = nickname;
     
@@ -263,7 +272,14 @@ joinButton.addEventListener('click', () => {
             // [AGGIORNAMENTO INTERFACCIA UTENTE]
             nicknameOverlay.classList.add('hidden');
             conferenceContainer.classList.remove('hidden');
-            shareLinkButton.classList.remove('hidden'); // Mostra il pulsante di condivisione
+            // Assicurati che il pulsante sia nel contenitore visibile
+            // shareLinkButton.classList.remove('hidden'); 
+            
+            // Se il pulsante è nel participants-panel, la riga sopra è sufficiente.
+            // Se fosse nel nickname-overlay, la riga sopra non funzionerebbe!
+            const panelButton = document.getElementById('share-link-button');
+            if (panelButton) panelButton.classList.remove('hidden');
+
             initializeSocket();
             
             // [AGGIORNA L'URL] Aggiorna l'URL del browser senza ricaricare la pagina
@@ -343,7 +359,10 @@ disconnectButton.addEventListener('click', () => {
     // 4. Ripristina l'interfaccia utente (PULIZIA FINALE)
     nicknameOverlay.classList.remove('hidden');
     conferenceContainer.classList.add('hidden');
-    shareLinkButton.classList.add('hidden'); // Nasconde il pulsante di condivisione
+    
+    const panelButton = document.getElementById('share-link-button');
+    if (panelButton) panelButton.classList.add('hidden');
+    
     mainVideoFeed.innerHTML = `<video id="local-video" autoplay muted playsinline></video><div class="video-label">Tu</div>`; 
     remoteVideosContainer.innerHTML = `<div id="remote-video-placeholder" class="video-placeholder">In attesa di altri partecipanti...</div>`;
     participantsList.innerHTML = '';
