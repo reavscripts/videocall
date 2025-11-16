@@ -19,236 +19,243 @@ body {
     color: var(--text-light);
     min-height: 100vh;
     display: flex;
-    overflow: hidden;
+    overflow: hidden; /* Impedisce lo scroll del body */
 }
 
 .hidden {
     display: none !important;
 }
 
-/* --- Contenitore Principale Conferenza --- */
+/* ======================================= */
+/* 1. LAYOUT PRINCIPALE (OPZIONE ZOOM)     */
+/* ======================================= */
+
 #conference-container {
     display: flex;
+    flex-direction: column; /* Stack verticale: Video sopra, Controlli teoricamente sotto, ma usiamo absolute */
     width: 100%;
-    height: 100vh;
+    height: 100vh; /* Usa l'altezza completa dello schermo */
+    position: relative; /* Per posizionare gli elementi interni in absolute */
 }
 
-/* --- Pannello Partecipanti (Aside) --- */
-#participants-panel {
-    width: 250px; 
-    background-color: var(--surface-dark);
-    padding: 20px;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
-    z-index: 10;
-    overflow-y: auto;
-    border-right: 1px solid var(--border-color);
+#video-area {
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
+    position: relative;
+    background-color: #000; /* Sfondo per i margini del video */
 }
 
-#participants-panel h3 {
-    font-size: 1.3em;
-    border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 8px;
-    margin-top: 0;
-    color: var(--primary-color);
+/* --- Video Principale (Massimizzato) --- */
+#main-video-feed {
+    flex-grow: 1;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    margin: 10px; /* Piccolo margine attorno al video principale */
+    border-radius: 10px;
+    background-color: #000;
 }
 
-/* NUOVO STILE: Pulsante Condividi Link */
-#share-link-button { 
-    background-color: var(--accent-color); 
-    color: var(--background-dark);
-    padding: 10px;
-    border: none;
-    border-radius: 6px;
-    font-size: 1em;
-    font-weight: bold;
-    cursor: pointer;
+#main-video-feed video {
     width: 100%;
-    margin-top: 10px;
-    margin-bottom: 20px; 
-    transition: background-color 0.2s, filter 0.2s;
+    height: 100%;
+    object-fit: contain; /* Adatta il video senza tagliarlo */
 }
 
-#share-link-button:hover {
-    filter: brightness(1.1);
+.video-label {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9em;
+    z-index: 5;
+}
+
+/* ======================================= */
+/* 2. MINIATURE REMOTE (STRIP)             */
+/* ======================================= */
+
+#remote-videos-container {
+    position: absolute;
+    right: 20px;
+    bottom: 80px; /* Posizionato sopra i controlli media */
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    padding: 0;
+    z-index: 5;
+    max-height: 100px;
+    overflow-x: auto; /* Permette di scorrere orizzontalmente se ci sono molti video */
+    background: none;
+}
+
+.remote-feed {
+    width: 120px;
+    min-width: 120px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    background: #333;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.remote-feed:hover {
+    border-color: var(--accent-color);
+}
+
+.remote-feed.is-focused {
+    /* Per evidenziare la miniatura del video attualmente in focus nel main feed */
+    border-color: var(--primary-color);
+}
+
+.remote-feed video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Taglia leggermente il video per riempire la miniatura */
+}
+
+#remote-video-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    color: var(--text-muted);
+    font-size: 1.1em;
+}
+
+/* ======================================= */
+/* 3. LISTA PARTECIPANTI (OVERLAY/ASIDE)   */
+/* ======================================= */
+
+#participants-panel {
+    position: absolute; /* Rimosso dal flusso Flex */
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 250px;
+    background: rgba(30, 30, 30, 0.95); /* Leggermente trasparente */
+    backdrop-filter: blur(5px);
+    z-index: 50; /* Sempre sopra gli altri elementi */
+    padding: 15px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    /* Se vuoi nasconderlo e mostrarlo solo al click, userai JS per gestire 'right' o 'transform' */
+    /* Esempio di stato nascosto: transform: translateX(100%); */
+    border-left: 1px solid var(--border-color);
+    transition: transform 0.3s ease-out;
 }
 
 #participants-list {
     list-style: none;
     padding: 0;
-    flex-grow: 1;
+    margin: 10px 0;
+    overflow-y: auto; /* Scorrevole se ci sono molti nomi */
 }
 
 #participants-list li {
-    padding: 12px 10px; 
-    margin-bottom: 8px;
-    font-size: 1.1em;
+    padding: 10px 12px;
+    margin-bottom: 5px;
     border-radius: 6px;
-    transition: background-color 0.2s;
+    background: #2a2a2a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     cursor: pointer;
+    transition: background 0.1s;
 }
 
 #participants-list li:hover {
-    background-color: rgba(0, 188, 212, 0.1); 
+    background: #3c3c3c;
 }
 
-/* Stile per il partecipante in focus */
 #participants-list li.participant-focused {
-    background-color: var(--primary-color);
+    background: var(--primary-color);
     color: var(--background-dark);
     font-weight: bold;
+}
+#participants-list li.participant-focused .status-indicator {
+    color: var(--background-dark);
 }
 
 .status-indicator {
-    float: right;
-    color: #4caf50; /* Verde per connesso */
+    color: limegreen; /* Indicatore di stato connesso */
 }
 
-
-/* --- Area Video Principale (Main) --- */
-#video-area {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column; 
-    padding: 25px;
-    gap: 15px;
-    min-width: 0;
-}
-
-/* Contenitore del Video in Focus (IL PIÙ GRANDE) */
-#main-video-feed {
-    position: relative;
-    width: 100%;
-    padding-top: 60%; 
-    height: 0;
-    background-color: #000; 
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
-    flex-shrink: 0;
-}
-
-#main-video-feed video {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain; 
-}
-
-.video-placeholder {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 1.8em;
-    color: var(--text-muted);
-}
-
-.video-label {
-    position: absolute;
-    bottom: 15px;
-    left: 15px;
-    background-color: var(--primary-color);
+#share-link-button {
+    background: var(--primary-color);
     color: var(--background-dark);
-    padding: 6px 15px;
-    border-radius: 8px;
-    font-size: 1em;
-    font-weight: bold;
-    z-index: 2;
-}
-
-/* Contenitore Video Remoti (Gallery di Miniature) */
-#remote-videos-container {
-    display: flex;
-    gap: 10px;
-    padding: 5px 0;
-    overflow-x: auto; 
-    flex-shrink: 0;
-    max-height: 100px; 
-    width: 100%;
-}
-
-/* Stile per i singoli video remoti (MINIATURE PICCOLE) */
-.remote-feed {
-    position: relative;
-    background-color: #000;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
     cursor: pointer;
-    border: 3px solid transparent; 
-    width: 120px;
-    min-width: 120px;
-    padding-top: 67.5px; 
-    height: 0;
-    transition: border-color 0.2s, transform 0.1s;
+    margin-bottom: 15px;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+#share-link-button:hover {
+    background: #008c9d;
 }
 
-.remote-feed:hover {
-    transform: scale(1.05);
-}
+/* ======================================= */
+/* 4. CONTROLLI MEDIA (BOTTOM CENTER)      */
+/* ======================================= */
 
-.remote-feed video {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover; 
-}
-
-/* Stile per la miniatura in focus */
-.remote-feed.is-focused {
-    border-color: var(--accent-color);
-}
-
-/* --- Controlli Media --- */
 #media-controls {
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid var(--border-color);
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10px 20px;
+    border-radius: 30px;
+    z-index: 10;
     display: flex;
-    justify-content: center;
-    gap: 30px;
-    flex-shrink: 0;
+    gap: 15px;
 }
 
 #media-controls button {
-    background-color: var(--surface-dark);
-    color: var(--primary-color);
-    border: 2px solid var(--primary-color);
-    border-radius: 50%;
-    width: 60px; 
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
-    font-size: 1.8em;
-}
-
-#media-controls button:hover {
-    background-color: var(--primary-color);
-    color: var(--background-dark);
-}
-
-/* Stile per il pulsante Disconnetti */
-#disconnect-button {
-    border-color: var(--red-danger);
-    color: var(--red-danger);
-}
-
-#disconnect-button:hover {
-    background-color: var(--red-danger);
+    background: var(--surface-dark);
     color: var(--text-light);
+    border: none;
+    padding: 12px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2em;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 0.2s;
+}
+#media-controls button:hover {
+    background: #3c3c3c;
+}
+
+#media-controls button.danger {
+    background: var(--red-danger);
+    transition: background 0.2s;
+}
+#media-controls button.danger:hover {
+    background: #b03a3a;
 }
 
 
-/* --- Overlay Nickname (Modal) --- */
+/* ======================================= */
+/* 5. OVERLAY INGRESSO (NICKNAME)          */
+/* ======================================= */
+
 #nickname-overlay {
     position: fixed;
     top: 0;
@@ -271,6 +278,7 @@ body {
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
     text-align: center;
     max-width: 450px;
+    width: 90%;
 }
 
 .card h2 {
@@ -278,49 +286,35 @@ body {
     margin-bottom: 40px;
 }
 
-/* NUOVO STILE: Intestazione "Partecipa o Crea una Stanza" */
-.card h3 { 
-    color: var(--text-muted); 
-    margin-top: 30px; 
+.card h3 {
+    color: var(--text-muted);
+    font-size: 1em;
+    margin-top: 30px;
     margin-bottom: 15px;
-    font-size: 1.1em;
 }
 
-/* BARRE DI TESTO PIÙ GRANDI (ORA ANCHE PER ROOM ID) */
-#nickname-input,
-#roomid-input { /* MODIFICATO: Aggiunto #roomid-input */
-    padding: 18px; 
+/* Campi di testo */
+#nickname-input, #roomid-input {
+    padding: 18px;
     width: 100%;
     box-sizing: border-box;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     border: 1px solid var(--border-color);
     border-radius: 10px;
-    font-size: 1.2em; 
-    background-color: var(--input-dark); 
+    font-size: 1.2em;
+    background-color: var(--input-dark);
     color: var(--text-light);
-    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-#nickname-input:focus,
-#roomid-input:focus { /* MODIFICATO: Aggiunto #roomid-input */
-    border-color: var(--primary-color);
-    box-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
-    outline: none;
-}
-
-#join-button {
-    background-color: var(--primary-color);
+.card button {
+    background: var(--primary-color);
     color: var(--background-dark);
-    padding: 16px 35px;
     border: none;
+    padding: 15px 30px;
     border-radius: 10px;
-    font-size: 1.3em;
+    font-size: 1.2em;
     font-weight: bold;
     cursor: pointer;
-    transition: background-color 0.3s, transform 0.1s;
-    width: 100%; /* Reso full width come il pulsante di condivisione */
-}
-
-#join-button:hover {
-    background-color: #008c9e;
+    width: 100%;
+    margin-top: 10px;
 }
