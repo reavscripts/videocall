@@ -84,17 +84,17 @@ body {
 /* ======================================= */
 
 #remote-videos-container {
-    position: absolute;
-    right: 20px;
-    bottom: 80px; /* Posizionato sopra i controlli media */
+    /* Rimuoviamo il posizionamento 'absolute' e usiamo il flusso normale (flex) */
     display: flex;
     flex-direction: row;
+    justify-content: center; /* Centra le miniature orizzontalmente */
     gap: 10px;
-    padding: 0;
+    padding: 0 20px 20px 20px; /* Più padding in basso */
     z-index: 5;
     max-height: 100px;
-    overflow-x: auto; /* Permette di scorrere orizzontalmente se ci sono molti video */
+    overflow-x: auto; /* Scorrevole per troppi video */
     background: none;
+    width: auto; /* Rimuoviamo la limitazione di larghezza */
 }
 
 .remote-feed {
@@ -215,8 +215,14 @@ body {
 /* ======================================= */
 
 #media-controls {
+    /* I controlli devono essere sotto il video principale, ma sopra le miniature */
     position: absolute;
-    bottom: 20px;
+    /* Dobbiamo calcolare la posizione finale: 20px sotto la fine del main video feed */
+    top: calc(80vh - 70px); /* Esempio: 80% dell'altezza massima - altezza del controllo */
+    
+    /* Nota: Se non usi max-height, potresti semplicemente usare 'bottom: 20px' */
+    /* Tuttavia, se `#remote-videos-container` è in flusso normale, i controlli devono essere in absolute sul video principale. Ritorno alla posizione precedente */
+    bottom: 20px; /* Posizione fissa in basso nella schermata */
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.6);
