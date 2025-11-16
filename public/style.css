@@ -19,259 +19,207 @@ body {
     color: var(--text-light);
     min-height: 100vh;
     display: flex;
-    overflow: hidden; /* Impedisce lo scroll del body */
+    overflow: hidden;
 }
 
 .hidden {
     display: none !important;
 }
 
-/* ======================================= */
-/* 1. LAYOUT PRINCIPALE (BROADCAST 70/30)  */
-/* ======================================= */
+/* --- LAYOUT PRINCIPALE --- */
 
 #conference-container {
-    /* Manteniamo le dimensioni massime e la posizione relativa */
     display: flex;
-    flex-direction: column; 
     width: 100%;
-    height: 100vh;
-    position: relative;
-}
-
-#video-area {
-    /* Contenitore Flex verticale che prende tutto lo spazio */
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column; 
-    position: relative; 
-    background-color: #000;
-}
-
-/* --- Video Principale (Nuova Altezza: 50%) --- */
-#main-video-feed {
-    /* Altezza rigorosa del 50% dell'area video disponibile */
-    height: 50%; 
-    flex-grow: 0; 
-    flex-shrink: 0; 
-    
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    height: 100vh; /* Usa l'intera altezza dello schermo */
     overflow: hidden;
-    background-color: #000;
-    box-sizing: border-box;
-    /* Aggiungiamo un piccolo margine per staccarlo dalle miniature */
-    margin-bottom: 5px; 
 }
 
-#main-video-feed video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain; /* Adatta il video senza tagliarlo */
-}
-
-.video-label {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 0.9em;
-    z-index: 5;
-}
-
-/* ======================================= */
-/* 2. MINIATURE REMOTE (30% RESTANTE)      */
-/* ======================================= */
-
-#remote-videos-container {
-    /* Altezza rigorosa del 30% dell'area video disponibile */
-    height: 30%; 
-    flex-grow: 0; 
-    flex-shrink: 0; 
-    width: 100%;
-    
-    /* Organizzazione e allineamento */
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    padding: 10px 20px;
-    
-    z-index: 5;
-    overflow-x: auto;
-    background: #1a1a1a;
-    box-sizing: border-box;
-    
-    /* Nota: 50% (main) + 30% (remote) = 80%.
-       Il 20% rimanente in basso è lasciato vuoto (nero) e tiene i controlli. */
-}
-
-.remote-feed {
-    width: 180px;
-    min-width: 180px;
-    height: 90%; 
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-    background: #333;
-    cursor: pointer;
-    border: 3px solid transparent;
-    transition: all 0.2s;
-}
-
-.remote-feed video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover; 
-}
-
-.remote-feed:hover {
-    border-color: var(--accent-color);
-}
-
-.remote-feed.is-focused {
-    border-color: var(--primary-color);
-}
-
-#remote-video-placeholder {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    width: 100%;
-    height: 100%;
-    color: var(--text-muted);
-    font-size: 1.1em;
-}
-
-/* ======================================= */
-/* 3. LISTA PARTECIPANTI (OVERLAY/ASIDE)   */
-/* ======================================= */
-
+/* --- Pannello Partecipanti --- */
 #participants-panel {
-    /* Posizionamento assoluto OK */
-    position: absolute; 
-    top: 0;
-    right: 0;
-    height: 100%;
+    flex-shrink: 0; /* Non si riduce */
     width: 250px;
-    background: rgba(30, 30, 30, 0.95); 
-    backdrop-filter: blur(5px);
-    z-index: 50; 
-    padding: 15px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    border-left: 1px solid var(--border-color);
-    transition: transform 0.3s ease-out;
+    background-color: var(--surface-dark);
+    padding: 20px 10px;
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+}
+
+#participants-panel h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
 }
 
 #participants-list {
     list-style: none;
     padding: 0;
-    margin: 10px 0;
-    overflow-y: auto; 
+    margin: 0;
 }
 
 #participants-list li {
-    padding: 10px 12px;
+    padding: 10px 10px;
     margin-bottom: 5px;
     border-radius: 6px;
-    background: #2a2a2a;
+    cursor: pointer;
+    transition: background-color 0.2s;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
-    transition: background 0.1s;
 }
 
 #participants-list li:hover {
-    background: #3c3c3c;
+    background-color: var(--input-dark);
 }
 
 #participants-list li.participant-focused {
-    background: var(--primary-color);
+    background-color: var(--primary-color);
     color: var(--background-dark);
     font-weight: bold;
 }
-#participants-list li.participant-focused .status-indicator {
-    color: var(--background-dark);
+
+/* --- Area Video (Main + Gallery) --- */
+
+#video-area {
+    flex-grow: 1; 
+    display: flex; /* LAYOUT A DUE COLONNE */
+    flex-direction: row;
+    padding: 10px;
+    gap: 10px; 
+    position: relative;
+    /* La video-area gestirà i controlli media in basso */
 }
 
-.status-indicator {
-    color: limegreen; 
+
+/* --- 1. Video Principale (Focus) --- */
+
+#main-video-feed {
+    /* Il video principale occupa il 40% della larghezza della video-area */
+    flex: 0 0 40%; 
+    max-width: 40%;
+    height: 100%; 
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); 
+    background-color: var(--input-dark); /* Sfondo quando non c'è video */
 }
 
-#share-link-button {
-    background: var(--primary-color);
-    color: var(--background-dark);
-    border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
+#main-video-feed video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+
+/* --- 2. Area Galleria (Miniature Remote) --- */
+
+#remote-videos-container {
+    /* La galleria occupa il restante 60% della larghezza */
+    flex: 1 1 60%; 
+    display: grid;
+    /* Griglia reattiva: colonne da min 200px (al massimo 1fr) */
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+    grid-auto-rows: min-content; 
+    gap: 10px;
+    overflow-y: auto; 
+    padding-bottom: 70px; /* Spazio per i controlli media */
+}
+
+
+/* --- Stile per i Video-Feed (Miniature e Principale) --- */
+.video-feed {
+    width: 100%;
+    aspect-ratio: 16 / 9; /* Mantiene il formato 16:9 */
+    position: relative;
+    background-color: var(--input-dark);
+    border-radius: 8px;
+    overflow: hidden;
     cursor: pointer;
-    margin-bottom: 15px;
-    font-weight: bold;
-    transition: background 0.2s;
-}
-#share-link-button:hover {
-    background: #008c9d;
+    box-sizing: border-box; /* Importante per il bordo */
 }
 
-/* ======================================= */
-/* 4. CONTROLLI MEDIA (BOTTOM CENTER)      */
-/* ======================================= */
+/* Stile specifico per le miniature nella galleria */
+.remote-feed {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
 
-#media-controls {
-    /* Posizione assoluta RIFERITA AL #video-area (bottom 20% dello spazio) */
+.remote-feed:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 10px var(--accent-color);
+}
+
+.remote-feed.is-focused {
+    /* Evidenziazione per la miniatura attualmente in focus */
+    border: 3px solid var(--primary-color);
+}
+
+.video-label {
     position: absolute;
-    bottom: 20px; /* Distanza dal fondo di #video-area */
-    left: 50%;
-    transform: translateX(-50%);
-    
-    background: rgba(0, 0, 0, 0.6);
-    padding: 10px 20px;
-    border-radius: 30px;
-    z-index: 10;
-    display: flex;
-    gap: 15px;
+    bottom: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: var(--text-light);
+    padding: 5px 10px;
+    border-radius: 0 8px 0 0;
+    font-size: 0.9em;
 }
 
-#media-controls button {
-    background: var(--surface-dark);
-    color: var(--text-light);
-    border: none;
-    padding: 12px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 1.2em;
-    width: 50px;
-    height: 50px;
+.video-placeholder {
+    grid-column: 1 / -1; /* Occupa tutta la larghezza della griglia */
+    height: 150px;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: background 0.2s;
+    color: var(--text-muted);
+    font-size: 1.2em;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
 }
+
+
+/* --- Controlli Media --- */
+#media-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 45%; /* Centro tra 40% e 100% */
+    transform: translateX(-50%); 
+    display: flex;
+    gap: 15px;
+    padding: 10px;
+    background-color: rgba(30, 30, 30, 0.9);
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    z-index: 50;
+}
+
+#media-controls button {
+    background-color: var(--input-dark);
+    color: var(--text-light);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
 #media-controls button:hover {
-    background: #3c3c3c;
+    background-color: var(--surface-dark);
 }
 
 #media-controls button.danger {
-    background: var(--red-danger);
-    transition: background 0.2s;
+    background-color: var(--red-danger);
+    color: var(--text-light);
 }
 #media-controls button.danger:hover {
-    background: #b03a3a;
+    background-color: #c62828;
 }
 
-
-/* ======================================= */
-/* 5. OVERLAY INGRESSO (NICKNAME)          */
-/* ======================================= */
+/* --- OVERLAY INIZIALE --- */
 
 #nickname-overlay {
     position: fixed;
@@ -295,7 +243,6 @@ body {
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
     text-align: center;
     max-width: 450px;
-    width: 90%;
 }
 
 .card h2 {
@@ -303,35 +250,31 @@ body {
     margin-bottom: 40px;
 }
 
-.card h3 {
-    color: var(--text-muted);
-    font-size: 1em;
-    margin-top: 30px;
-    margin-bottom: 15px;
-}
-
-/* Campi di testo */
-#nickname-input, #roomid-input {
-    padding: 18px;
+/* BARRE DI TESTO PIÙ GRANDI */
+#nickname-input {
+    padding: 18px; 
     width: 100%;
     box-sizing: border-box;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
     border: 1px solid var(--border-color);
     border-radius: 10px;
-    font-size: 1.2em;
+    font-size: 1.2em; 
     background-color: var(--input-dark);
     color: var(--text-light);
 }
 
-.card button {
-    background: var(--primary-color);
+#join-button {
+    padding: 15px 30px;
+    background-color: var(--primary-color);
     color: var(--background-dark);
     border: none;
-    padding: 15px 30px;
     border-radius: 10px;
     font-size: 1.2em;
-    font-weight: bold;
     cursor: pointer;
-    width: 100%;
-    margin-top: 10px;
+    transition: background-color 0.2s;
+    font-weight: bold;
+}
+
+#join-button:hover {
+    background-color: #008ba3; 
 }
