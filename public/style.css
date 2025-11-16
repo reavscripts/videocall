@@ -32,42 +32,41 @@ body {
 
 #conference-container {
     display: flex;
-    flex-direction: column; /* Stack verticale: Video sopra, Controlli teoricamente sotto, ma usiamo absolute */
+    flex-direction: column; /* L'area principale video/miniature è in colonna */
     width: 100%;
-    height: 100vh; /* Usa l'altezza completa dello schermo */
-    position: relative; /* Per posizionare gli elementi interni in absolute */
+    height: 100vh;
+    position: relative;
 }
 
 #video-area {
     flex-grow: 1;
     display: flex;
-    flex-direction: column; /* Organizza gli elementi verticalmente */
+    flex-direction: column; /* I due elementi interni (main e remote) sono in colonna */
     position: relative;
     background-color: #000;
 }
 
 /* --- Video Principale (Massimizzato) --- */
 #main-video-feed {
-    /* Non usa più flex-grow: 1. Adesso usiamo un'altezza fissa/percentuale per lo spazio */
+    /* Ora occupa circa il 70% dell'altezza dello spazio rimanente */
+    height: 70%; 
     width: 100%;
-    height: calc(100vh - 120px); /* Usa l'altezza dello schermo meno un margine e lo spazio per le miniature */
-    max-height: 80vh; /* Limite massimo all'80% dell'altezza della vista */
-    margin: 20px auto 10px auto; /* Centrato orizzontalmente con più margine superiore */
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    border-radius: 10px;
     background-color: #000;
+    box-sizing: border-box; /* Include padding e bordo nel calcolo della dimensione */
 }
 
 #main-video-feed video {
-    /* Usa 'contain' per non tagliare il video all'interno del riquadro */
+    /* Adatta il video senza tagliarlo */
     width: 100%;
     height: 100%;
     object-fit: contain; 
 }
+
 .video-label {
     position: absolute;
     bottom: 10px;
@@ -84,23 +83,29 @@ body {
 /* ======================================= */
 
 #remote-videos-container {
-    /* Rimuoviamo il posizionamento 'absolute' e usiamo il flusso normale (flex) */
+    /* Occupa il restante 30% dell'altezza */
+    height: 30%; 
+    width: 100%;
+    
+    /* Organizzazione e allineamento */
     display: flex;
     flex-direction: row;
     justify-content: center; /* Centra le miniature orizzontalmente */
-    gap: 10px;
-    padding: 0 20px 20px 20px; /* Più padding in basso */
+    align-items: center; /* Centra le miniature verticalmente */
+    gap: 15px;
+    padding: 10px 20px;
+    
     z-index: 5;
-    max-height: 100px;
     overflow-x: auto; /* Scorrevole per troppi video */
-    background: none;
-    width: auto; /* Rimuoviamo la limitazione di larghezza */
+    background: #1a1a1a; /* Leggero sfondo per distinguerlo dal main video */
+    box-sizing: border-box;
 }
 
 .remote-feed {
-    width: 120px;
-    min-width: 120px;
-    height: 80px;
+    /* Lasciamo le miniature con altezza fissa */
+    width: 180px;
+    min-width: 180px;
+    height: 95%; /* Si adatta all'altezza del contenitore */
     border-radius: 8px;
     overflow: hidden;
     position: relative;
@@ -108,6 +113,13 @@ body {
     cursor: pointer;
     border: 3px solid transparent;
     transition: all 0.2s;
+}
+
+.remote-feed video {
+    /* Taglia leggermente il video per riempire la miniatura */
+    width: 100%;
+    height: 100%;
+    object-fit: cover; 
 }
 
 .remote-feed:hover {
@@ -215,16 +227,13 @@ body {
 /* ======================================= */
 
 #media-controls {
-    /* I controlli devono essere sotto il video principale, ma sopra le miniature */
+    /* Posizionamento ASSOLUTO rispetto all'intera conferenza-container */
     position: absolute;
-    /* Dobbiamo calcolare la posizione finale: 20px sotto la fine del main video feed */
-    top: calc(80vh - 70px); /* Esempio: 80% dell'altezza massima - altezza del controllo */
-    
-    /* Nota: Se non usi max-height, potresti semplicemente usare 'bottom: 20px' */
-    /* Tuttavia, se `#remote-videos-container` è in flusso normale, i controlli devono essere in absolute sul video principale. Ritorno alla posizione precedente */
-    bottom: 20px; /* Posizione fissa in basso nella schermata */
+    bottom: 20px; /* Sale un po' dal bordo inferiore */
     left: 50%;
     transform: translateX(-50%);
+    
+    /* Stili... (restano invariati) */
     background: rgba(0, 0, 0, 0.6);
     padding: 10px 20px;
     border-radius: 30px;
