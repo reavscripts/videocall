@@ -10,7 +10,9 @@
 
     <div id="nickname-overlay">
         <div class="card">
-            <h2>👋 Scegli un Nickname</h2>
+            <h2>👋 Entra nella Conferenza</h2>
+            <input type="text" id="room-id-input" placeholder="Nome della Stanza (es. Riunione-Team-A)" required value="mia_stanza_video">
+            
             <input type="text" id="nickname-input" placeholder="Il tuo Nickname (es. Alice)" required>
             <button id="join-button">Entra nella Conferenza</button>
         </div>
@@ -27,8 +29,9 @@
 		<main id="video-area">
             
             <div id="room-header">
-                <h1>Stanza: <span id="room-name-display">mia_stanza_video</span></h1>
+                <h1>Stanza: <span id="room-name-display"></span></h1>
             </div>
+
             <div id="main-video-feed" class="video-feed">
                 <video autoplay muted playsinline></video> 
                 <div class="video-label">Tu</div>

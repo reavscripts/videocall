@@ -12,8 +12,7 @@ const participantsList = document.getElementById('participants-list');
 const participantCountSpan = document.getElementById('participant-count'); 
 const joinButton = document.getElementById('join-button');
 const nicknameInput = document.getElementById('nickname-input');
-// Elemento video principale, definito in index.html all'interno di main-video-feed
-const mainVideoEl = document.getElementById('local-video'); 
+const roomIdInput = document.getElementById('room-id-input'); // NUOVO
 
 // Elementi DOM per il focus e i controlli
 const mainVideoFeed = document.getElementById('main-video-feed');
@@ -21,14 +20,14 @@ const remoteVideoPlaceholder = document.getElementById('remote-video-placeholder
 const toggleAudioButton = document.getElementById('toggle-audio-button');
 const toggleVideoButton = document.getElementById('toggle-video-button');
 const disconnectButton = document.getElementById('disconnect-button');
+const roomNameDisplay = document.getElementById('room-name-display'); // Per visualizzazione
 
 
 // --- VARIABILI DI STATO ---
 let socket = null;
 let localStream = null;
 let userNickname = 'Ospite';
-// ID fisso della stanza
-const roomId = 'mia_stanza_video'; 
+let currentRoomId = null; // RESA DINAMICA
 const peerConnections = {}; // Mappa per RTCPeerConnection: { socketId: RTCPeerConnection }
 const remoteNicknames = {}; // Mappa per i nickname remoti
 let focusedPeerId = 'local'; // 'local' o 'socketId'
@@ -58,7 +57,6 @@ function updateParticipantCount() {
 
 /**
  * Aggiorna la lista dei partecipanti nel pannello laterale.
- * Aggiunge anche l'evento click per mettere il video in focus.
  */
 function updateParticipantList(id, nickname, isLocal = false) {
     let li = document.getElementById(`list-${id}`);
@@ -69,6 +67,12 @@ function updateParticipantList(id, nickname, isLocal = false) {
         li = liTemplate.content.cloneNode(true).firstElementChild;
         li.id = `list-${id}`;
         li.dataset.peerId = id; 
+        
+        const nameEl = li.querySelector('.participant-name');
+        if (nameEl) {
+             nameEl.textContent = isLocal ? `${nickname} (Tu)` : nickname;
+        }
+
         participantsList.appendChild(li);
 
         // Listener per mettere il video in focus cliccando sulla lista
@@ -77,8 +81,8 @@ function updateParticipantList(id, nickname, isLocal = false) {
         });
     }
     
+    // Aggiorna il testo
     if (li) {
-        // Aggiorna il testo
         const nameEl = li.querySelector('.participant-name');
         if (nameEl) {
              nameEl.textContent = isLocal ? `${nickname} (Tu)` : nickname;
@@ -87,7 +91,7 @@ function updateParticipantList(id, nickname, isLocal = false) {
         // Rimuove e ri-aggiunge la classe di focus
         document.querySelectorAll('#participants-list li').forEach(el => el.classList.remove('participant-focused'));
         if (id === focusedPeerId) {
-            li.classList.add('participant-focused');
+             li.classList.add('participant-focused');
         }
     }
 
@@ -116,27 +120,31 @@ function setMainVideo(peerId) {
         
         if (!remoteVideoElement || !remoteVideoElement.querySelector('video').srcObject) {
             console.warn(`Stream non pronto o elemento non trovato per ID: ${peerId}. Torno a locale.`);
-            // Torna al video locale se il target non è pronto
-            if (focusedPeerId === 'local') return; // Evita loop se non è pronto e siamo già in locale
+            // Se lo stream remoto non è ancora arrivato, manteniamo il focus attuale o torniamo al locale
+            if (focusedPeerId === 'local') return; 
+            
             setMainVideo('local');
             return;
         }
         
-        // Lo stream del video remoto è già presente sulla miniatura
         stream = remoteVideoElement.querySelector('video').srcObject;
         nickname = remoteNicknames[peerId];
     }
     
-    // 2. Aggiorna il video principale (usando l'elemento #local-video)
-    if (stream && mainVideoEl) {
-        mainVideoEl.muted = isLocal; // Muta solo se è il video locale
-        mainVideoEl.srcObject = stream;
-        
-        // Aggiorna la label
-        const labelEl = mainVideoFeed.querySelector('.video-label');
-        if (labelEl) {
-            labelEl.textContent = nickname;
-        }
+    // 2. Aggiorna il video principale
+    const videoEl = mainVideoFeed.querySelector('video'); // RICERCA AFFIDABILE
+    const labelEl = mainVideoFeed.querySelector('.video-label'); // RICERCA AFFIDABILE
+
+    // Non ricreare l'HTML, assumi che esista da index.html
+    if (!videoEl || !labelEl) {
+        console.error("Elementi video o label non trovati in #main-video-feed.");
+        return; 
+    }
+
+    if (stream) {
+        videoEl.muted = isLocal; // Muta solo se è il video locale
+        videoEl.srcObject = stream;
+        labelEl.textContent = nickname;
     }
 
     focusedPeerId = peerId;
@@ -146,9 +154,7 @@ function setMainVideo(peerId) {
 
     document.querySelectorAll('.remote-feed').forEach(el => el.classList.remove('is-focused'));
     const focusedFeed = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`);
-    if (focusedFeed) {
-        focusedFeed.classList.add('is-focused');
-    }
+    if (focusedFeed) focusedFeed.classList.add('is-focused');
 }
 
 
@@ -158,8 +164,12 @@ function setMainVideo(peerId) {
 
 joinButton.addEventListener('click', () => {
     const nickname = nicknameInput.value.trim();
-    if (nickname) {
+    const roomId = roomIdInput.value.trim(); // LEGGI IL NUOVO CAMPO
+    
+    if (nickname && roomId) {
         userNickname = nickname;
+        currentRoomId = roomId; // IMPOSTA LA STANZA
+        roomNameDisplay.textContent = currentRoomId; // Aggiorna il display in conferenza
         
         startLocalMedia()
             .then(() => {
@@ -172,7 +182,7 @@ joinButton.addEventListener('click', () => {
                 alert(`Impossibile avviare la webcam. Controlla i permessi. Errore: ${error.name}`);
             });
     } else {
-        alert('Per favore, inserisci un nickname.');
+        alert('Per favore, inserisci un nickname e il nome della stanza.');
     }
 });
 
@@ -188,13 +198,8 @@ async function startLocalMedia() {
     try {
         localStream = await navigator.mediaDevices.getUserMedia(constraints);
         
-        // Prima di tutto, crea la miniatura locale
+        // Prima di tutto, crea la miniatura locale e imposta il focus
         createLocalVideoElement(); 
-        
-        // Imposta il video principale sullo stream locale
-        if (mainVideoEl) {
-            mainVideoEl.srcObject = localStream;
-        }
         setMainVideo('local'); 
 
         return localStream;
@@ -246,14 +251,14 @@ disconnectButton.addEventListener('click', () => {
 function initializeSocket() {
     socket = io(RENDER_SERVER_URL, {
         query: {
-            nickname: userNickname // Invia il nickname al server
+            nickname: userNickname 
         }
     });
 
     socket.on('connect', () => {
         console.log('Connesso al server di segnalazione.');
-        // Unisciti alla stanza, il server gestirà la segnalazione iniziale
-        socket.emit('join-room', roomId, userNickname);
+        // Unisciti alla stanza, ORA USA currentRoomId
+        socket.emit('join-room', currentRoomId, userNickname);
     });
 
     // 1. Ricevi la lista degli utenti già presenti (il nuovo utente chiama loro)
@@ -379,7 +384,6 @@ function createRemoteVideoElement(socketId, stream) {
     let remoteVideoItem = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`);
     const template = document.getElementById('remote-video-template');
     if (!template) return;
-
 
     if (!remoteVideoItem) {
         remoteVideoItem = template.content.cloneNode(true).firstElementChild;
