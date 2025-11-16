@@ -16,6 +16,12 @@ const roomIdInput = document.getElementById('room-id-input'); // NUOVO
 
 // Elementi DOM per il focus e i controlli
 const mainVideoFeed = document.getElementById('main-video-feed');
+const mainMuteBtn = document.getElementById("main-mute-btn");
+mainMuteBtn.addEventListener("click", () => {
+    const videoEl = mainVideoFeed.querySelector("video");
+    videoEl.muted = !videoEl.muted;
+    mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
+});
 const remoteVideoPlaceholder = document.getElementById('remote-video-placeholder');
 const toggleAudioButton = document.getElementById('toggle-audio-button');
 const toggleVideoButton = document.getElementById('toggle-video-button');
@@ -141,11 +147,21 @@ function setMainVideo(peerId) {
         return; 
     }
 
-    if (stream) {
-        videoEl.muted = isLocal; // Muta solo se è il video locale
-        videoEl.srcObject = stream;
-        labelEl.textContent = nickname;
-    }
+	if (stream) {
+		videoEl.srcObject = stream;
+		videoEl.muted = isLocal; // muta solo se è il video locale
+		labelEl.textContent = nickname;
+
+		// aggiorna lo stato del pulsante mute per remoti
+		const muteBtn = document.getElementById("main-mute-btn");
+
+		if (isLocal) {
+			muteBtn.style.display = "none";      // non mostrare mute per te stesso
+		} else {
+			muteBtn.style.display = "block";     // mostra mute per remoto
+			muteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
+		}
+	}
 
     focusedPeerId = peerId;
 

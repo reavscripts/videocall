@@ -44,10 +44,12 @@
             </div>
 
             <!-- VIDEO PRINCIPALE CON FOCUS -->
-            <div id="main-video-feed" class="video-feed">
-                <video autoplay muted playsinline></video>
-                <div class="video-label">Tu</div>
-            </div>
+			<div id="main-video-feed" class="video-feed">
+				<button id="main-mute-btn" class="main-mute-btn">🔇</button>
+				<video autoplay muted playsinline></video>
+				<div class="video-label">Tu</div>
+			</div>
+
 
             <!-- MINIATURE WEBRTC REMOTE IN GRIGLIA -->
             <section id="remote-videos-container" aria-label="Miniature dei partecipanti remoti">
@@ -69,18 +71,12 @@
 
 
     <!-- TEMPLATE WEBCAM REMOTA (MODIFICATO) -->
-    <template id="remote-video-template">
-        <div class="video-feed remote-feed" data-peer-id="">
-            <!-- Pulsante MUTE REMOTO -->
-            <button class="remote-mute-btn">🔇</button>
-
-            <!-- Video remoto -->
-            <video autoplay playsinline></video>
-
-            <!-- Nickname sotto il video -->
-            <div class="video-label">Nome Utente Remoto</div>
-        </div>
-    </template>
+	<template id="remote-video-template">
+		<div class="video-feed remote-feed" data-peer-id="">
+			<video autoplay playsinline></video>
+			<div class="video-label">Nome Utente Remoto</div>
+		</div>
+	</template>
 
 
     <!-- TEMPLATE PARTECIPANTI -->
