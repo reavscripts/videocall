@@ -16,6 +16,19 @@
         </div>
     </div>
 
+	<div id="nickname-overlay">
+		<div class="card">
+			<h2>👋 Scegli un Nickname</h2>
+			<input type="text" id="nickname-input" placeholder="Il tuo Nickname (es. Alice)" required>
+			
+			<h3 style="color: var(--text-muted); margin-top: 30px; margin-bottom: 15px;">🔗 Partecipa o Crea una Stanza</h3>
+			<input type="text" id="roomid-input" placeholder="ID Stanza (lascia vuoto per creare)" required>
+			
+			<button id="join-button">Entra nella Conferenza</button>
+			<button id="share-link-button" class="hidden" style="margin-top: 15px; background-color: var(--accent-color); color: var(--background-dark);">Condividi Link 🔗</button>
+		</div>
+	</div>
+
     <div id="conference-container" class="hidden">
         
         <aside id="participants-panel">

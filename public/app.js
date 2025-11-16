@@ -13,8 +13,10 @@ const participantsList = document.getElementById('participants-list');
 const participantCountSpan = document.getElementById('participant-count'); 
 const joinButton = document.getElementById('join-button');
 const nicknameInput = document.getElementById('nickname-input');
+// [NUOVI ELEMENTI DOM]
+const roomidInput = document.getElementById('roomid-input'); 
+const shareLinkButton = document.getElementById('share-link-button'); 
 
-// Nuovi elementi DOM per il focus e i controlli
 const mainVideoFeed = document.getElementById('main-video-feed');
 const remoteVideoPlaceholder = document.getElementById('remote-video-placeholder');
 const toggleAudioButton = document.getElementById('toggle-audio-button');
@@ -26,11 +28,10 @@ const disconnectButton = document.getElementById('disconnect-button');
 let socket = null;
 let localStream = null;
 let userNickname = 'Ospite';
-// ID fisso della stanza
-const roomId = 'mia_stanza_video';
+// [VARIABILE ROOMID ORA DINAMICA]
+let roomId = null; 
 const peerConnections = {}; // Mappa per RTCPeerConnection: { socketId: RTCPeerConnection }
 const remoteNicknames = {}; // Mappa per i nickname remoti
-// Contiene l'ID del socket il cui video è attualmente mostrato nel mainVideoFeed ('local' o 'socketId')
 let focusedPeerId = 'local'; 
 
 
@@ -55,6 +56,14 @@ function showStatusMessage(message) {
 }
 
 /**
+ * Genera un ID stanza casuale leggibile.
+ * Esempio: "chat-4g8h"
+ */
+function generateRoomId() {
+    return 'stanza-' + Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
+}
+
+/**
  * Aggiorna il contatore dei partecipanti.
  */
 function updateParticipantCount() {
@@ -66,7 +75,6 @@ function updateParticipantCount() {
 
 /**
  * Aggiorna la lista dei partecipanti nel pannello laterale e aggiunge il listener per il focus.
- * FIX: Corretto per evitare duplicati (controllando l'esistenza dell'elemento)
  */
 function updateParticipantList(id, nickname, isLocal = false) {
     // 1. Cerchiamo l'elemento esistente tramite l'ID
@@ -99,7 +107,6 @@ function updateParticipantList(id, nickname, isLocal = false) {
     }
     
     // 5. Imposta il focus visivo se è il peer attualmente in focus
-    // Questo viene gestito principalmente in setMainVideo, ma lo impostiamo qui all'inizio
     if (id === focusedPeerId) {
          li.classList.add('participant-focused');
     } else {
@@ -144,12 +151,10 @@ function setMainVideo(peerId) {
     if (!stream) {
         mainVideoFeed.innerHTML = `<div class="video-placeholder">Stream non disponibile per ${nickname}</div>`;
         focusedPeerId = peerId;
-        // Se lo stream non c'è, non facciamo nulla con l'elemento video, ma aggiorniamo comunque l'UI di focus
     } else {
         // 2. Sposta lo stream nel contenitore principale
         let videoEl = mainVideoFeed.querySelector('video');
         if (!videoEl) {
-            // Se l'elemento video non esiste, lo ricreiamo (non dovrebbe succedere se index.html è corretto)
             videoEl = document.createElement('video');
             videoEl.autoplay = true;
             videoEl.playsinline = true;
@@ -195,26 +200,83 @@ function setMainVideo(peerId) {
 // GESTIONE INGRESSO UTENTE E MEDIA
 // ==============================================================================
 
+/**
+ * [NUOVA FUNZIONE] Analizza l'URL per pre-impostare nickname e ID stanza.
+ */
+function checkUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    const urlRoomId = params.get('room');
+    const urlNickname = params.get('nick');
+    
+    if (urlRoomId) {
+        roomidInput.value = urlRoomId;
+    }
+    
+    if (urlNickname) {
+        nicknameInput.value = urlNickname;
+    }
+}
+
+// [NUOVO HANDLER PER IL PULSANTE DI CONDIVISIONE]
+shareLinkButton.addEventListener('click', () => {
+    // Crea il link completo con roomid e nickname come parametri URL
+    const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}&nick=${encodeURIComponent(userNickname)}`;
+    
+    // Usa l'API Clipboard se disponibile, altrimenti usa un vecchio metodo
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            shareLinkButton.textContent = 'Link Copiato! ✅';
+            setTimeout(() => shareLinkButton.textContent = 'Condividi Link 🔗', 2000);
+        }).catch(err => {
+            console.error('Impossibile copiare il testo: ', err);
+            prompt('Copia manualmente questo link:', shareUrl);
+        });
+    } else {
+         prompt('Copia manualmente questo link:', shareUrl);
+    }
+});
+
+
 joinButton.addEventListener('click', () => {
     const nickname = nicknameInput.value.trim();
-    if (nickname) {
-        userNickname = nickname;
-        
-        startLocalMedia()
-            .then(() => {
-                nicknameOverlay.classList.add('hidden');
-                conferenceContainer.classList.remove('hidden');
-                initializeSocket();
-            })
-            .catch(error => {
-                console.error("Non è stato possibile avviare la webcam:", error.name, error);
-                showStatusMessage(`Impossibile avviare la webcam. Controlla i permessi. Errore: ${error.name}`);
-                nicknameOverlay.classList.remove('hidden');
-                conferenceContainer.classList.add('hidden');
-            });
-    } else {
+    let requestedRoomId = roomidInput.value.trim();
+
+    if (!nickname) {
         showStatusMessage('Per favore, inserisci un nickname.');
+        return;
     }
+
+    // [LOGICA ROOMID DINAMICA]
+    if (!requestedRoomId) {
+        // Se l'utente lascia vuoto il campo, genera un ID stanza casuale
+        roomId = generateRoomId();
+        console.log(`Creazione di una nuova stanza con ID: ${roomId}`);
+    } else {
+        // Altrimenti, usa l'ID fornito per unirsi
+        roomId = requestedRoomId;
+    }
+
+    userNickname = nickname;
+    
+    startLocalMedia()
+        .then(() => {
+            // [AGGIORNAMENTO INTERFACCIA UTENTE]
+            nicknameOverlay.classList.add('hidden');
+            conferenceContainer.classList.remove('hidden');
+            shareLinkButton.classList.remove('hidden'); // Mostra il pulsante di condivisione
+            initializeSocket();
+            
+            // [AGGIORNA L'URL] Aggiorna l'URL del browser senza ricaricare la pagina
+            const newUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+            window.history.pushState({ path: newUrl }, '', newUrl);
+
+        })
+        .catch(error => {
+            console.error("Non è stato possibile avviare la webcam:", error.name, error);
+            showStatusMessage(`Impossibile avviare la webcam. Controlla i permessi. Errore: ${error.name}`);
+            nicknameOverlay.classList.remove('hidden');
+            conferenceContainer.classList.add('hidden');
+        });
 });
 
 /**
@@ -281,6 +343,7 @@ disconnectButton.addEventListener('click', () => {
     // 4. Ripristina l'interfaccia utente (PULIZIA FINALE)
     nicknameOverlay.classList.remove('hidden');
     conferenceContainer.classList.add('hidden');
+    shareLinkButton.classList.add('hidden'); // Nasconde il pulsante di condivisione
     mainVideoFeed.innerHTML = `<video id="local-video" autoplay muted playsinline></video><div class="video-label">Tu</div>`; 
     remoteVideosContainer.innerHTML = `<div id="remote-video-placeholder" class="video-placeholder">In attesa di altri partecipanti...</div>`;
     participantsList.innerHTML = '';
@@ -289,7 +352,18 @@ disconnectButton.addEventListener('click', () => {
     Object.keys(peerConnections).forEach(key => delete peerConnections[key]);
     Object.keys(remoteNicknames).forEach(key => delete remoteNicknames[key]);
     focusedPeerId = 'local';
+    roomId = null; // Resetta l'ID stanza
+
+    // Resetta anche l'URL del browser
+    window.history.pushState({ path: window.location.pathname }, '', window.location.pathname);
     
+    // Rimuove i valori inseriti nei campi
+    roomidInput.value = '';
+    nicknameInput.value = '';
+
+    // Rilancia la logica dei parametri URL in caso di ricarica
+    checkUrlParams(); 
+
     console.log("Conferenza lasciata.");
 });
 
@@ -306,7 +380,8 @@ function initializeSocket() {
 
     socket.on('connect', () => {
         console.log('Connesso al server di segnalazione.');
-        socket.emit('join-room', roomId, userNickname);
+        // Usa la variabile roomId aggiornata
+        socket.emit('join-room', roomId, userNickname); 
     });
 
     // 1. Ricevi la lista degli utenti già presenti (il nuovo utente chiama loro)
@@ -514,7 +589,6 @@ async function handleCandidate(socketId, candidate) {
 
 /**
  * Pulisce la connessione e l'interfaccia utente quando un utente lascia.
- * FIX: Garantisce la rimozione corretta di tutti gli elementi.
  * @param {string} socketId - ID del socket del peer che ha lasciato.
  * @param {boolean} isExternalEvent - True se l'evento arriva dal server (user-left).
  */
@@ -560,3 +634,7 @@ function removePeer(socketId, isExternalEvent = true) {
 
     console.log(`Utente ${socketId} rimosso.`);
 }
+
+
+// Esegui questo all'avvio per leggere i parametri URL
+checkUrlParams();
