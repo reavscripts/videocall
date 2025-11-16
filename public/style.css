@@ -31,14 +31,16 @@ body {
 /* ======================================= */
 
 #conference-container {
+    /* Manteniamo come Flexbox Colonna, ma assicuriamo che riempia la vista */
     display: flex;
-    flex-direction: column; /* L'area principale video/miniature è in colonna */
+    flex-direction: column; 
     width: 100%;
     height: 100vh;
     position: relative;
 }
 
 #video-area {
+    /* Deve essere un Flexbox Verticale che prende tutto lo spazio rimanente */
     flex-grow: 1;
     display: flex;
     flex-direction: column; /* I due elementi interni (main e remote) sono in colonna */
@@ -48,20 +50,20 @@ body {
 
 /* --- Video Principale (Massimizzato) --- */
 #main-video-feed {
-    /* Ora occupa circa il 70% dell'altezza dello spazio rimanente */
-    height: 70%; 
-    width: 100%;
+    /* height: 70%; è corretto, ma usiamo flex-basis per chiarezza */
+    flex-basis: 70%; 
+    flex-shrink: 0; /* Non si riduce */
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
     background-color: #000;
-    box-sizing: border-box; /* Include padding e bordo nel calcolo della dimensione */
+    box-sizing: border-box;
+    /* Rimuovi i margini verticali qui se presenti, altrimenti rubano spazio */
 }
 
 #main-video-feed video {
-    /* Adatta il video senza tagliarlo */
     width: 100%;
     height: 100%;
     object-fit: contain; 
@@ -83,29 +85,30 @@ body {
 /* ======================================= */
 
 #remote-videos-container {
-    /* Occupa il restante 30% dell'altezza */
-    height: 30%; 
+    /* Ora occupa il restante 30% dell'altezza di #video-area */
+    flex-basis: 30%; 
+    flex-shrink: 0; /* Non si riduce */
     width: 100%;
     
     /* Organizzazione e allineamento */
     display: flex;
     flex-direction: row;
-    justify-content: center; /* Centra le miniature orizzontalmente */
-    align-items: center; /* Centra le miniature verticalmente */
+    justify-content: center;
+    align-items: center;
     gap: 15px;
     padding: 10px 20px;
     
     z-index: 5;
-    overflow-x: auto; /* Scorrevole per troppi video */
-    background: #1a1a1a; /* Leggero sfondo per distinguerlo dal main video */
+    overflow-x: auto;
+    background: #1a1a1a;
     box-sizing: border-box;
 }
 
 .remote-feed {
-    /* Lasciamo le miniature con altezza fissa */
+    /* Aumentiamo l'altezza delle miniature al 90% del contenitore 30% */
     width: 180px;
     min-width: 180px;
-    height: 95%; /* Si adatta all'altezza del contenitore */
+    height: 90%; 
     border-radius: 8px;
     overflow: hidden;
     position: relative;
@@ -116,7 +119,6 @@ body {
 }
 
 .remote-feed video {
-    /* Taglia leggermente il video per riempire la miniatura */
     width: 100%;
     height: 100%;
     object-fit: cover; 
@@ -227,9 +229,10 @@ body {
 /* ======================================= */
 
 #media-controls {
-    /* Posizionamento ASSOLUTO rispetto all'intera conferenza-container */
+    /* Posizione assoluta RIFERITA AL #video-area (o #main-video-feed se lo avvolgiamo) */
     position: absolute;
-    bottom: 20px; /* Sale un po' dal bordo inferiore */
+    /* Lo spostiamo leggermente più in alto per non interferire con le miniature */
+    top: 65%; /* Circa 65% giù nell'area video totale */
     left: 50%;
     transform: translateX(-50%);
     
