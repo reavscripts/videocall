@@ -27,32 +27,34 @@ body {
 }
 
 /* ======================================= */
-/* 1. LAYOUT PRINCIPALE (OPZIONE ZOOM)     */
+/* 1. LAYOUT PRINCIPALE (BROADCAST 70/30)  */
 /* ======================================= */
 
 #conference-container {
-    /* Manteniamo come Flexbox Colonna, ma assicuriamo che riempia la vista */
+    /* Contenitore principale a schermo intero */
     display: flex;
     flex-direction: column; 
     width: 100%;
-    height: 100vh;
+    height: 100vh; /* Rigido 100% altezza viewport */
     position: relative;
 }
 
 #video-area {
-    /* Deve essere un Flexbox Verticale che prende tutto lo spazio rimanente */
+    /* Contenitore Flex verticale per Video Principale (70%) e Miniature (30%) */
     flex-grow: 1;
     display: flex;
-    flex-direction: column; /* I due elementi interni (main e remote) sono in colonna */
-    position: relative;
+    flex-direction: column;
+    position: relative; /* Base per i controlli in position: absolute */
     background-color: #000;
 }
 
-/* --- Video Principale (Massimizzato) --- */
+/* --- Video Principale (70% dell'altezza di #video-area) --- */
 #main-video-feed {
-    /* height: 70%; è corretto, ma usiamo flex-basis per chiarezza */
-    flex-basis: 70%; 
-    flex-shrink: 0; /* Non si riduce */
+    /* **CORREZIONE CRITICA: Usa height e blocca crescita/riduzione** */
+    height: 70%; /* Altezza rigorosa del 70% */
+    flex-grow: 0; 
+    flex-shrink: 0;
+    
     position: relative;
     display: flex;
     justify-content: center;
@@ -60,13 +62,12 @@ body {
     overflow: hidden;
     background-color: #000;
     box-sizing: border-box;
-    /* Rimuovi i margini verticali qui se presenti, altrimenti rubano spazio */
 }
 
 #main-video-feed video {
     width: 100%;
     height: 100%;
-    object-fit: contain; 
+    object-fit: contain; /* Assicura che il video non venga tagliato */
 }
 
 .video-label {
@@ -81,13 +82,14 @@ body {
 }
 
 /* ======================================= */
-/* 2. MINIATURE REMOTE (STRIP)             */
+/* 2. MINIATURE REMOTE (30% RESTANTE)      */
 /* ======================================= */
 
 #remote-videos-container {
-    /* Ora occupa il restante 30% dell'altezza di #video-area */
-    flex-basis: 30%; 
-    flex-shrink: 0; /* Non si riduce */
+    /* **CORREZIONE CRITICA: Usa height e blocca crescita/riduzione** */
+    height: 30%; /* Altezza rigorosa del 30% */
+    flex-grow: 0; 
+    flex-shrink: 0; 
     width: 100%;
     
     /* Organizzazione e allineamento */
@@ -105,10 +107,9 @@ body {
 }
 
 .remote-feed {
-    /* Aumentiamo l'altezza delle miniature al 90% del contenitore 30% */
     width: 180px;
     min-width: 180px;
-    height: 90%; 
+    height: 90%; /* Si adatta all'altezza del contenitore */
     border-radius: 8px;
     overflow: hidden;
     position: relative;
@@ -129,14 +130,7 @@ body {
 }
 
 .remote-feed.is-focused {
-    /* Per evidenziare la miniatura del video attualmente in focus nel main feed */
     border-color: var(--primary-color);
-}
-
-.remote-feed video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* Taglia leggermente il video per riempire la miniatura */
 }
 
 #remote-video-placeholder {
@@ -155,20 +149,19 @@ body {
 /* ======================================= */
 
 #participants-panel {
-    position: absolute; /* Rimosso dal flusso Flex */
+    /* Posizionamento assoluto OK */
+    position: absolute; 
     top: 0;
     right: 0;
     height: 100%;
     width: 250px;
-    background: rgba(30, 30, 30, 0.95); /* Leggermente trasparente */
+    background: rgba(30, 30, 30, 0.95); 
     backdrop-filter: blur(5px);
-    z-index: 50; /* Sempre sopra gli altri elementi */
+    z-index: 50; 
     padding: 15px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    /* Se vuoi nasconderlo e mostrarlo solo al click, userai JS per gestire 'right' o 'transform' */
-    /* Esempio di stato nascosto: transform: translateX(100%); */
     border-left: 1px solid var(--border-color);
     transition: transform 0.3s ease-out;
 }
@@ -177,7 +170,7 @@ body {
     list-style: none;
     padding: 0;
     margin: 10px 0;
-    overflow-y: auto; /* Scorrevole se ci sono molti nomi */
+    overflow-y: auto; 
 }
 
 #participants-list li {
@@ -206,7 +199,7 @@ body {
 }
 
 .status-indicator {
-    color: limegreen; /* Indicatore di stato connesso */
+    color: limegreen; 
 }
 
 #share-link-button {
@@ -229,14 +222,13 @@ body {
 /* ======================================= */
 
 #media-controls {
-    /* Posizione assoluta RIFERITA AL #video-area (o #main-video-feed se lo avvolgiamo) */
+    /* Posizione assoluta RIFERITA AL #video-area */
     position: absolute;
-    /* Lo spostiamo leggermente più in alto per non interferire con le miniature */
-    top: 65%; /* Circa 65% giù nell'area video totale */
+    /* La posizione 70% è la linea di divisione. Sali di 10% per stare sopra. */
+    top: 60%; 
     left: 50%;
     transform: translateX(-50%);
     
-    /* Stili... (restano invariati) */
     background: rgba(0, 0, 0, 0.6);
     padding: 10px 20px;
     border-radius: 30px;
