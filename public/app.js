@@ -5,7 +5,6 @@
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
 // --- ELEMENTI DOM ---
-// Elementi presenti nel DOM (assumiamo che siano tutti disponibili)
 const remoteVideosContainer = document.getElementById('remote-videos-container');
 const nicknameOverlay = document.getElementById('nickname-overlay');
 const conferenceContainer = document.getElementById('conference-container');
@@ -22,6 +21,7 @@ const remoteVideoPlaceholder = document.getElementById('remote-video-placeholder
 const toggleAudioButton = document.getElementById('toggle-audio-button');
 const toggleVideoButton = document.getElementById('toggle-video-button');
 const disconnectButton = document.getElementById('disconnect-button');
+
 
 // --- VARIABILI DI STATO ---
 let socket = null;
@@ -93,7 +93,6 @@ function addRemotePeer(socketId, stream, nickname) {
     // 1. Crea la miniatura usando il template
     const template = document.getElementById('remote-video-template');
     
-    // Controllo di sicurezza: se il template non è presente, si ferma
     if (!template) {
         console.error("ERRORE: Template 'remote-video-template' non trovato nel DOM.");
         return; 
@@ -130,7 +129,6 @@ function addRemotePeer(socketId, stream, nickname) {
     updateParticipantCount();
 
     // 6. LOGICA PER IL FOCUS: Imposta il focus sul nuovo peer se è il primo remoto
-    // e se il video locale non è già in focus
     if (focusedPeerId === 'local' && Object.keys(peerConnections).length === 1) {
          setMainVideo(socketId);
     }
@@ -141,8 +139,6 @@ function addRemotePeer(socketId, stream, nickname) {
 
 /**
  * Rimuove gli elementi dal DOM quando un peer lascia la conferenza.
- * @param {string} socketId - ID del socket remoto.
- * @param {boolean} isExternalEvent - True se l'evento arriva dal server (user-left).
  */
 function removePeer(socketId, isExternalEvent = true) {
     // 1. Chiude la connessione P2P (se non è già chiusa)
@@ -168,10 +164,10 @@ function removePeer(socketId, isExternalEvent = true) {
     // 4. LOGICA PER IL FOCUS: se il peer che ha lasciato era in focus, sposta il focus
     if (focusedPeerId === socketId) {
         // Cerchiamo il primo peer rimasto
-        const remainingPeerIds = Object.keys(peerConnections); 
+        const remainingPeerIds = Object.keys(peerConnections).filter(id => id !== socket.id);
         
         if (remainingPeerIds.length > 0) {
-            // Metti in focus il primo peer rimasto (in questo caso, il primo remote)
+            // Metti in focus il primo peer remoto rimasto
             setMainVideo(remainingPeerIds[0]);
         } else {
             // Torna al video locale
@@ -202,12 +198,11 @@ function initializeLocalFeed() {
         participantsList.prepend(liElement); // Aggiunge in cima alla lista
     }
 
-
     // 2. Crea la miniatura locale nella galleria (solo per l'UI)
     const template = document.getElementById('remote-video-template');
     
     if (!template) {
-        console.error("ERRORE: Template 'remote-video-template' non trovato nel DOM. Impossibile inizializzare la miniatura locale.");
+        console.error("ERRORE: Template 'remote-video-template' non trovato nel DOM.");
         return; 
     }
     
@@ -217,7 +212,7 @@ function initializeLocalFeed() {
     
     const videoElement = localFeed.querySelector('video');
     videoElement.srcObject = localStream;
-    videoElement.muted = true; // Locale sempre muto
+    videoElement.muted = true; // Locale sempre muto (eco)
 
     const labelElement = localFeed.querySelector('.video-label');
     labelElement.textContent = userNickname;
@@ -261,16 +256,6 @@ async function startLocalVideo() {
     }
 }
 
-// Funzione per inviare l'offerta a tutti i peer esistenti
-function sendOffersToExistingPeers(newPeerSocketId) {
-    // Invia l'offerta solo al nuovo peer (logica standard)
-    const peersToSendTo = newPeerSocketId ? [newPeerSocketId] : Object.keys(peerConnections);
-
-    peersToSendTo.forEach(peerSocketId => {
-        createOffer(peerSocketId);
-    });
-}
-
 function toggleAudio() {
     if (!localStream) return;
     localStream.getAudioTracks().forEach(track => {
@@ -288,65 +273,12 @@ function toggleVideo() {
 }
 
 // ==============================================================================
-// GESTIONE SOCKETS E INGRESSO
-// ==============================================================================
-
-function setupSocketEvents() {
-    // Gestione dell'arrivo di un nuovo peer (il server ci dice di creare una connessione)
-    socket.on('welcome', (peerSocketId, nickname) => {
-        console.log(`Un nuovo utente (${nickname}) si è unito: ${peerSocketId}`);
-        remoteNicknames[peerSocketId] = nickname;
-        
-        // 1. Crea la connessione Peer
-        createPeerConnection(peerSocketId); 
-        
-        // 2. Invia l'offerta al nuovo peer
-        createOffer(peerSocketId); 
-    });
-
-    // Gestione dell'arrivo di un'offerta da un peer
-    socket.on('offer', (offer, peerSocketId) => {
-        // Se non abbiamo ancora creato la PC per questo peer, la creiamo
-        if (!peerConnections[peerSocketId]) {
-            remoteNicknames[peerSocketId] = 'Utente Remoto'; // Nome temporaneo
-            createPeerConnection(peerSocketId);
-        }
-        createAnswer(offer, peerSocketId);
-    });
-
-    // Gestione della risposta (Answer) a una nostra offerta
-    socket.on('answer', (answer, peerSocketId) => {
-        const pc = peerConnections[peerSocketId];
-        if (pc) {
-            pc.setRemoteDescription(new RTCSessionDescription(answer))
-                .catch(e => console.error('Error setting remote answer:', e));
-        }
-    });
-
-    // Gestione dei candidati ICE
-    socket.on('ice-candidate', (candidate, peerSocketId) => {
-        const pc = peerConnections[peerSocketId];
-        if (pc) {
-            pc.addIceCandidate(new RTCIceCandidate(candidate))
-                .catch(e => console.error('Error adding ICE candidate:', e));
-        }
-    });
-
-    // Gestione della disconnessione di un peer
-    socket.on('user-left', (peerSocketId) => {
-        console.log(`Utente disconnesso: ${peerSocketId}`);
-        removePeer(peerSocketId);
-    });
-}
-
-// ==============================================================================
 // FUNZIONI WEBRTC P2P
 // ==============================================================================
 
 function createPeerConnection(peerId) {
     const pc = new RTCPeerConnection({
         iceServers: [
-            // Server STUN di Google (pubblico)
             { urls: 'stun:stun.l.google.com:19302' },
         ]
     });
@@ -375,33 +307,100 @@ function createPeerConnection(peerId) {
 
 function handleRemoteTrack(stream, peerId) {
     const nickname = remoteNicknames[peerId] || 'Utente Remoto';
-    // Assicurati che lo stream sia aggiunto una sola volta e gestisci l'UI
+    // Aggiunge la miniatura alla galleria
     addRemotePeer(peerId, stream, nickname);
 }
 
 function createOffer(peerId) {
     const pc = peerConnections[peerId];
-    if (!pc) return;
+    if (!pc) {
+        console.error(`Impossibile creare offerta: PeerConnection per ${peerId} non trovata.`);
+        return;
+    }
 
     pc.createOffer()
         .then(offer => pc.setLocalDescription(offer))
         .then(() => {
-            socket.emit('offer', pc.localDescription, peerId);
+            // Emette l'offerta al peer specificato
+            socket.emit('offer', pc.localDescription, peerId); 
         })
-        .catch(error => console.error('Error creating offer:', error));
+        .catch(error => console.error(`Error creating offer for ${peerId}:`, error));
 }
 
 function createAnswer(offer, peerId) {
     const pc = peerConnections[peerId];
-    if (!pc) return;
+    if (!pc) {
+        console.error(`Impossibile creare risposta: PeerConnection per ${peerId} non trovata.`);
+        return;
+    }
 
+    // 1. Imposta l'offerta ricevuta come descrizione remota
     pc.setRemoteDescription(new RTCSessionDescription(offer))
-        .then(() => pc.createAnswer())
-        .then(answer => pc.setLocalDescription(answer))
+        .then(() => pc.createAnswer()) // 2. Crea la risposta
+        .then(answer => pc.setLocalDescription(answer)) // 3. Imposta la risposta come descrizione locale
         .then(() => {
-            socket.emit('answer', pc.localDescription, peerId);
+            // 4. Emette la risposta al peer specificato
+            socket.emit('answer', pc.localDescription, peerId); 
         })
-        .catch(error => console.error('Error creating answer:', error));
+        .catch(error => console.error(`Error creating answer for ${peerId}:`, error));
+}
+
+
+// ==============================================================================
+// GESTIONE SOCKETS E INGRESSO (CORRETTA)
+// ==============================================================================
+
+function setupSocketEvents() {
+    
+    // 1. GESTIONE DELL'ARRIVO DI UN NUOVO PEER ('welcome')
+    // Solo l'utente che è già in conferenza riceve 'welcome' e deve inviare l'offerta.
+    socket.on('welcome', (peerSocketId, nickname) => {
+        console.log(`Un nuovo utente (${nickname}) si è unito: ${peerSocketId}`);
+        remoteNicknames[peerSocketId] = nickname;
+        
+        createPeerConnection(peerSocketId); 
+        createOffer(peerSocketId); 
+    });
+
+    // 2. GESTIONE DELL'ARRIVO DI UN'OFFERTA DA UN PEER (l'utente ricevente risponde)
+    socket.on('offer', (offer, peerSocketId) => {
+        console.log(`Ricevuta OFFERTA da: ${peerSocketId}`);
+        
+        // Se riceviamo un'offerta, dobbiamo creare la PeerConnection
+        if (!peerConnections[peerSocketId]) {
+            // Se non abbiamo ancora il nickname, usiamo un placeholder
+            remoteNicknames[peerSocketId] = remoteNicknames[peerSocketId] || 'Utente Remoto'; 
+            createPeerConnection(peerSocketId);
+        }
+        
+        // Creiamo la risposta (Answer)
+        createAnswer(offer, peerSocketId);
+    });
+
+    // 3. GESTIONE DELLA RISPOSTA (Answer) a una nostra offerta
+    socket.on('answer', (answer, peerSocketId) => {
+        console.log(`Ricevuta RISPOSTA da: ${peerSocketId}`);
+        const pc = peerConnections[peerSocketId];
+        if (pc) {
+            pc.setRemoteDescription(new RTCSessionDescription(answer))
+                .catch(e => console.error('Error setting remote answer:', e));
+        }
+    });
+
+    // 4. GESTIONE DEI CANDIDATI ICE
+    socket.on('ice-candidate', (candidate, peerSocketId) => {
+        const pc = peerConnections[peerSocketId];
+        if (pc && pc.remoteDescription) { // Controlliamo che la descrizione remota sia stata impostata
+            pc.addIceCandidate(new RTCIceCandidate(candidate))
+                .catch(e => console.error('Error adding ICE candidate:', e));
+        }
+    });
+
+    // 5. GESTIONE DELLA DISCONNESSIONE
+    socket.on('user-left', (peerSocketId) => {
+        console.log(`Utente disconnesso: ${peerSocketId}`);
+        removePeer(peerSocketId);
+    });
 }
 
 
@@ -425,7 +424,6 @@ joinButton.addEventListener('click', async () => {
     await startLocalVideo();
 
     // 3. Connette al Signaling Server
-    // NB: La libreria 'io' (socket.io) deve essere inclusa in index.html!
     socket = io(RENDER_SERVER_URL, {
         query: {
             nickname: userNickname
