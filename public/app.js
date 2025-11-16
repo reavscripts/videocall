@@ -653,7 +653,3 @@ function removePeer(socketId, isExternalEvent = true) {
 
     console.log(`Utente ${socketId} rimosso.`);
 }
-
-
-// Esegui questo all'avvio per leggere i parametri URL
-checkUrlParams();
