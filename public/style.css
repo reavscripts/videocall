@@ -41,30 +41,33 @@ body {
 #video-area {
     flex-grow: 1;
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Organizza gli elementi verticalmente */
     position: relative;
-    background-color: #000; /* Sfondo per i margini del video */
+    background-color: #000;
 }
 
 /* --- Video Principale (Massimizzato) --- */
 #main-video-feed {
-    flex-grow: 1;
+    /* Non usa più flex-grow: 1. Adesso usiamo un'altezza fissa/percentuale per lo spazio */
+    width: 100%;
+    height: calc(100vh - 120px); /* Usa l'altezza dello schermo meno un margine e lo spazio per le miniature */
+    max-height: 80vh; /* Limite massimo all'80% dell'altezza della vista */
+    margin: 20px auto 10px auto; /* Centrato orizzontalmente con più margine superiore */
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    margin: 10px; /* Piccolo margine attorno al video principale */
     border-radius: 10px;
     background-color: #000;
 }
 
 #main-video-feed video {
+    /* Usa 'contain' per non tagliare il video all'interno del riquadro */
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Adatta il video senza tagliarlo */
+    object-fit: contain; 
 }
-
 .video-label {
     position: absolute;
     bottom: 10px;
