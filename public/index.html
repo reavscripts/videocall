@@ -4,18 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conferenza Video - WebRTC</title>
-    <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="nickname-overlay">
         <div class="card">
-            <h2>👋 Entra nella Conferenza</h2>
-            
+            <h2>👋 Scegli un Nickname</h2>
             <input type="text" id="nickname-input" placeholder="Il tuo Nickname (es. Alice)" required>
-            
-            <h3 style="color: var(--text-muted); margin-top: 30px; margin-bottom: 15px;">🔗 Partecipa o Crea una Stanza</h3>
-            <input type="text" id="roomid-input" placeholder="ID Stanza (lascia vuoto per creare)"> 
             <button id="join-button">Entra nella Conferenza</button>
         </div>
     </div>
@@ -24,23 +20,23 @@
         
         <aside id="participants-panel">
             <h3>👥 Partecipanti (<span id="participant-count">0</span>)</h3>
-            
-            <button id="share-link-button" class="hidden">Condividi Link 🔗</button> 
-
             <ul id="participants-list" aria-label="Elenco dei partecipanti alla conferenza">
                 </ul>
         </aside>
 
 		<main id="video-area">
             
-			<div id="main-video-feed" class="video-feed">
-				<video id="local-video" autoplay muted playsinline></video>
-				<div class="video-label">Tu</div>
-			</div>
+            <div id="room-header">
+                <h1>Stanza: <span id="room-name-display">mia_stanza_video</span></h1>
+            </div>
+            <div id="main-video-feed" class="video-feed">
+                <video autoplay muted playsinline></video> 
+                <div class="video-label">Tu</div>
+                </div>
             
             <section id="remote-videos-container" aria-label="Miniature dei partecipanti remoti">
                 <div id="remote-video-placeholder" class="video-placeholder">In attesa di altri partecipanti...</div>
-                </section>
+            </section>
             
             <div id="media-controls">
                 <button id="toggle-audio-button" title="Muta/Riattiva Audio">🎤</button>
@@ -52,15 +48,21 @@
 
     </div>
 
-	<template id="remote-video-template">
+    <template id="remote-video-template">
         <div class="video-feed remote-feed" data-peer-id="">
             <video autoplay playsinline muted></video>
             <div class="video-label">Nome Utente Remoto</div>
         </div>
     </template>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
-    <script src="app.js"></script>
-
+    <template id="participant-item-template">
+        <li data-peer-id="">
+            <span class="participant-name">Nome</span>
+            <span class="status-indicator">●</span> 
+        </li>
+    </template>
+    
+	<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+	<script src="app.js"></script>
 </body>
 </html>
