@@ -318,35 +318,65 @@ body{
     cursor: pointer;
 }
 
-/* --------------------
-   RESPONSIVE MOBILE
--------------------- */
+/* ========================================================= */
+/*  RESPONSIVE — MOBILE / TABLET (fino a 900px) */
+/*  Main video sopra, griglia remoti SOTTO (come prima) */
+/* ========================================================= */
 
-@media (max-width: 900px){
+@media (max-width: 900px) {
 
-    #video-area{
-        grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr;
+    /* L’intera zona video diventa a DUE RIGHE, non colonne */
+    #video-area {
+        display: flex;
+        flex-direction: column;
+        padding: 8px;
         gap: 10px;
+        height: 100vh;
     }
 
-    #main-video-feed{
+    /* MAIN VIDEO in ALTO */
+    #main-video-feed {
         width: 100%;
-        height: 50vh;
+        height: 48vh;
+        max-height: 48vh;
+        min-height: 48vh;
+        border-radius: 10px;
     }
 
-    #remote-videos-container{
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    /* GRID REMOTA sotto il main (non più a destra) */
+    #remote-videos-container {
+        width: 100%;
+        height: 45vh;
+        overflow-y: auto;
+
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         grid-auto-rows: 120px;
-        height: 40vh;
+        gap: 10px;
+        padding: 6px;
     }
 
-    #participants-panel{
+    /* pannello partecipanti nascosto su mobile */
+    #participants-panel {
         display: none;
     }
 }
 
-@media (max-width: 420px){
-    #main-video-feed{ height: 42vh; }
-    #remote-videos-container{ grid-auto-rows: 100px; }
+/* ========================================================= */
+/*  MOBILE STRETTO — telefoni piccoli */
+// ========================================================= */
+@media (max-width: 420px) {
+
+    #main-video-feed {
+        height: 42vh;
+        max-height: 42vh;
+        min-height: 42vh;
+    }
+
+    #remote-videos-container {
+        height: 55vh;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        grid-auto-rows: 100px;
+        gap: 8px;
+    }
 }
