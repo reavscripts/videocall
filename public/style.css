@@ -1,4 +1,4 @@
-:root {
+:root{
     --primary-color: #00bcd4;
     --accent-color: #ff9800;
     --background-dark: #121212;
@@ -7,233 +7,330 @@
     --text-light: #ffffff;
     --text-muted: #b0b0b0;
     --red-danger: #ef5350;
-    --border-color: rgba(255, 255, 255, 0.1);
+    --border-color: rgba(255,255,255,0.08);
 }
 
-body {
-    font-family: 'Roboto', 'Segoe UI', Tahoma, sans-serif;
+/* --------------------
+   Base / Reset
+   -------------------- */
+* { box-sizing: border-box; }
+html, body {
+    height: 100%;
     margin: 0;
     padding: 0;
     background: var(--background-dark);
     color: var(--text-light);
-    height: 100vh;
-    overflow: hidden;
+    font-family: "Roboto", "Segoe UI", Tahoma, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+body {
+    overflow: hidden; /* la UI gestisce scroll interni */
 }
 
-.hidden {
-    display: none !important;
-}
+/* Nasconde quando richiesto dal JS */
+.hidden { display: none !important; }
 
-/* ===================================================== */
-/*  ZOOM STYLE LAYOUT                                     */
-/* ===================================================== */
-
-#conference-container {
-    display: flex;
-    height: 100vh;
+/* --------------------
+   Contenitore principale
+   -------------------- */
+#conference-container{
+    position: relative;
     width: 100%;
-    position: relative;
+    height: 100vh;
+    display: block;
 }
 
-#video-area {
-    flex-grow: 1;
+/* --------------------
+   Area video: layout ZOOM
+   Colonna 1 = MAIN (flex)
+   Colonna 2 = Galleria remota (larghezza fissa)
+   -------------------- */
+#video-area{
     display: grid;
-    grid-template-columns: 1fr 320px;   /* Main video left + sidebar grid */
-    grid-template-rows: 100%;
-    gap: 10px;
-    padding: 10px;
+    grid-template-columns: 1fr 320px; /* MAIN | REMOTE BAR */
+    grid-template-rows: 1fr;
+    gap: 12px;
+    padding: 12px;
+    height: 100%;
     background: #000;
-    overflow: hidden;
 }
 
-/* ========================== */
-/*  MAIN VIDEO FOCUS AREA     */
-/* ========================== */
-#main-video-feed {
+/* Main video grande (sinistra) */
+#main-video-feed{
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
     border-radius: 12px;
-    background: #000;
     overflow: hidden;
-    position: relative;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    background: #000;
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
+    position: relative;
+    min-width: 0; /* importante per evitare overflow in flex/grid */
+    box-shadow: 0 6px 22px rgba(0,0,0,0.5);
 }
 
 #main-video-feed video {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: contain; /* mantiene il video visibile senza crop */
 }
 
+/* Etichetta principale */
 #main-video-feed .video-label {
     position: absolute;
-    bottom: 12px;
     left: 12px;
-    background: rgba(0,0,0,0.6);
-    padding: 6px 12px;
+    bottom: 12px;
+    z-index: 30;
+    background: rgba(0,0,0,0.55);
+    padding: 6px 10px;
     border-radius: 6px;
+    font-size: 0.95rem;
 }
 
-/* ===================================================== */
-/*  RIGHT-SIDE ZOOM REMOTE GRID                          */
-/* ===================================================== */
-
-#remote-videos-container {
-    background: #000;
-    overflow-y: auto;
-    padding-right: 5px;
-
+/* --------------------
+   Colonna destra: galleria remota (miniature)
+   -------------------- */
+#remote-videos-container{
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    overflow-y: auto;       /* scroll solo qui */
+    padding: 6px;
     display: grid;
-    grid-template-columns: 1fr;
-    grid-auto-rows: 160px;
+    grid-template-columns: 1fr; /* colonna singola di miniature */
+    grid-auto-rows: minmax(140px, 1fr);
     gap: 10px;
+    align-content: start;
 }
 
-.video-feed {
+/* ogni miniatura */
+.video-feed{
+    width: 100%;
+    height: 100%;
     background: var(--input-dark);
     border-radius: 10px;
     overflow: hidden;
     position: relative;
     border: 2px solid transparent;
-    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
 }
 
-.video-feed:hover {
-    transform: scale(1.02);
-    transition: 0.15s;
-}
-
-.video-feed video {
+/* comportamento video dentro miniature */
+.video-feed video{
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: cover; /* crop per occupare lo spazio */
 }
 
-.remote-feed.is-focused {
+/* hover/focus */
+.remote-feed:hover{
+    transform: scale(1.02);
+    transition: transform 120ms;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+}
+.remote-feed.is-focused{
     border-color: var(--primary-color);
 }
 
-/* placeholder */
-#remote-video-placeholder {
-    color: var(--text-muted);
-    text-align: center;
-    padding-top: 20px;
-}
-
-/* ============================== */
-/*  MEDIA CONTROLS                */
-/* ============================== */
-
-#media-controls {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+/* Placeholder quando non ci sono remoti */
+#remote-video-placeholder{
     display: flex;
-    gap: 15px;
-    padding: 10px 18px;
-    background: rgba(0,0,0,0.7);
-    border-radius: 40px;
-    z-index: 50;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 0.98rem;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 18px;
 }
 
-#media-controls button {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: var(--surface-dark);
-    color: white;
-    border: none;
-    font-size: 1.4em;
-}
-
-/* ============================== */
-/*  SIDEBAR PARTICIPANTS          */
-/* ============================== */
-
-#participants-panel {
+/* --------------------
+   Pannello partecipanti (aside) — mantiene la funzionalità originale
+   Posizionato sopra (layer) ma non deve nascondere overlay d'ingresso
+   -------------------- */
+#participants-panel{
     position: absolute;
     right: 0;
     top: 0;
     width: 250px;
     height: 100%;
     background: rgba(30,30,30,0.95);
+    backdrop-filter: blur(4px);
     border-left: 1px solid var(--border-color);
-    padding: 15px;
-    z-index: 60;
+    padding: 14px;
+    box-sizing: border-box;
+    z-index: 40;
+    overflow: hidden;
 }
 
-/* ============================== */
-/*  JOIN OVERLAY                 */
-/* ============================== */
-
-#nickname-overlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.9);
-    display: flex; justify-content: center; align-items: center;
-    z-index: 200;
+#participants-panel h3{
+    margin: 0 0 12px 0;
+    color: var(--primary-color);
+    font-size: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
 }
 
-.card {
+/* lista partecipanti */
+#participants-list{
+    list-style: none;
+    margin: 10px 0;
+    padding: 0;
+    overflow-y: auto;
+    max-height: calc(100% - 80px);
+}
+#participants-list li{
+    background: #242424;
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+#participants-list li.participant-focused {
+    background: var(--primary-color);
+    color: var(--background-dark);
+    font-weight: 600;
+}
+
+/* --------------------
+   Controlli multimediali
+   -------------------- */
+#media-controls{
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 70;
+    display: flex;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(20, 20, 20, 0.75);
+    border-radius: 40px;
+    align-items: center;
+}
+#media-controls button{
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
     background: var(--surface-dark);
-    padding: 40px;
+    color: var(--text-light);
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+/* pulsante per disconnettere (per evidenza) */
+#media-controls button.danger{
+    background: var(--red-danger);
+}
+
+/* --------------------
+   Overlay di ingresso (nickname / stanza)
+   Deve rimanere visibile sopra tutto
+   -------------------- */
+#nickname-overlay{
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.88);
+    z-index: 200; /* molto alto per essere sopra pannelli */
+    backdrop-filter: blur(4px);
+}
+
+.card{
+    background: var(--surface-dark);
+    padding: 36px;
     border-radius: 12px;
-    width: 90%;
-    max-width: 450px;
+    width: 92%;
+    max-width: 480px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
     text-align: center;
 }
 
-/* ===================================================== */
-/*  RESPONSIVE — MOBILE / TABLET                          */
-/* ===================================================== */
+.card h2{ color: var(--primary-color); margin: 0 0 18px 0; }
 
-@media (max-width: 1100px) {
-    #video-area {
-        grid-template-columns: 1fr 250px;
-    }
+#nickname-input, #room-id-input{
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--input-dark);
+    color: var(--text-light);
+    font-size: 1rem;
 }
 
+/* bottone entra */
+.card button{
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: var(--primary-color);
+    color: var(--background-dark);
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 6px;
+}
+
+/* --------------------
+   Template partecipante (accessibilità)
+   -------------------- */
+.participant-name { margin-right: 8px; }
+.status-indicator { color: limegreen; }
+
+/* --------------------
+   Responsive: mobile / tablet
+   - breakpoint 900px: main sopra, remoti sotto (stile mobile)
+   - rimuove conflitti con aside
+   -------------------- */
 @media (max-width: 900px) {
-    #video-area {
+
+    /* video-area diventa singola colonna */
+    #video-area{
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto;
+        grid-template-rows: auto 200px; /* main + remoti */
+        gap: 8px;
+        padding: 8px;
     }
 
-    /* Main video on top, grid on bottom */
-    #main-video-feed {
-        height: 55vh;
+    #main-video-feed{
+        grid-column: 1 / -1;
+        grid-row: 1 / 2;
+        height: 52vh;
     }
 
-    #remote-videos-container {
-        height: 40vh;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        grid-auto-rows: 120px;
-    }
-}
-
-@media (max-width: 600px) {
-    #main-video-feed {
-        height: 45vh;
-    }
-
-    #remote-videos-container {
-        height: 50vh;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        grid-auto-rows: 110px;
-    }
-}
-
-@media (max-width: 420px) {
-    #main-video-feed {
-        height: 40vh;
-    }
-
-    #remote-videos-container {
-        height: 55vh;
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    #remote-videos-container{
+        grid-column: 1 / -1;
+        grid-row: 2 / 3;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         grid-auto-rows: 100px;
+        gap: 8px;
+        height: auto;
+        overflow-y: auto;
     }
+
+    /* nasconde pannello partecipanti (o lo rende accessibile con gesto laterale) */
+    #participants-panel{
+        display: none;
+    }
+}
+
+/* mobile stretto */
+@media (max-width: 420px){
+    #main-video-feed{ height: 45vh; }
+    #remote-videos-container{ grid-auto-rows: 90px; gap: 6px; }
 }
