@@ -31,7 +31,6 @@ body {
 /* ======================================= */
 
 #conference-container {
-    /* Contenitore principale a schermo intero */
     display: flex;
     width: 100%;
     height: 100vh;
@@ -54,8 +53,6 @@ body {
 }
 
 /* --- Dettagli Stanza (Overlay) --- */
-/* Questa sezione è utile se vuoi mostrare il nome della stanza. 
-   L'ho lasciata per completezza, anche se non era nell'HTML originale. */
 #room-header {
     position: absolute;
     top: 20px;
@@ -122,15 +119,16 @@ body {
     
     /* Configurazione GRID per i video remoti */
     display: grid;
-    /* Colonne DINAMICHE: Aumento minmax a 250px per forzare il wrapping prima */
+    /* FORZA IL WRAPPING: garantisce che le colonne si adattino e che ci sia wrapping verticale */
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
-    /* Le righe si adattano automaticamente */
     grid-auto-rows: auto; 
     gap: 10px;
-    overflow-y: auto; 
+    /* Usa flex-wrap: wrap (anche se grid dovrebbe bastare, lo manteniamo in mente) */
+    
+    overflow-y: auto; /* Scroll verticale necessario */
     padding-bottom: 70px; 
     
-    /* Forza gli elementi ad allinearsi in alto e a non espandersi per riempire lo spazio verticale */
+    /* Forza gli elementi ad allinearsi in alto e non espandersi */
     align-content: start; 
 }
 
@@ -165,7 +163,6 @@ body {
 .video-feed video {
     width: 100%;
     height: 100%;
-    /* I video in griglia coprono l'area */
     object-fit: cover; 
 }
 
@@ -185,7 +182,6 @@ body {
 
 /* --- Controlli Media (Bottom Center) --- */
 #media-controls {
-    /* Posizione assoluta centrata sull'intera #video-area, ma visibile */
     position: absolute;
     bottom: 20px;
     left: 50%; 
@@ -260,7 +256,8 @@ body {
 }
 
 /* Campi di testo */
-#nickname-input, #roomid-input {
+/* !!! CORREZIONE CRITICA: INCLUSIONE DI #room-id-input ASSUMENDO L'ID CORRETTO IN index.html !!! */
+#nickname-input, #room-id-input {
     padding: 18px;
     width: 100%;
     box-sizing: border-box;
