@@ -54,6 +54,26 @@ body {
     color: var(--primary-color);
 }
 
+/* NUOVO STILE: Pulsante Condividi Link */
+#share-link-button { 
+    background-color: var(--accent-color); 
+    color: var(--background-dark);
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+    margin-bottom: 20px; 
+    transition: background-color 0.2s, filter 0.2s;
+}
+
+#share-link-button:hover {
+    filter: brightness(1.1);
+}
+
 #participants-list {
     list-style: none;
     padding: 0;
@@ -61,7 +81,7 @@ body {
 }
 
 #participants-list li {
-    padding: 12px 10px; /* Più spazio interno */
+    padding: 12px 10px; 
     margin-bottom: 8px;
     font-size: 1.1em;
     border-radius: 6px;
@@ -70,7 +90,7 @@ body {
 }
 
 #participants-list li:hover {
-    background-color: rgba(0, 188, 212, 0.1); /* Leggera sfumatura ciano */
+    background-color: rgba(0, 188, 212, 0.1); 
 }
 
 /* Stile per il partecipante in focus */
@@ -100,10 +120,8 @@ body {
 #main-video-feed {
     position: relative;
     width: 100%;
-    /* Aumenta l'altezza visiva per renderlo GRANDE */
     padding-top: 60%; 
     height: 0;
-    
     background-color: #000; 
     border-radius: 12px;
     overflow: hidden;
@@ -149,7 +167,7 @@ body {
     padding: 5px 0;
     overflow-x: auto; 
     flex-shrink: 0;
-    max-height: 100px; /* Altezza limitata per farle sembrare più piccole */
+    max-height: 100px; 
     width: 100%;
 }
 
@@ -162,13 +180,10 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     cursor: pointer;
     border: 3px solid transparent; 
-
-    /* Dimensioni più piccole */
     width: 120px;
     min-width: 120px;
-    padding-top: 67.5px; /* 16:9 aspect ratio (120 * 0.5625) */
+    padding-top: 67.5px; 
     height: 0;
-
     transition: border-color 0.2s, transform 0.1s;
 }
 
@@ -206,7 +221,7 @@ body {
     color: var(--primary-color);
     border: 2px solid var(--primary-color);
     border-radius: 50%;
-    width: 60px; /* Controlli leggermente più grandi */
+    width: 60px; 
     height: 60px;
     display: flex;
     align-items: center;
@@ -263,21 +278,31 @@ body {
     margin-bottom: 40px;
 }
 
-/* BARRE DI TESTO PIÙ GRANDI */
-#nickname-input {
-    padding: 18px; /* Aumenta l'altezza del padding */
+/* NUOVO STILE: Intestazione "Partecipa o Crea una Stanza" */
+.card h3 { 
+    color: var(--text-muted); 
+    margin-top: 30px; 
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+/* BARRE DI TESTO PIÙ GRANDI (ORA ANCHE PER ROOM ID) */
+#nickname-input,
+#roomid-input { /* MODIFICATO: Aggiunto #roomid-input */
+    padding: 18px; 
     width: 100%;
     box-sizing: border-box;
     margin-bottom: 30px;
     border: 1px solid var(--border-color);
     border-radius: 10px;
-    font-size: 1.2em; /* Testo più grande */
-    background-color: var(--input-dark); /* Sfondo input scuro */
+    font-size: 1.2em; 
+    background-color: var(--input-dark); 
     color: var(--text-light);
     transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-#nickname-input:focus {
+#nickname-input:focus,
+#roomid-input:focus { /* MODIFICATO: Aggiunto #roomid-input */
     border-color: var(--primary-color);
     box-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
     outline: none;
@@ -293,6 +318,7 @@ body {
     font-weight: bold;
     cursor: pointer;
     transition: background-color 0.3s, transform 0.1s;
+    width: 100%; /* Reso full width come il pulsante di condivisione */
 }
 
 #join-button:hover {
