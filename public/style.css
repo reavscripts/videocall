@@ -31,29 +31,29 @@ body {
 /* ======================================= */
 
 #conference-container {
-    /* Contenitore principale a schermo intero */
+    /* Manteniamo le dimensioni massime e la posizione relativa */
     display: flex;
     flex-direction: column; 
     width: 100%;
-    height: 100vh; /* Rigido 100% altezza viewport */
+    height: 100vh;
     position: relative;
 }
 
 #video-area {
-    /* Contenitore Flex verticale per Video Principale (70%) e Miniature (30%) */
+    /* Contenitore Flex verticale che prende tutto lo spazio */
     flex-grow: 1;
     display: flex;
-    flex-direction: column;
-    position: relative; /* Base per i controlli in position: absolute */
+    flex-direction: column; 
+    position: relative; 
     background-color: #000;
 }
 
-/* --- Video Principale (70% dell'altezza di #video-area) --- */
+/* --- Video Principale (Nuova Altezza: 50%) --- */
 #main-video-feed {
-    /* **CORREZIONE CRITICA: Usa height e blocca crescita/riduzione** */
-    height: 70%; /* Altezza rigorosa del 70% */
+    /* Altezza rigorosa del 50% dell'area video disponibile */
+    height: 50%; 
     flex-grow: 0; 
-    flex-shrink: 0;
+    flex-shrink: 0; 
     
     position: relative;
     display: flex;
@@ -62,12 +62,14 @@ body {
     overflow: hidden;
     background-color: #000;
     box-sizing: border-box;
+    /* Aggiungiamo un piccolo margine per staccarlo dalle miniature */
+    margin-bottom: 5px; 
 }
 
 #main-video-feed video {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Assicura che il video non venga tagliato */
+    object-fit: contain; /* Adatta il video senza tagliarlo */
 }
 
 .video-label {
@@ -86,8 +88,8 @@ body {
 /* ======================================= */
 
 #remote-videos-container {
-    /* **CORREZIONE CRITICA: Usa height e blocca crescita/riduzione** */
-    height: 30%; /* Altezza rigorosa del 30% */
+    /* Altezza rigorosa del 30% dell'area video disponibile */
+    height: 30%; 
     flex-grow: 0; 
     flex-shrink: 0; 
     width: 100%;
@@ -104,12 +106,15 @@ body {
     overflow-x: auto;
     background: #1a1a1a;
     box-sizing: border-box;
+    
+    /* Nota: 50% (main) + 30% (remote) = 80%.
+       Il 20% rimanente in basso è lasciato vuoto (nero) e tiene i controlli. */
 }
 
 .remote-feed {
     width: 180px;
     min-width: 180px;
-    height: 90%; /* Si adatta all'altezza del contenitore */
+    height: 90%; 
     border-radius: 8px;
     overflow: hidden;
     position: relative;
@@ -222,10 +227,9 @@ body {
 /* ======================================= */
 
 #media-controls {
-    /* Posizione assoluta RIFERITA AL #video-area */
+    /* Posizione assoluta RIFERITA AL #video-area (bottom 20% dello spazio) */
     position: absolute;
-    /* La posizione 70% è la linea di divisione. Sali di 10% per stare sopra. */
-    top: 60%; 
+    bottom: 20px; /* Distanza dal fondo di #video-area */
     left: 50%;
     transform: translateX(-50%);
     
