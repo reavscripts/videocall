@@ -1,12 +1,12 @@
 :root {
     --primary-color: #00bcd4; /* Ciano moderno per gli accenti */
     --accent-color: #ff9800; /* Arancione per focus/highlight */
-    --background-dark: #121212; /* Sfondo molto scuro (quasi nero) */
-    --surface-dark: #1e1e1e; /* Superfici dei pannelli e delle card */
-    --input-dark: #2c2c2c; /* Sfondo dei campi di input */
+    --background-dark: #121212; 
+    --surface-dark: #1e1e1e; 
+    --input-dark: #2c2c2c; 
     --text-light: #ffffff;
     --text-muted: #b0b0b0;
-    --red-danger: #ef5350; /* Rosso per disconnessione */
+    --red-danger: #ef5350; 
     --border-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -27,11 +27,10 @@ body {
 }
 
 /* ======================================= */
-/* 1. LAYOUT PRINCIPALE (MAIN + GALLERY)   */
+/* 1. LAYOUT PRINCIPALE (GRID CONTAINER)   */
 /* ======================================= */
 
 #conference-container {
-    /* Contenitore principale a schermo intero */
     display: flex;
     width: 100%;
     height: 100vh;
@@ -39,14 +38,19 @@ body {
 }
 
 #video-area {
-    /* L'area video prende lo spazio e usa FLEX per Main + Remote Containers */
     flex-grow: 1; 
-    display: flex; 
-    flex-direction: row; /* Ritorno al layout ORIZZONTALE */
+    display: grid; 
     padding: 10px;
     gap: 10px; 
     position: relative;
     background-color: #000;
+    
+    /* DEFINIZIONE GRIGLIA PRINCIPALE: 
+       Colonna 1 (Video Principale): Fissa (es. 600px)
+       Colonna 2 (Galleria Remota): Spazio rimanente (1fr) 
+       Una singola riga. */
+    grid-template-columns: minmax(300px, 600px) 1fr;
+    grid-template-rows: 1fr;
 }
 
 /* --- Dettagli Stanza (Overlay, invariato) --- */
@@ -73,15 +77,14 @@ body {
     color: var(--primary-color);
     font-weight: bold;
 }
-/* ---------------------------------- */
 
-
-/* --- 2. Video Principale (Fisso a sinistra) --- */
+/* --- 2. Video Principale (Colonna 1) --- */
 #main-video-feed {
-    /* Il video principale occupa una dimensione FISSA (es. 400px o 30% della larghezza) */
-    flex: 0 0 400px; /* Non cresce, non si restringe, larghezza base 400px */
-    height: 100%; 
-    max-height: 100%;
+    /* Posizionamento nella prima colonna della griglia */
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    
+    height: 100%; /* Occupa tutta l'altezza della riga */
     position: relative;
     border-radius: 12px;
     overflow: hidden;
@@ -111,16 +114,17 @@ body {
 }
 
 
-/* --- 3. Area Galleria (GRIGLIA DINAMICA) --- */
+/* --- 3. Area Galleria (Colonna 2 - GRIGLIA DINAMICA) --- */
 #remote-videos-container {
-    /* La galleria occupa tutto lo spazio rimanente */
-    flex: 1 1 auto; 
+    /* Posizionamento nella seconda colonna della griglia */
+    grid-column: 2 / 3; 
+    grid-row: 1 / 2;
     
     /* Configurazione GRID per i video remoti */
     display: grid;
     /* Colonne: min 200px, max 1fr (si riempie automaticamente) */
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-    grid-auto-rows: min-content; /* L'altezza si basa sul contenuto/aspect-ratio */
+    grid-auto-rows: minmax(120px, auto); /* Altezza minima per le celle */
     gap: 10px;
     overflow-y: auto; /* Scroll verticale necessario */
     padding-bottom: 70px; /* Spazio per i controlli media in basso */
@@ -138,7 +142,7 @@ body {
     cursor: pointer;
     box-sizing: border-box; 
     transition: transform 0.2s, box-shadow 0.2s;
-    border: 3px solid transparent; /* Aggiunto per consistenza */
+    border: 3px solid transparent; 
 }
 
 .remote-feed:hover {
@@ -147,7 +151,6 @@ body {
 }
 
 .remote-feed.is-focused {
-    /* Evidenziazione per la miniatura attualmente in focus */
     border: 3px solid var(--primary-color);
 }
 
@@ -158,7 +161,7 @@ body {
 }
 
 #remote-video-placeholder {
-    grid-column: 1 / -1; /* Occupa tutta la larghezza della griglia */
+    grid-column: 1 / -1; 
     height: 150px;
     display: flex;
     justify-content: center;
@@ -173,7 +176,7 @@ body {
 
 /* --- Controlli Media (Bottom Center) --- */
 #media-controls {
-    /* Posizione assoluta centrata sul fondo dell'intera #video-area */
+    /* Posizione assoluta centrata sull'intera #video-area */
     position: absolute;
     bottom: 20px;
     left: 50%; 
@@ -214,7 +217,7 @@ body {
 
 
 /* ======================================= */
-/* 4. OVERLAY INGRESSO (NICKNAME/STANZA)   */
+/* 4. OVERLAY INGRESSO / LISTA PARTECIPANTI*/
 /* ======================================= */
 
 #nickname-overlay {
@@ -247,13 +250,6 @@ body {
     margin-bottom: 40px;
 }
 
-.card h3 {
-    color: var(--text-muted);
-    font-size: 1em;
-    margin-top: 30px;
-    margin-bottom: 15px;
-}
-
 /* Campi di testo */
 #nickname-input, #room-id-input {
     padding: 18px;
@@ -280,25 +276,8 @@ body {
     margin-top: 10px;
 }
 
-/* ======================================= */
-/* 5. LISTA PARTECIPANTI (ASIDE MOBILE)    */
-/* ======================================= */
-
+/* Lista partecipanti (Overlay a destra) */
 #participants-panel {
-    /* Torna ad essere un pannello laterale a sinistra con larghezza fissa */
-    flex-shrink: 0; 
-    width: 250px;
-    background-color: var(--surface-dark);
-    padding: 20px 10px;
-    border-right: 1px solid var(--border-color);
-    overflow-y: auto;
-    /* Il pannello laterale era stato impostato in `position: absolute` in un vecchio CSS. 
-       Qui lo trattiamo come un elemento fisso a sinistra del contenitore principale. 
-       ATTENZIONE: Se in index.html è ancora presente, l'ordine è: Panel, VideoArea. */
-
-    /* Lo rimuovo dalla struttura flex principale e lo rimetto come overlay per maggiore flessibilità 
-       se non lo vuoi, dovresti rimuovere 'participants-panel' dalla sezione HTML */
-    
     position: absolute; 
     top: 0;
     right: 0;
