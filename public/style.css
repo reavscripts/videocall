@@ -30,6 +30,7 @@ body {
 /* 1. LAYOUT PRINCIPALE (ASIDE + MAIN)     */
 /* ======================================= */
 
+/* Contenitore Principale Conferenza: Usa Flexbox per disporre la sidebar e l'area video */
 #conference-container {
     display: flex;
     width: 100%;
