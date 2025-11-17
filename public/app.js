@@ -383,7 +383,8 @@ function createLocalVideoElement() {
     localFeed.classList.add('local-feed'); // Classe per distinguere il locale
     remoteVideo.srcObject = localStream;
     remoteVideo.muted = true; // Locale sempre muto
-    videoLabel.textContent = userNickname;
+    // AGGIORNATO per coerenza: aggiunge "(Tu)"
+    videoLabel.textContent = userNickname + " (Tu)"; 
 
     // Listener per mettere il video in focus cliccando sulla miniatura
     localFeed.addEventListener('click', () => {
