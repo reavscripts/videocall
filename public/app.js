@@ -17,11 +17,11 @@ const roomIdInput = document.getElementById('room-id-input');
 // Elementi DOM per il focus e i controlli
 const mainVideoFeed = document.getElementById('main-video-feed');
 const mainMuteBtn = document.getElementById("main-mute-btn");
-// CORREZIONE: Questo listener funziona ora che setMainVideo gestisce la visibilità
+// CORREZIONE MUTE: Il listener agisce sul video attualmente in #main-video-feed
 mainMuteBtn.addEventListener("click", () => {
     const videoEl = mainVideoFeed.querySelector("video");
     videoEl.muted = !videoEl.muted;
-    mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊"; // Emojis audio
+    mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊"; // Aggiorna l'icona
 });
 const remoteVideoPlaceholder = document.getElementById('remote-video-placeholder');
 const toggleAudioButton = document.getElementById('toggle-audio-button');
@@ -50,7 +50,7 @@ const iceConfiguration = {
 };
 
 // ==============================================================================
-// FUNZIONE NUOVA: CARICA STANZA DA URL 🔗
+// FUNZIONE PER CARICARE LA STANZA DA URL 🔗
 // ==============================================================================
 
 /**
@@ -87,31 +87,27 @@ function updateParticipantCount() {
 
 /**
  * Aggiorna la lista dei partecipanti nel pannello laterale.
+ * **CORREZIONE CLONI**: Crea l'elemento solo se non esiste.
  */
 function updateParticipantList(id, nickname, isLocal = false) {
     let li = document.getElementById(`list-${id}`);
     const liTemplate = document.getElementById('participant-item-template');
 
-    if (!li && liTemplate) {
-        // Se l'elemento NON esiste, lo creiamo dal template
+    // Creiamo l'elemento solo se NON ESISTE (previene i cloni)
+    if (!li && liTemplate) { 
         li = liTemplate.content.cloneNode(true).firstElementChild;
         li.id = `list-${id}`;
         li.dataset.peerId = id; 
         
-        const nameEl = li.querySelector('.participant-name');
-        if (nameEl) {
-             nameEl.textContent = isLocal ? `${nickname} (Tu)` : nickname;
-        }
-
-        participantsList.appendChild(li);
-
         // Listener per mettere il video in focus cliccando sulla lista
         li.addEventListener('click', () => {
              setMainVideo(id); 
         });
+
+        participantsList.appendChild(li); // Aggiunto solo alla prima creazione
     }
     
-    // Aggiorna il testo
+    // Aggiorna il testo e lo stato del focus
     if (li) {
         const nameEl = li.querySelector('.participant-name');
         if (nameEl) {
@@ -130,11 +126,12 @@ function updateParticipantList(id, nickname, isLocal = false) {
 
 
 // ==============================================================================
-// GESTIONE FOCUS VIDEO
+// GESTIONE FOCUS VIDEO E MUTE 🔊
 // ==============================================================================
 
 /**
  * Sposta lo stream del peer specificato nel mainVideoFeed.
+ * **CORREZIONE MUTE**: Gestisce lo stato e la visibilità del pulsante mute.
  */
 function setMainVideo(peerId) {
     let stream, nickname, isLocal = false;
@@ -150,7 +147,6 @@ function setMainVideo(peerId) {
         
         if (!remoteVideoElement || !remoteVideoElement.querySelector('video').srcObject) {
             console.warn(`Stream non pronto o elemento non trovato per ID: ${peerId}. Torno a locale.`);
-            // Se lo stream remoto non è ancora arrivato, manteniamo il focus attuale o torniamo al locale
             if (focusedPeerId === 'local') return; 
             
             setMainVideo('local');
@@ -164,7 +160,7 @@ function setMainVideo(peerId) {
     // 2. Aggiorna il video principale
     const videoEl = mainVideoFeed.querySelector('video'); 
     const labelEl = mainVideoFeed.querySelector('.video-label'); 
-    const muteBtn = document.getElementById("main-mute-btn"); // Recupera il pulsante
+    const muteBtn = document.getElementById("main-mute-btn");
 
     if (!videoEl || !labelEl || !muteBtn) {
         console.error("Elementi video, label o muteBtn non trovati in #main-video-feed.");
@@ -173,15 +169,18 @@ function setMainVideo(peerId) {
 
 	if (stream) {
 		videoEl.srcObject = stream;
-		videoEl.muted = isLocal; // Muta se è il video locale (per evitare feedback)
 		labelEl.textContent = nickname;
 
-		// **LOGICA AGGIORNATA PER IL MUTE REMOTO**
+        // **LOGICA MUTE**
 		if (isLocal) {
-			muteBtn.style.display = "none";      // Nasconde il pulsante per il video locale
+            videoEl.muted = true; // Locale sempre mutato per evitare l'eco
+			muteBtn.style.display = "none";      // Nasconde il pulsante
 		} else {
-			muteBtn.style.display = "block";     // Mostra il pulsante per il video remoto
-			// Assicurati che l'icona rifletta lo stato attuale del video remoto
+            // Se è remoto, manteniamo lo stato 'muted' che aveva prima
+            // Se lo stato non è mai stato toccato, rimane false (unmuted)
+            
+			muteBtn.style.display = "block";     // Mostra il pulsante
+			// Aggiorna l'icona in base allo stato attuale del video
 			muteBtn.textContent = videoEl.muted ? "🔇" : "🔊"; 
 		}
 	}
@@ -369,6 +368,7 @@ function initializeSocket() {
         handleCandidate(id, candidate);
     });
 
+    // 3. Gestisce quando un utente lascia
     socket.on('user-left', (leavingSocketId) => {
         removePeer(leavingSocketId, true);
     });
@@ -437,7 +437,6 @@ function createLocalVideoElement() {
     localFeed.classList.add('local-feed'); // Classe per distinguere il locale
     remoteVideo.srcObject = localStream;
     remoteVideo.muted = true; // Locale sempre muto
-    // CORREZIONE: Aggiunto "(Tu)" per coerenza con il video principale
     videoLabel.textContent = userNickname + " (Tu)"; 
 
     // Listener per mettere il video in focus cliccando sulla miniatura
@@ -450,12 +449,15 @@ function createLocalVideoElement() {
 
 /**
  * Funzione helper per creare l'elemento video remoto nel DOM (Miniatura).
+ * **CORREZIONE CLONI**: Crea l'elemento solo se non esiste.
  */
 function createRemoteVideoElement(socketId, stream) {
+    // Tenta di trovare l'elemento esistente
     let remoteVideoItem = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`);
     const template = document.getElementById('remote-video-template');
     if (!template) return;
 
+    // Se l'elemento NON esiste, lo crea
     if (!remoteVideoItem) {
         remoteVideoItem = template.content.cloneNode(true).firstElementChild;
         remoteVideoItem.dataset.peerId = socketId;
@@ -470,7 +472,7 @@ function createRemoteVideoElement(socketId, stream) {
         remoteVideosContainer.appendChild(remoteVideoItem);
     }
     
-    // Aggiorna lo stream
+    // Aggiorna o assegna lo stream (se l'elemento è nuovo o era vuoto)
     const remoteVideo = remoteVideoItem.querySelector('video');
     if (remoteVideo && !remoteVideo.srcObject) {
         remoteVideo.srcObject = stream;
@@ -568,8 +570,10 @@ function removePeer(socketId, isExternalEvent = true) {
     if (focusedPeerId === socketId) {
         const remainingPeerIds = Object.keys(peerConnections);
         if (remainingPeerIds.length > 0) {
-            setMainVideo(remainingPeerIds[0]);
+            // Metti in focus il primo peer rimasto
+            setMainVideo(remainingPeerIds[0]); 
         } else {
+            // Torna al video locale
             setMainVideo('local');
         }
     }
