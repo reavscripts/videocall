@@ -12,7 +12,7 @@ const participantsList = document.getElementById('participants-list');
 const participantCountSpan = document.getElementById('participant-count'); 
 const joinButton = document.getElementById('join-button');
 const nicknameInput = document.getElementById('nickname-input');
-const roomIdInput = document.getElementById('room-id-input'); // NUOVO
+const roomIdInput = document.getElementById('room-id-input'); 
 
 // Elementi DOM per il focus e i controlli
 const mainVideoFeed = document.getElementById('main-video-feed');
@@ -26,18 +26,18 @@ const remoteVideoPlaceholder = document.getElementById('remote-video-placeholder
 const toggleAudioButton = document.getElementById('toggle-audio-button');
 const toggleVideoButton = document.getElementById('toggle-video-button');
 const disconnectButton = document.getElementById('disconnect-button');
-const roomNameDisplay = document.getElementById('room-name-display'); // Per visualizzazione
-const shareRoomLinkInput = document.getElementById('share-room-link'); // NUOVO: Per la condivisione del link
+const roomNameDisplay = document.getElementById('room-name-display'); 
+const shareRoomLinkInput = document.getElementById('share-room-link'); 
 
 
 // --- VARIABILI DI STATO ---
 let socket = null;
 let localStream = null;
 let userNickname = 'Ospite';
-let currentRoomId = null; // RESA DINAMICA
-const peerConnections = {}; // Mappa per RTCPeerConnection: { socketId: RTCPeerConnection }
-const remoteNicknames = {}; // Mappa per i nickname remoti
-let focusedPeerId = 'local'; // 'local' o 'socketId'
+let currentRoomId = null; 
+const peerConnections = {}; 
+const remoteNicknames = {}; 
+let focusedPeerId = 'local'; 
 
 
 // Configurazione STUN (Server Traversal Utilities for NAT)
@@ -47,6 +47,28 @@ const iceConfiguration = {
         { urls: 'stun:stun1.l.google.com:19302' },
     ]
 };
+
+// ==============================================================================
+// FUNZIONE NUOVA: CARICA STANZA DA URL 🔗
+// ==============================================================================
+
+/**
+ * Controlla il parametro 'room' nell'URL e popola il campo di input.
+ */
+function loadRoomFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomFromUrl = urlParams.get('room');
+
+    if (roomFromUrl && roomIdInput) {
+        roomIdInput.value = roomFromUrl;
+        
+        // Setta il focus sul nickname per velocizzare l'ingresso
+        nicknameInput.focus(); 
+    }
+}
+
+// Esegui la funzione all'avvio dello script
+loadRoomFromUrl();
 
 // ==============================================================================
 // FUNZIONI DI BASE DELL'INTERFACCIA UTENTE
@@ -139,10 +161,9 @@ function setMainVideo(peerId) {
     }
     
     // 2. Aggiorna il video principale
-    const videoEl = mainVideoFeed.querySelector('video'); // RICERCA AFFIDABILE
-    const labelEl = mainVideoFeed.querySelector('.video-label'); // RICERCA AFFIDABILE
+    const videoEl = mainVideoFeed.querySelector('video'); 
+    const labelEl = mainVideoFeed.querySelector('.video-label'); 
 
-    // Non ricreare l'HTML, assumi che esista da index.html
     if (!videoEl || !labelEl) {
         console.error("Elementi video o label non trovati in #main-video-feed.");
         return; 
@@ -181,14 +202,14 @@ function setMainVideo(peerId) {
 
 joinButton.addEventListener('click', () => {
     const nickname = nicknameInput.value.trim();
-    const roomId = roomIdInput.value.trim(); // LEGGI IL NUOVO CAMPO
+    const roomId = roomIdInput.value.trim(); 
     
     if (nickname && roomId) {
         userNickname = nickname;
         currentRoomId = roomId; // IMPOSTA LA STANZA
         roomNameDisplay.textContent = currentRoomId; // Aggiorna il display in conferenza
         
-        // NUOVA LOGICA: Imposta il link da condividere
+        // Imposta il link da condividere
         if (shareRoomLinkInput) {
             shareRoomLinkInput.value = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}`;
         }
@@ -231,7 +252,7 @@ async function startLocalMedia() {
 }
 
 // ==============================================================================
-// GESTIONE CONDIVISIONE LINK (NUOVA SEZIONE)
+// GESTIONE CONDIVISIONE LINK
 // ==============================================================================
 
 /**
