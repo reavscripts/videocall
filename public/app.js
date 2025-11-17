@@ -27,6 +27,7 @@ const toggleAudioButton = document.getElementById('toggle-audio-button');
 const toggleVideoButton = document.getElementById('toggle-video-button');
 const disconnectButton = document.getElementById('disconnect-button');
 const roomNameDisplay = document.getElementById('room-name-display'); // Per visualizzazione
+const shareRoomLinkInput = document.getElementById('share-room-link'); // NUOVO: Per la condivisione del link
 
 
 // --- VARIABILI DI STATO ---
@@ -187,6 +188,11 @@ joinButton.addEventListener('click', () => {
         currentRoomId = roomId; // IMPOSTA LA STANZA
         roomNameDisplay.textContent = currentRoomId; // Aggiorna il display in conferenza
         
+        // NUOVA LOGICA: Imposta il link da condividere
+        if (shareRoomLinkInput) {
+            shareRoomLinkInput.value = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}`;
+        }
+
         startLocalMedia()
             .then(() => {
                 nicknameOverlay.classList.add('hidden');
@@ -223,6 +229,32 @@ async function startLocalMedia() {
         throw error;
     }
 }
+
+// ==============================================================================
+// GESTIONE CONDIVISIONE LINK (NUOVA SEZIONE)
+// ==============================================================================
+
+/**
+ * Listener per copiare il link negli appunti quando si clicca sull'input.
+ */
+shareRoomLinkInput.addEventListener('click', () => {
+    // Seleziona il testo all'interno dell'input
+    shareRoomLinkInput.select();
+    shareRoomLinkInput.setSelectionRange(0, 99999); // Per mobile
+    
+    // Copia il testo
+    navigator.clipboard.writeText(shareRoomLinkInput.value).then(() => {
+        // Breve feedback visivo
+        const originalText = shareRoomLinkInput.value;
+        shareRoomLinkInput.value = "Link copiato!";
+        setTimeout(() => {
+            shareRoomLinkInput.value = originalText;
+        }, 800);
+    }).catch(err => {
+        console.error('Errore durante la copia:', err);
+    });
+});
+
 
 // ==============================================================================
 // GESTIONE CONTROLLI MEDIA
@@ -383,8 +415,7 @@ function createLocalVideoElement() {
     localFeed.classList.add('local-feed'); // Classe per distinguere il locale
     remoteVideo.srcObject = localStream;
     remoteVideo.muted = true; // Locale sempre muto
-    // AGGIORNATO per coerenza: aggiunge "(Tu)"
-    videoLabel.textContent = userNickname + " (Tu)"; 
+    videoLabel.textContent = userNickname + " (Tu)"; // Aggiornato per coerenza
 
     // Listener per mettere il video in focus cliccando sulla miniatura
     localFeed.addEventListener('click', () => {
