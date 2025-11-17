@@ -74,7 +74,7 @@ html, body{
 
 #video-area{
     display: grid;
-    /* NUOVO LAYOUT GRID DESKTOP: Video Main a sinistra, Miniature a destra */
+    /* Layout desktop: Video Main a sinistra, Miniature a destra */
     grid-template-columns: 1fr 330px; 
     grid-template-rows: auto 1fr; /* RIGA 1: Header (auto), RIGA 2: Contenuto Video (1fr) */
     gap: 12px;
@@ -85,7 +85,7 @@ html, body{
 
 /* Header stanza: Ora occupa entrambe le colonne in RIGA 1 */
 #room-header{
-    grid-column: 1 / 3; /* Occupare entrambe le colonne */
+    grid-column: 1 / 3; 
     grid-row: 1 / 2;
     display: flex;
     flex-direction: column;
@@ -106,7 +106,7 @@ html, body{
     border: 1px solid var(--border-color);
     border-radius: 6px;
     color: var(--text-light);
-    cursor: pointer; /* Indica che si può cliccare per copiare */
+    cursor: pointer;
 }
 
 /* Main video: RIGA 2, COLONNA 1 */
@@ -117,8 +117,9 @@ html, body{
     border-radius: 10px;
     position: relative;
     overflow: hidden;
-    height: 100%; /* Si estende fino al fondo */
-    min-height: 400px; /* Assicura una dimensione minima */
+    /* MODIFICA: Ridotto l'altezza per rendere la webcam principale leggermente più piccola su PC */
+    height: 95%; /* Leggermente meno di 100% per un piccolo margine in fondo */
+    min-height: 380px; /* Ridotto da 400px per un aspetto più compatto */
 }
 
 #main-video-feed video{
@@ -141,7 +142,7 @@ html, body{
 #remote-videos-container{
     grid-row: 2 / 3;
     grid-column: 2 / 3;
-    display: flex; /* Flex-column per miniature verticali su desktop */
+    display: flex; 
     flex-direction: column;
     gap: 10px;
     overflow-y: auto;
@@ -156,7 +157,6 @@ html, body{
     display: flex;
     flex-direction: column;
     border: 2px solid transparent;
-    /* Assicura che le miniature abbiano un'altezza fissa su desktop */
     flex-shrink: 0; 
     height: 150px; 
 }
@@ -206,7 +206,7 @@ html, body{
     font-weight: bold;
 }
 
-/* Media Controls */
+/* Media Controls - Generale (desktop) */
 #media-controls{
     position: absolute;
     bottom: 16px;
@@ -255,9 +255,11 @@ html, body{
     #video-area{
         display: flex;
         flex-direction: column;
-        grid-template-columns: 1fr; /* Reset per mobile */
+        grid-template-columns: 1fr; 
         grid-template-rows: unset;
         height: auto;
+        /* Aggiungo padding in fondo per evitare che i controlli fissi coprano il contenuto */
+        padding-bottom: 80px; 
     }
 
     #participants-panel{ display: none !important; }
@@ -273,10 +275,11 @@ html, body{
         display: grid; 
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         grid-auto-rows: 110px;
+        overflow-y: auto;
     }
 
     .video-feed {
-         height: 100%; /* Lascia che la griglia definisca l'altezza su mobile */
+         height: 100%;
     }
 
     #room-header{
@@ -287,6 +290,19 @@ html, body{
 
     .room-title{
         font-size: 1rem;
+    }
+
+    /* MODIFICA: Controlli fissi su mobile */
+    #media-controls{
+        position: fixed; /* Rendiamo i controlli fissi */
+        bottom: 0; /* Ancorati in basso */
+        width: 100%; /* Larghezza completa */
+        border-radius: 0;
+        background: var(--background-dark); /* Sfondo pieno */
+        left: 0;
+        transform: translateX(0); /* Rimuove la trasformazione centrante */
+        justify-content: center; /* Centra i pulsanti */
+        padding: 12px 10px;
     }
 }
 
