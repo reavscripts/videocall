@@ -1,10 +1,5 @@
 // ======================================================================
-// app.js — versione migliorata
-// - Genera link stanza condivisibile
-// - Auto-join via URL (se presente nickname + room)
-// - Copy link con feedback
-// - Toggle pannello partecipanti per mobile
-// - Mantiene tutte le funzionalità WebRTC esistenti
+// app.js — versione migliorata + debug
 // ======================================================================
 
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
@@ -59,7 +54,6 @@ function updateUrlRoom(room){
     try{
         const url = new URL(window.location.href);
         url.searchParams.set('room', room);
-        // Non aggiungiamo nickname all'URL per privacy
         window.history.replaceState({}, '', url.toString());
     }catch(e){ /* ignore */ }
 }
@@ -203,12 +197,11 @@ disconnectButton?.addEventListener('click', ()=>{
 function initializeSocket(){
     socket = io(RENDER_SERVER_URL, { query: { nickname: userNickname } });
 
-    socket.on('connect', ()=>{
-        console.log('Connesso a segnalazione');
-        socket.emit('join-room', currentRoomId, userNickname);
-    });
+    socket.on('connect', ()=> console.log('Connesso a signaling server'));
+    socket.on('disconnect', ()=> console.log('Disconnesso signaling server'));
 
     socket.on('users-in-room', (userList)=>{
+        console.log('Utenti nella stanza:', userList);
         userList.forEach(user => {
             if (user.socketId !== socket.id){
                 remoteNicknames[user.socketId] = user.nickname;
@@ -216,22 +209,20 @@ function initializeSocket(){
                 callUser(user.socketId, true);
             }
         });
-        if (userList.length > 0) document.getElementById('remote-video-placeholder')?.classList.add('hidden');
         updateParticipantList(socket.id, userNickname, true);
     });
 
     socket.on('user-joined', (newSocketId, newNickname)=>{
+        console.log('Nuovo utente join:', newSocketId, newNickname);
         remoteNicknames[newSocketId] = newNickname;
         updateParticipantList(newSocketId, newNickname);
         callUser(newSocketId, false);
-        document.getElementById('remote-video-placeholder')?.classList.add('hidden');
     });
 
     socket.on('offer', (id, description)=> handleOffer(id, description));
     socket.on('answer', (id, description)=> handleAnswer(id, description));
     socket.on('candidate', (id, candidate)=> handleCandidate(id, candidate));
-    socket.on('user-left', (leavingSocketId)=> removePeer(leavingSocketId, true));
-    socket.on('disconnect', ()=> console.log('Disconnesso segnalazione'));
+    socket.on('user-left', (id)=> removePeer(id, true));
 }
 
 function getOrCreatePeerConnection(socketId){
@@ -240,10 +231,16 @@ function getOrCreatePeerConnection(socketId){
     if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
     pc.ontrack = (event)=>{
+        console.log('Ricevuto stream remoto da', socketId);
         createRemoteVideoElement(socketId, event.streams[0]);
     };
 
-    pc.onicecandidate = (event)=>{ if (event.candidate) socket.emit('candidate', socketId, event.candidate); };
+    pc.onicecandidate = (event)=>{
+        if(event.candidate){
+            console.log('Nuovo ICE candidate verso', socketId, event.candidate);
+            socket.emit('candidate', socketId, event.candidate);
+        }
+    };
 
     peerConnections[socketId] = pc;
     return pc;
@@ -261,26 +258,31 @@ async function callUser(socketId, isCaller){
 }
 
 async function handleOffer(socketId, description){
+    console.log('Ricevuto offer da', socketId);
     const pc = getOrCreatePeerConnection(socketId);
     try{
         await pc.setRemoteDescription(new RTCSessionDescription(description));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         socket.emit('answer', socketId, pc.localDescription);
-    }catch(e){ console.error('Handle offer error', e); }
+    }catch(e){ console.error('Errore handleOffer', e); }
 }
 
 async function handleAnswer(socketId, description){
+    console.log('Ricevuto answer da', socketId);
     const pc = getOrCreatePeerConnection(socketId);
     try{ await pc.setRemoteDescription(new RTCSessionDescription(description)); }
-    catch(e){ console.error('Handle answer error', e); }
+    catch(e){ console.error('Errore handleAnswer', e); }
 }
 
 async function handleCandidate(socketId, candidate){
     try{
         const pc = peerConnections[socketId];
-        if (pc && pc.remoteDescription && candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
-    }catch(e){ /* silence common ICE errors */ }
+        if(pc && candidate){
+            console.log('Aggiungo ICE candidate da', socketId, candidate);
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+    }catch(e){ console.warn('Errore handleCandidate', e); }
 }
 
 function removePeer(socketId, isExternalEvent=true){
@@ -298,7 +300,6 @@ function removePeer(socketId, isExternalEvent=true){
     }
 
     updateParticipantCount();
-    if (Object.keys(peerConnections).length === 0) document.getElementById('remote-video-placeholder')?.classList.remove('hidden');
 }
 
 // -------------------------
@@ -374,27 +375,23 @@ joinButton.addEventListener('click', async ()=>{
 (function handleInitialUrl(){
     const params = getUrlParams();
     if (params.room) roomIdInput.value = params.room;
-    if (params.nick) nicknameInput.value = params.nick; // optional
+    if (params.nick) nicknameInput.value = params.nick;
 
-    // auto join only if both room and nick present
     if (params.room && params.nick){
-        // slight delay to allow UI to be ready
         setTimeout(()=> joinButton.click(), 300);
     }
 })();
 
-// Copy share link on focus/click
+// Copy share link
 if (shareRoomLinkInput){
     shareRoomLinkInput.addEventListener('click', async ()=>{
         if (!shareRoomLinkInput.value) return;
         try{
             await navigator.clipboard.writeText(shareRoomLinkInput.value);
-            // feedback temporaneo
             const old = shareRoomLinkInput.value;
             shareRoomLinkInput.value = 'Link copiato!';
             setTimeout(()=> shareRoomLinkInput.value = old, 1200);
         }catch(e){
-            // fallback: select
             shareRoomLinkInput.select();
             document.execCommand('copy');
         }
@@ -402,7 +399,7 @@ if (shareRoomLinkInput){
 }
 
 // -------------------------
-// Responsive: toggle participants on mobile
+// Responsive: toggle participants
 // -------------------------
 function ensureParticipantsToggle(){
     const panel = document.getElementById('participants-panel');
@@ -448,9 +445,9 @@ window.addEventListener('resize', ensureParticipantsToggle);
 ensureParticipantsToggle();
 
 // -------------------------
-// On unload: clean resources
+// On unload
 // -------------------------
-window.addEventListener('beforeunload', ()=>{
+window.addEventListener('beforeunload', ()=> {
     try{ localStream?.getTracks().forEach(t => t.stop()); }catch(e){}
 });
 
