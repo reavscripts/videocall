@@ -87,7 +87,7 @@ html, body{
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin-bottom: 0; /* fix spacing */
+    margin-bottom: 4px;
 }
 
 .room-title{
@@ -205,7 +205,7 @@ html, body{
 
 /* Media Controls */
 #media-controls{
-    position: fixed;
+    position: absolute;
     bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
@@ -214,7 +214,6 @@ html, body{
     background: rgba(20,20,20,0.75);
     padding: 10px;
     border-radius: 40px;
-    z-index: 999;
 }
 
 #media-controls button{
@@ -252,7 +251,6 @@ html, body{
     #video-area{
         display: flex;
         flex-direction: column;
-        padding-bottom: 90px;
     }
 
     #participants-panel{ display: none; }
