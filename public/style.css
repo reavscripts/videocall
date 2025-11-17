@@ -118,8 +118,8 @@ html, body{
     position: relative;
     overflow: hidden;
     /* MODIFICA: Ridotto l'altezza per rendere la webcam principale leggermente più piccola su PC */
-    height: 95%; /* Leggermente meno di 100% per un piccolo margine in fondo */
-    min-height: 380px; /* Ridotto da 400px per un aspetto più compatto */
+    height: 90%; 
+    min-height: 340px; /* Ridotto da 380px per un aspetto più compatto */
 }
 
 #main-video-feed video{
@@ -158,7 +158,8 @@ html, body{
     flex-direction: column;
     border: 2px solid transparent;
     flex-shrink: 0; 
-    height: 150px; 
+    /* MODIFICA: Altezza per formato 4:3 rispetto alla larghezza di 330px */
+    height: 250px; 
 }
 
 .video-feed video{
@@ -279,6 +280,7 @@ html, body{
     }
 
     .video-feed {
+         /* Su mobile, l'altezza è gestita da grid-auto-rows */
          height: 100%;
     }
 
@@ -292,16 +294,16 @@ html, body{
         font-size: 1rem;
     }
 
-    /* MODIFICA: Controlli fissi su mobile */
+    /* Controlli fissi su mobile */
     #media-controls{
-        position: fixed; /* Rendiamo i controlli fissi */
-        bottom: 0; /* Ancorati in basso */
-        width: 100%; /* Larghezza completa */
+        position: fixed; 
+        bottom: 0; 
+        width: 100%; 
         border-radius: 0;
-        background: var(--background-dark); /* Sfondo pieno */
+        background: var(--background-dark); 
         left: 0;
-        transform: translateX(0); /* Rimuove la trasformazione centrante */
-        justify-content: center; /* Centra i pulsanti */
+        transform: translateX(0); 
+        justify-content: center; 
         padding: 12px 10px;
     }
 }
