@@ -20,7 +20,7 @@ const mainMuteBtn = document.getElementById("main-mute-btn");
 mainMuteBtn.addEventListener("click", () => {
     const videoEl = mainVideoFeed.querySelector("video");
     videoEl.muted = !videoEl.muted;
-    mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
+    mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊"; // Emojis audio
 });
 const remoteVideoPlaceholder = document.getElementById('remote-video-placeholder');
 const toggleAudioButton = document.getElementById('toggle-audio-button');
@@ -160,7 +160,7 @@ function setMainVideo(peerId) {
 			muteBtn.style.display = "none";      // non mostrare mute per te stesso
 		} else {
 			muteBtn.style.display = "block";     // mostra mute per remoto
-			muteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
+			muteBtn.textContent = videoEl.muted ? "🔇" : "🔊"; // Emojis audio
 		}
 	}
 
@@ -264,7 +264,7 @@ toggleAudioButton.addEventListener('click', () => {
     const audioTrack = localStream?.getAudioTracks()[0];
     if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
-        const icon = audioTrack.enabled ? '🎤' : '🔇';
+        const icon = audioTrack.enabled ? '🎤' : '🔇'; // Emojis audio
         toggleAudioButton.textContent = icon;
     }
 });
@@ -273,7 +273,7 @@ toggleVideoButton.addEventListener('click', () => {
     const videoTrack = localStream?.getVideoTracks()[0];
     if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
-        const icon = videoTrack.enabled ? '📹' : '⬛';
+        const icon = videoTrack.enabled ? '📹' : '⬛'; // Emojis video
         toggleVideoButton.textContent = icon;
     }
 });
@@ -415,7 +415,8 @@ function createLocalVideoElement() {
     localFeed.classList.add('local-feed'); // Classe per distinguere il locale
     remoteVideo.srcObject = localStream;
     remoteVideo.muted = true; // Locale sempre muto
-    videoLabel.textContent = userNickname + " (Tu)"; // Aggiornato per coerenza
+    // CORREZIONE: Aggiunto "(Tu)" per coerenza con il video principale
+    videoLabel.textContent = userNickname + " (Tu)"; 
 
     // Listener per mettere il video in focus cliccando sulla miniatura
     localFeed.addEventListener('click', () => {
