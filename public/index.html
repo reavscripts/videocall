@@ -13,12 +13,8 @@
         <div class="card">
             <h2>👋 Entra nella Conferenza</h2>
 
-            <input type="text" id="room-id-input"
-                   placeholder="Nome della Stanza (es. Riunione-Team-A)"
-                   required value="mia_stanza_video">
-
-            <input type="text" id="nickname-input"
-                   placeholder="Il tuo Nickname (es. Alice)" required>
+            <input type="text" id="room-id-input" placeholder="Nome della Stanza" required>
+            <input type="text" id="nickname-input" placeholder="Il tuo Nickname" required>
 
             <button id="join-button">Entra nella Conferenza</button>
         </div>
@@ -31,64 +27,53 @@
         <!-- PANNELLO PARTECIPANTI -->
         <aside id="participants-panel">
             <h3>👥 Partecipanti (<span id="participant-count">0</span>)</h3>
-            <ul id="participants-list" aria-label="Elenco dei partecipanti"></ul>
+            <ul id="participants-list"></ul>
         </aside>
 
 
-        <!-- ZONA VIDEO (MAIN + GRIGLIA REMOTI) -->
+        <!-- AREA VIDEO -->
         <main id="video-area">
 
-            <!-- HEADER STANZA -->
             <div id="room-header">
-                <h1>Stanza: <span id="room-name-display"></span></h1>
+                <h1 class="room-title">Stanza: <span id="room-name-display"></span></h1>
+                <input type="text" id="share-room-link" readonly>
             </div>
 
-            <!-- VIDEO PRINCIPALE CON FOCUS -->
-			<div id="main-video-feed" class="video-feed">
-				<button id="main-mute-btn" class="main-mute-btn">🔇</button>
-				<video autoplay muted playsinline></video>
-				<div class="video-label">Tu</div>
-			</div>
+            <div id="main-video-feed" class="video-feed">
+                <button id="main-mute-btn" class="main-mute-btn">🔇</button>
+                <video autoplay muted playsinline></video>
+                <div class="video-label">Tu</div>
+            </div>
 
-
-            <!-- MINIATURE WEBRTC REMOTE IN GRIGLIA -->
-            <section id="remote-videos-container" aria-label="Miniature dei partecipanti remoti">
-                <div id="remote-video-placeholder" class="video-placeholder">
-                    In attesa di altri partecipanti...
-                </div>
+            <section id="remote-videos-container">
+                <div id="remote-video-placeholder" class="video-placeholder">In attesa di altri partecipanti...</div>
             </section>
 
-            <!-- CONTROLLI MEDIA -->
             <div id="media-controls">
-                <button id="toggle-audio-button" title="Muta/Riattiva Audio">🎤</button>
-                <button id="toggle-video-button" title="Attiva/Disattiva Video">📹</button>
-                <button id="disconnect-button" class="danger" title="Lascia la Conferenza">📞</button>
+                <button id="toggle-audio-button">🎤</button>
+                <button id="toggle-video-button">📹</button>
+                <button id="disconnect-button" class="danger">📞</button>
             </div>
-
         </main>
-
     </div>
 
 
-    <!-- TEMPLATE WEBCAM REMOTA (MODIFICATO) -->
-	<template id="remote-video-template">
-		<div class="video-feed remote-feed" data-peer-id="">
-			<video autoplay playsinline></video>
-			<div class="video-label">Nome Utente Remoto</div>
-		</div>
-	</template>
+    <!-- TEMPLATE REMOTO -->
+    <template id="remote-video-template">
+        <div class="video-feed remote-feed">
+            <video autoplay playsinline></video>
+            <div class="video-label">Utente</div>
+        </div>
+    </template>
 
-
-    <!-- TEMPLATE PARTECIPANTI -->
+    <!-- TEMPLATE LISTA PARTECIPANTI -->
     <template id="participant-item-template">
-        <li data-peer-id="">
+        <li>
             <span class="participant-name">Nome</span>
             <span class="status-indicator">●</span>
         </li>
     </template>
 
-
-    <!-- SCRIPT -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="app.js"></script>
 
