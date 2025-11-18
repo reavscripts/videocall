@@ -50,16 +50,11 @@ const iceConfiguration = {
 // ==============================================================================
 // FUNZIONI UI
 // ==============================================================================
-
 mainMuteBtn.addEventListener("click", () => {
     const videoEl = mainVideoFeed.querySelector("video");
     videoEl.muted = !videoEl.muted;
     mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
 });
-
-function updateParticipantCount() {
-    // Non ci sono più lista partecipanti
-}
 
 function setMainVideo(peerId) {
     let stream, nickname, isLocal = false;
@@ -97,7 +92,6 @@ function setMainVideo(peerId) {
 // ==============================================================================
 // GESTIONE INGRESSO UTENTE
 // ==============================================================================
-
 joinButton.addEventListener('click', () => {
     const nickname = nicknameInput.value.trim();
     const roomId = roomIdInput.value.trim(); 
@@ -138,6 +132,9 @@ async function startLocalMedia() {
     }
 }
 
+// ==============================================================================
+// ROOM LINK
+// ==============================================================================
 function setupRoomLink() {
     const roomUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
     shareRoomLinkInput.value = roomUrl;
@@ -152,7 +149,6 @@ function setupRoomLink() {
 // ==============================================================================
 // CHAT
 // ==============================================================================
-
 function appendMessage(nickname, message, isLocal = false) {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message');
@@ -189,7 +185,6 @@ chatMessageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') se
 // ==============================================================================
 // CONTROLLI MOBILE
 // ==============================================================================
-
 function toggleMobileChat() {
     const videoArea = document.getElementById('video-area');
     const isHidden = chatPanel.classList.contains('hidden');
@@ -204,7 +199,6 @@ function toggleMobileChat() {
         chatPanel.style.zIndex = '150';
         chatPanel.style.display = 'flex';
         videoArea.style.display = 'none';
-
         setTimeout(() => chatMessageInput.focus(), 50);
     } else {
         chatPanel.classList.add('hidden');
@@ -221,6 +215,9 @@ function toggleMobileChat() {
 
 showChatBtn.addEventListener('click', toggleMobileChat);
 
+// ==============================================================================
+// CONTROLLI AUDIO/VIDEO/DISCONNECT
+// ==============================================================================
 toggleAudioButton.addEventListener('click', () => {
     const audioTrack = localStream?.getAudioTracks()[0];
     if (audioTrack) {
@@ -245,10 +242,132 @@ disconnectButton.addEventListener('click', () => {
 });
 
 // ==============================================================================
-// SOCKET.IO E WEBRTC
+// WEBRTC FUNZIONI
 // ==============================================================================
+function getOrCreatePeerConnection(socketId) {
+    if (peerConnections[socketId]) return peerConnections[socketId];
+    const pc = new RTCPeerConnection(iceConfiguration);
+    if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    pc.ontrack = (event) => createRemoteVideoElement(socketId, event.streams[0]);
+    pc.onicecandidate = (event) => { if (event.candidate) socket.emit('candidate', socketId, event.candidate); };
+    peerConnections[socketId] = pc;
+    return pc;
+}
 
-// Funzioni WebRTC + gestione socket rimangono identiche alla tua versione originale
-// include: initializeSocket, getOrCreatePeerConnection, createLocalVideoElement, createRemoteVideoElement, 
-// callUser, handleOffer, handleAnswer, handleCandidate, removePeer
+function createLocalVideoElement() {
+    if (remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="local"]`)) return;
+    const template = document.getElementById('remote-video-template');
+    if (!template) return;
+    const localFeed = template.content.cloneNode(true).firstElementChild;
+    localFeed.dataset.peerId = 'local';
+    localFeed.classList.add('local-feed');
+    const remoteVideo = localFeed.querySelector('video');
+    remoteVideo.srcObject = localStream;
+    remoteVideo.muted = true;
+    localFeed.querySelector('.video-label').textContent = userNickname;
+    localFeed.addEventListener('click', () => setMainVideo('local'));
+    remoteVideosContainer.prepend(localFeed);
+}
 
+function createRemoteVideoElement(socketId, stream) {
+    let remoteVideoItem = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`);
+    const template = document.getElementById('remote-video-template');
+    if (!template) return;
+
+    if (!remoteVideoItem) {
+        remoteVideoItem = template.content.cloneNode(true).firstElementChild;
+        remoteVideoItem.dataset.peerId = socketId;
+        remoteVideoItem.querySelector('.video-label').textContent = remoteNicknames[socketId] || `Peer ${socketId.substring(0, 4)}...`;
+        remoteVideoItem.addEventListener('click', () => setMainVideo(socketId));
+        remoteVideosContainer.appendChild(remoteVideoItem);
+    }
+
+    const remoteVideo = remoteVideoItem.querySelector('video');
+    if (remoteVideo && !remoteVideo.srcObject) remoteVideo.srcObject = stream;
+    if (Object.keys(peerConnections).length === 1 && focusedPeerId === 'local') setMainVideo(socketId);
+}
+
+// ==============================================================================
+// SOCKET.IO
+// ==============================================================================
+function initializeSocket() {
+    socket = io(RENDER_SERVER_URL, { query: { nickname: userNickname } });
+
+    socket.on('connect', () => {
+        console.log('Connesso al server di segnalazione.');
+        socket.emit('join-room', currentRoomId, userNickname);
+    });
+
+    socket.on('users-in-room', (userList) => {
+        userList.forEach(user => {
+            if (user.socketId !== socket.id) {
+                remoteNicknames[user.socketId] = user.nickname;
+                callUser(user.socketId, true);
+            }
+        });
+        if (userList.length > 0) document.getElementById('remote-video-placeholder')?.classList.add('hidden');
+    });
+
+    socket.on('user-joined', (newSocketId, newNickname) => {
+        remoteNicknames[newSocketId] = newNickname;
+        callUser(newSocketId, false);
+        document.getElementById('remote-video-placeholder')?.classList.add('hidden');
+    });
+
+    socket.on('chat-message', (senderId, nickname, message) => appendMessage(nickname, message, false));
+
+    socket.on('offer', handleOffer);
+    socket.on('answer', handleAnswer);
+    socket.on('candidate', handleCandidate);
+    socket.on('user-left', removePeer);
+    socket.on('disconnect', () => console.log('Disconnesso dal server.'));
+}
+
+async function callUser(socketId, isCaller) {
+    const pc = getOrCreatePeerConnection(socketId);
+    if (isCaller) {
+        try {
+            const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+            await pc.setLocalDescription(offer);
+            socket.emit('offer', socketId, pc.localDescription);
+        } catch (error) { console.error('Errore nella creazione dell\'Offer:', error); }
+    }
+}
+
+async function handleOffer(socketId, description) {
+    const pc = getOrCreatePeerConnection(socketId);
+    try {
+        await pc.setRemoteDescription(new RTCSessionDescription(description));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit('answer', socketId, pc.localDescription);
+    } catch (error) { console.error('Errore nella gestione dell\'Offer:', error); }
+}
+
+async function handleAnswer(socketId, description) {
+    const pc = getOrCreatePeerConnection(socketId);
+    try { await pc.setRemoteDescription(new RTCSessionDescription(description)); }
+    catch (error) { console.error('Errore nella gestione dell\'Answer:', error); }
+}
+
+async function handleCandidate(socketId, candidate) {
+    try {
+        const pc = peerConnections[socketId];
+        if (pc && pc.remoteDescription && candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (error) {}
+}
+
+function removePeer(socketId) {
+    const pc = peerConnections[socketId];
+    if (pc) pc.close();
+    delete peerConnections[socketId];
+    delete remoteNicknames[socketId];
+    remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`)?.remove();
+
+    if (focusedPeerId === socketId) {
+        const remainingPeerIds = Object.keys(peerConnections);
+        setMainVideo(remainingPeerIds.length > 0 ? remainingPeerIds[0] : 'local');
+    }
+
+    if (Object.keys(peerConnections).length === 0) document.getElementById('remote-video-placeholder')?.classList.remove('hidden');
+}
