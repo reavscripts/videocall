@@ -87,7 +87,7 @@ body {
     width: 300px;
     background: #1a1a1a;
     border-left: 2px solid #333;
-    display: flex; /* La chat è VISIBILE sul desktop (> 900px) */
+    display: flex;
     flex-direction: column;
 }
 
@@ -146,6 +146,38 @@ body {
 }
 
 /* ============================================================================== */
+/* PARTECIPANTI PANEL (DESKTOP) - AGGIUNTO */
+/* ============================================================================== */
+#participants-panel {
+    width: 250px;
+    background: #1a1a1a;
+    border-left: 2px solid #333;
+    display: flex; /* VISIBILE sul desktop (> 900px) */
+    flex-direction: column;
+}
+
+#participants-panel h3 {
+    margin: 0;
+    padding: 10px;
+    background: #222;
+    font-size: 16px;
+}
+
+#participants-list {
+    list-style: none;
+    padding: 10px;
+    margin: 0;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.participant-item {
+    padding: 5px 0;
+    border-bottom: 1px solid #333;
+}
+
+
+/* ============================================================================== */
 /* MOBILE CONTROLS */
 /* ============================================================================== */
 #mobile-controls {
@@ -175,9 +207,9 @@ body {
         flex-direction: column;
     }
 
-    /* Chat nascosta di default su mobile */
-    #chat-panel {
-        display: none; 
+    /* CHAT E PARTECIPANTI: nascosti di default, occupano tutto lo schermo */
+    #chat-panel, #participants-panel {
+        display: none !important;
         position: fixed;
         top: 0;
         left: 0;
@@ -187,12 +219,12 @@ body {
         flex-direction: column;
     }
 
-    /* Chat visibile se JS aggiunge la classe show-mobile */
-    #chat-panel.show-mobile { 
+    /* Resi visibili dal JS con la classe .show */
+    #chat-panel.show, #participants-panel.show {
         display: flex !important;
     }
 
-    /* Nasconde l’area video quando chat aperta */
+    /* Nasconde l’area video quando chat o partecipanti aperti */
     #video-area.hidden {
         display: none;
     }
@@ -201,13 +233,14 @@ body {
         display: flex;
     }
 
-    /* Pulsante per tornare ai video */
-    #chat-panel::before {
+    /* Pulsante per tornare ai video (sia per Chat che per Partecipanti) */
+    #chat-panel::before, #participants-panel::before {
         content: '← Torna ai video';
         display: block;
         padding: 10px;
         background: #222;
         cursor: pointer;
         font-size: 14px;
+        text-align: center;
     }
 }

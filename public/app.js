@@ -20,8 +20,11 @@ const chatPanel = document.getElementById('chat-panel');
 const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
 const messagesContainer = document.getElementById('messages-container');
-// Area Video (aggiunta per la gestione mobile)
-const videoArea = document.getElementById('video-area');
+
+// Elementi DOM Aggiunti/Corretti per la logica Mobile
+const videoArea = document.getElementById('video-area'); // Area Video
+const participantsPanel = document.getElementById('participants-panel'); // Pannello Partecipanti
+const showParticipantsBtn = document.getElementById('show-participants-btn'); // Bottone Utenti Mobile
 
 // Mobile
 const showChatBtn = document.getElementById('show-chat-btn'); 
@@ -33,7 +36,6 @@ const roomIdInput = document.getElementById('room-id-input');
 
 // ==============================================================================
 // VARIABILI DI STATO
-// ==============================================================================
 let socket = null;
 let localStream = null;
 let userNickname = 'Ospite';
@@ -189,24 +191,51 @@ sendChatButton.addEventListener('click', sendChatMessage);
 chatMessageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
 // ==============================================================================
-// MOBILE CHAT (LOGICA AGGIUNTA)
+// MOBILE CHAT (CORRETTO)
 // ==============================================================================
+function togglePanel(panel) {
+    // 1. Definisce lo stato (usa la classe 'show' per matchare il CSS)
+    const isVisible = panel.classList.contains('show'); 
+    
+    // 2. Chiude l'altro pannello se è aperto
+    if (panel === chatPanel) {
+        participantsPanel?.classList.remove('show');
+    } else if (panel === participantsPanel) {
+        chatPanel?.classList.remove('show');
+    }
+    
+    // 3. Toggle il pannello attuale e l'area video
+    if (isVisible) {
+        panel.classList.remove('show');
+        videoArea?.classList.remove('hidden');
+    } else {
+        panel.classList.add('show');
+        videoArea?.classList.add('hidden');
+    }
+}
+
 showChatBtn.addEventListener('click', () => {
-    // 1. Usa la classe 'show-mobile' per coerenza con style.css
-    chatPanel.classList.add('show-mobile');
-    // 2. Nasconde l'area video principale (mobile)
-    videoArea.classList.add('hidden'); 
+    // Usa la funzione unificata per la chat
+    togglePanel(chatPanel);
 });
 
-// Listener per tornare ai video (gestisce il click sull'area superiore del chat-panel)
-chatPanel.addEventListener('click', (e) => {
-    // Controlla se l'elemento cliccato è il chatPanel stesso e se la chat è aperta.
-    // Questo è un workaround per intercettare il click sul pseudo-elemento ::before.
-    if(chatPanel.classList.contains('show-mobile') && e.target === chatPanel) {
-        chatPanel.classList.remove('show-mobile');
-        videoArea.classList.remove('hidden');
-    }
+showParticipantsBtn.addEventListener('click', () => {
+    // Listener aggiunto per il pannello Partecipanti
+    togglePanel(participantsPanel);
 });
+
+// Listener per tornare ai video (gestisce il click sulla parte superiore del pannello)
+function hidePanelOnClick(e) {
+    // Se il click è sull'elemento container stesso (chatPanel o participantsPanel) e il pannello è aperto
+    if (chatPanel.classList.contains('show') && e.target === chatPanel) {
+        togglePanel(chatPanel);
+    } else if (participantsPanel.classList.contains('show') && e.target === participantsPanel) {
+        togglePanel(participantsPanel);
+    }
+}
+
+chatPanel.addEventListener('click', hidePanelOnClick);
+participantsPanel?.addEventListener('click', hidePanelOnClick);
 
 // ==============================================================================
 // CONTROLLI AUDIO/VIDEO/DISCONNECT
