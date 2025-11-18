@@ -191,50 +191,44 @@ sendChatButton.addEventListener('click', sendChatMessage);
 chatMessageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
 // ==============================================================================
-// MOBILE CHAT (CORRETTO)
+// MOBILE CHAT (MODIFICATO: SOLO PARTECIPANTI)
 // ==============================================================================
 function togglePanel(panel) {
-    // 1. Definisce lo stato (usa la classe 'show' per matchare il CSS)
+    // 1. Definisce lo stato (ora solo per participantsPanel)
     const isVisible = panel.classList.contains('show'); 
     
-    // 2. Chiude l'altro pannello se Ã¨ aperto
-    if (panel === chatPanel) {
-        participantsPanel?.classList.remove('show');
-    } else if (panel === participantsPanel) {
-        chatPanel?.classList.remove('show');
+    // 2. L'unica condizione valida per il toggle è solo se si tratta del pannello partecipanti
+    if (panel === participantsPanel) {
+        // 3. Toggle il pannello attuale e l'area video
+        if (isVisible) {
+            participantsPanel.classList.remove('show');
+            videoArea?.classList.remove('hidden');
+        } else {
+            participantsPanel.classList.add('show');
+            videoArea?.classList.add('hidden');
+        }
     }
-    
-    // 3. Toggle il pannello attuale e l'area video
-    if (isVisible) {
-        panel.classList.remove('show');
-        videoArea?.classList.remove('hidden');
-    } else {
-        panel.classList.add('show');
-        videoArea?.classList.add('hidden');
-    }
+    // La logica per chatPanel è stata rimossa, in quanto è sempre nascosta su mobile.
 }
 
-showChatBtn.addEventListener('click', () => {
-    // Usa la funzione unificata per la chat
-    togglePanel(chatPanel);
-});
+// showChatBtn.addEventListener('click', ...) è stato rimosso.
+// Il bottone Chat è nascosto via CSS.
 
 showParticipantsBtn.addEventListener('click', () => {
-    // Listener aggiunto per il pannello Partecipanti
+    // Listener solo per il pannello Partecipanti
     togglePanel(participantsPanel);
 });
 
 // Listener per tornare ai video (gestisce il click sulla parte superiore del pannello)
 function hidePanelOnClick(e) {
-    // Se il click Ã¨ sull'elemento container stesso (chatPanel o participantsPanel) e il pannello Ã¨ aperto
-    if (chatPanel.classList.contains('show') && e.target === chatPanel) {
-        togglePanel(chatPanel);
-    } else if (participantsPanel.classList.contains('show') && e.target === participantsPanel) {
+    // Se il click è sull'elemento container stesso (participantsPanel) e il pannello è aperto
+    if (participantsPanel.classList.contains('show') && e.target === participantsPanel) {
         togglePanel(participantsPanel);
     }
+    // La logica per chatPanel è stata rimossa.
 }
 
-chatPanel.addEventListener('click', hidePanelOnClick);
+// chatPanel.addEventListener('click', hidePanelOnClick); è stato rimosso.
 participantsPanel?.addEventListener('click', hidePanelOnClick);
 
 // ==============================================================================

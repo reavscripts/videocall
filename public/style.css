@@ -51,7 +51,7 @@ body {
     background: rgba(0,0,0,0.5);
     color: white;
     cursor: pointer;
-    display: none; /* nascosto di default sul video principale (se non Ã¨ un video remoto) */
+    display: none;
 }
 
 /* Remote videos */
@@ -87,7 +87,7 @@ body {
 }
 
 /* ============================================================================== */
-/* CHAT PANEL (DESKTOP) - CORRETTO */
+/* CHAT PANEL (DESKTOP) */
 /* ============================================================================== */
 #chat-panel {
     width: 300px;
@@ -154,7 +154,7 @@ body {
 }
 
 /* ============================================================================== */
-/* PARTECIPANTI PANEL (DESKTOP) - CORRETTO */
+/* PARTECIPANTI PANEL (DESKTOP) */
 /* ============================================================================== */
 #participants-panel {
     width: 250px;
@@ -216,27 +216,31 @@ body {
         flex-direction: column;
     }
 
-    /* CHAT E PARTECIPANTI: nascosti di default, occupano tutto lo schermo */
-    #chat-panel, #participants-panel {
-        /* Rimosso !important qui per permettere a .show di funzionare correttamente */
+    /* CHAT: COMPLETAMENTE NASCOSTA SU MOBILE (MODIFICA RICHIESTA) */
+    #chat-panel {
+        display: none !important; 
+    }
+
+    /* PARTECIPANTI: logica nascosta/mostrata */
+    #participants-panel {
         display: none; 
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        min-width: unset; /* Rimuove le restrizioni desktop */
+        min-width: unset; 
         flex-shrink: unset;
         z-index: 9000;
         flex-direction: column;
     }
 
-    /* Resi visibili dal JS con la classe .show */
-    #chat-panel.show, #participants-panel.show {
+    /* Reso visibile dal JS con la classe .show */
+    #participants-panel.show {
         display: flex !important;
     }
 
-    /* Nasconde lâ€™area video quando chat o partecipanti aperti */
+    /* Nasconde l’area video quando pannello partecipanti aperto */
     #video-area.hidden {
         display: none;
     }
@@ -246,13 +250,18 @@ body {
     }
 
     /* Pulsante per tornare ai video (simulato tramite pseudo-elemento) */
-    #chat-panel::before, #participants-panel::before {
-        content: 'â† Torna ai video';
+    #participants-panel::before {
+        content: '← Torna ai video';
         display: block;
         padding: 10px;
         background: #222;
         cursor: pointer;
         font-size: 14px;
         text-align: center;
+    }
+    
+    /* Nasconde il bottone chat dai controlli mobile */
+    #show-chat-btn {
+        display: none !important;
     }
 }
