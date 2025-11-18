@@ -22,11 +22,13 @@ const disconnectButton = document.getElementById('disconnect-button');
 const roomNameDisplay = document.getElementById('room-name-display'); 
 const shareRoomLinkInput = document.getElementById('share-room-link'); 
 
+// Pannelli e pulsanti mobile
 const participantsPanel = document.getElementById('participants-panel'); 
 const chatPanel = document.getElementById('chat-panel'); 
 const showParticipantsBtn = document.getElementById('show-participants-btn'); 
 const showChatBtn = document.getElementById('show-chat-btn'); 
 
+// Chat
 const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
 const messagesContainer = document.getElementById('messages-container');
@@ -54,8 +56,9 @@ const iceConfiguration = {
 };
 
 // ==============================================================================
-// FUNZIONI DI BASE DELL'INTERFACCIA UTENTE
+// FUNZIONI UI
 // ==============================================================================
+
 function updateParticipantCount() {
     if (participantCountSpan) {
         participantCountSpan.textContent = 1 + Object.keys(remoteNicknames).length;
@@ -71,9 +74,11 @@ function updateParticipantList(id, nickname, isLocal = false) {
         li.id = `list-${id}`;
         li.dataset.peerId = id; 
         const nameEl = li.querySelector('.participant-name');
-        if (nameEl) nameEl.textContent = isLocal ? `${nickname} (Tu)` : nickname;
+        if (nameEl) {
+             nameEl.textContent = isLocal ? `${nickname} (Tu)` : nickname;
+        }
         participantsList.appendChild(li);
-        li.addEventListener('click', () => { setMainVideo(id); });
+        li.addEventListener('click', () => setMainVideo(id));
     }
     
     if (li) {
@@ -89,6 +94,7 @@ function updateParticipantList(id, nickname, isLocal = false) {
 // ==============================================================================
 // GESTIONE FOCUS VIDEO
 // ==============================================================================
+
 function setMainVideo(peerId) {
     let stream, nickname, isLocal = false;
     if (peerId === 'local') {
@@ -105,60 +111,73 @@ function setMainVideo(peerId) {
         stream = remoteVideoElement.querySelector('video').srcObject;
         nickname = remoteNicknames[peerId];
     }
-    
+
     const videoEl = mainVideoFeed.querySelector('video');
     const labelEl = mainVideoFeed.querySelector('.video-label');
+
     if (!videoEl || !labelEl) return;
 
-	if (stream) {
-		videoEl.srcObject = stream;
-		videoEl.muted = isLocal;
-		labelEl.textContent = nickname;
-		const muteBtn = document.getElementById("main-mute-btn");
-		if (isLocal) muteBtn.style.display = "none";
-		else { muteBtn.style.display = "block"; muteBtn.textContent = videoEl.muted ? "🔇" : "🔊"; }
-	}
+    if (stream) {
+        videoEl.srcObject = stream;
+        videoEl.muted = isLocal;
+        labelEl.textContent = nickname;
+
+        const muteBtn = document.getElementById("main-mute-btn");
+        muteBtn.style.display = isLocal ? "none" : "block";
+        muteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
+    }
 
     focusedPeerId = peerId;
     updateParticipantList(peerId, isLocal ? userNickname : remoteNicknames[peerId], isLocal); 
+
     document.querySelectorAll('.remote-feed').forEach(el => el.classList.remove('is-focused'));
     const focusedFeed = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`);
     if (focusedFeed) focusedFeed.classList.add('is-focused');
 }
 
 // ==============================================================================
-// GESTIONE INGRESSO UTENTE E MEDIA
+// GESTIONE INGRESSO UTENTE
 // ==============================================================================
+
 joinButton.addEventListener('click', () => {
     const nickname = nicknameInput.value.trim();
     const roomId = roomIdInput.value.trim(); 
+    
     if (nickname && roomId) {
         userNickname = nickname;
         currentRoomId = roomId; 
         roomNameDisplay.textContent = currentRoomId; 
-        startLocalMedia().then(() => {
-            nicknameOverlay.classList.add('hidden');
-            conferenceContainer.classList.remove('hidden');
-            if (window.matchMedia("(max-width: 900px)").matches) {
-                participantsPanel.classList.add('hidden');
-                chatPanel.classList.add('hidden');
-            }
-            initializeSocket();
-            setupRoomLink(); 
-        }).catch(error => {
-            console.error("Non è stato possibile avviare la webcam:", error);
-            alert(`Impossibile avviare la webcam. Controlla i permessi.`);
-        });
-    } else alert('Per favore, inserisci un nickname e il nome della stanza.');
+        
+        startLocalMedia()
+            .then(() => {
+                nicknameOverlay.classList.add('hidden');
+                conferenceContainer.classList.remove('hidden');
+                if (window.matchMedia("(max-width: 900px)").matches) {
+                    participantsPanel.classList.add('hidden');
+                    chatPanel.classList.add('hidden');
+                }
+                initializeSocket();
+                setupRoomLink(); 
+            })
+            .catch(error => {
+                console.error("Non è stato possibile avviare la webcam:", error.name, error);
+                alert(`Impossibile avviare la webcam. Controlla i permessi. Errore: ${error.name}`);
+            });
+    } else {
+        alert('Per favore, inserisci un nickname e il nome della stanza.');
+    }
 });
 
 async function startLocalMedia() {
+    const constraints = { audio: true, video: true };
     try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio:true, video:true });
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
         createLocalVideoElement(); 
         setMainVideo('local'); 
         return localStream;
-    } catch (error) { throw error; }
+    } catch (error) {
+        throw error;
+    }
 }
 
 function setupRoomLink() {
@@ -172,8 +191,9 @@ function setupRoomLink() {
 }
 
 // ==============================================================================
-// GESTIONE CHAT
+// CHAT
 // ==============================================================================
+
 function appendMessage(nickname, message, isLocal = false) {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message');
@@ -185,7 +205,7 @@ function appendMessage(nickname, message, isLocal = false) {
     
     const timeSpan = document.createElement('span');
     timeSpan.classList.add('timestamp');
-    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})})`;
+    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
 
     messageDiv.appendChild(senderSpan);
     messageDiv.appendChild(timeSpan);
@@ -204,20 +224,16 @@ function sendChatMessage() {
     }
 }
 
+sendChatButton.addEventListener('click', sendChatMessage);
+chatMessageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+
 // ==============================================================================
-// GESTIONE CONTROLLI MOBILE
+// CONTROLLI MOBILE
 // ==============================================================================
+
 function toggleMobilePanel(panel, otherPanel) {
     const videoArea = document.getElementById('video-area');
-
-    if (!otherPanel.classList.contains('hidden')) {
-        otherPanel.classList.add('hidden');
-        otherPanel.style.position = '';
-        otherPanel.style.inset = '';
-        otherPanel.style.width = '';
-        otherPanel.style.background = '';
-        otherPanel.style.zIndex = '';
-    }
+    otherPanel.classList.add('hidden');
 
     const isHidden = panel.classList.contains('hidden');
 
@@ -226,49 +242,58 @@ function toggleMobilePanel(panel, otherPanel) {
         panel.style.position = 'fixed';
         panel.style.inset = '0';
         panel.style.width = '100%';
+        panel.style.height = '100%';
         panel.style.background = 'var(--background-dark)';
         panel.style.zIndex = '150';
+        panel.style.display = 'flex';
         videoArea.style.display = 'none';
+        
         if (panel === chatPanel) setTimeout(() => chatMessageInput.focus(), 50);
     } else {
         panel.classList.add('hidden');
         panel.style.position = '';
         panel.style.inset = '';
         panel.style.width = '';
+        panel.style.height = '';
         panel.style.background = '';
         panel.style.zIndex = '';
-        videoArea.style.display = '';
+        panel.style.display = '';
+        videoArea.style.display = 'flex';
     }
 }
 
-sendChatButton.addEventListener('click', sendChatMessage);
-chatMessageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
-showParticipantsBtn.addEventListener('click', () => { toggleMobilePanel(participantsPanel, chatPanel); });
-showChatBtn.addEventListener('click', () => { toggleMobilePanel(chatPanel, participantsPanel); });
+showParticipantsBtn.addEventListener('click', () => toggleMobilePanel(participantsPanel, chatPanel));
+showChatBtn.addEventListener('click', () => toggleMobilePanel(chatPanel, participantsPanel));
 
-// ==============================================================================
-// CONTROLLI AUDIO/VIDEO
-// ==============================================================================
 toggleAudioButton.addEventListener('click', () => {
-    const track = localStream?.getAudioTracks()[0];
-    if (track) { track.enabled = !track.enabled; toggleAudioButton.textContent = track.enabled?'🎤':'🔇'; }
+    const audioTrack = localStream?.getAudioTracks()[0];
+    if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        toggleAudioButton.textContent = audioTrack.enabled ? '🎤' : '🔇';
+    }
 });
+
 toggleVideoButton.addEventListener('click', () => {
-    const track = localStream?.getVideoTracks()[0];
-    if (track) { track.enabled = !track.enabled; toggleVideoButton.textContent = track.enabled?'📹':'⬛'; }
+    const videoTrack = localStream?.getVideoTracks()[0];
+    if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        toggleVideoButton.textContent = videoTrack.enabled ? '📹' : '⬛';
+    }
 });
+
 disconnectButton.addEventListener('click', () => {
-    localStream?.getTracks().forEach(t => t.stop());
-    Object.values(peerConnections).forEach(pc => pc?.close());
+    localStream?.getTracks().forEach(track => track.stop());
+    Object.values(peerConnections).forEach(pc => pc.close());
     socket?.disconnect();
     window.location.reload(); 
 });
 
 // ==============================================================================
-// FUNZIONI SOCKET.IO
+// SOCKET.IO E WEBRTC
 // ==============================================================================
+
 function initializeSocket() {
-    socket = io(RENDER_SERVER_URL, { query:{ nickname:userNickname } });
+    socket = io(RENDER_SERVER_URL, { query: { nickname: userNickname } });
 
     socket.on('connect', () => {
         console.log('Connesso al server di segnalazione.');
@@ -287,30 +312,35 @@ function initializeSocket() {
         updateParticipantList(socket.id, userNickname, true);
     });
 
-    socket.on('user-joined', (id, nickname) => {
-        remoteNicknames[id] = nickname;
-        updateParticipantList(id, nickname);
-        callUser(id, false);
+    socket.on('user-joined', (newSocketId, newNickname) => {
+        remoteNicknames[newSocketId] = newNickname;
+        updateParticipantList(newSocketId, newNickname);
+        callUser(newSocketId, false);
         remoteVideoPlaceholder?.classList.add('hidden');
     });
 
-    socket.on('chat-message', (senderId, nickname, message) => { appendMessage(nickname, message, false); });
+    socket.on('chat-message', (senderId, nickname, message) => appendMessage(nickname, message, false));
+
     socket.on('offer', handleOffer);
     socket.on('answer', handleAnswer);
     socket.on('candidate', handleCandidate);
     socket.on('user-left', removePeer);
-    socket.on('disconnect', () => { console.log('Disconnesso dal server.'); });
+    socket.on('disconnect', () => console.log('Disconnesso dal server.'));
 }
 
 // ==============================================================================
-// FUNZIONI WEBRTC
+// WEBRTC FUNCTIONS
 // ==============================================================================
+
 function getOrCreatePeerConnection(socketId) {
     if (peerConnections[socketId]) return peerConnections[socketId];
+
     const pc = new RTCPeerConnection(iceConfiguration);
-    if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-    pc.ontrack = (event) => { createRemoteVideoElement(socketId, event.streams[0]); };
+    if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+    pc.ontrack = (event) => createRemoteVideoElement(socketId, event.streams[0]);
     pc.onicecandidate = (event) => { if (event.candidate) socket.emit('candidate', socketId, event.candidate); };
+
     peerConnections[socketId] = pc;
     return pc;
 }
@@ -319,15 +349,15 @@ function createLocalVideoElement() {
     if (remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="local"]`)) return;
     const template = document.getElementById('remote-video-template');
     if (!template) return;
+
     const localFeed = template.content.cloneNode(true).firstElementChild;
     localFeed.dataset.peerId = 'local';
     localFeed.classList.add('local-feed');
     const remoteVideo = localFeed.querySelector('video');
-    const videoLabel = localFeed.querySelector('.video-label');
     remoteVideo.srcObject = localStream;
     remoteVideo.muted = true;
-    videoLabel.textContent = userNickname;
-    localFeed.addEventListener('click', () => { setMainVideo('local'); });
+    localFeed.querySelector('.video-label').textContent = userNickname;
+    localFeed.addEventListener('click', () => setMainVideo('local'));
     remoteVideosContainer.prepend(localFeed);
 }
 
@@ -335,14 +365,15 @@ function createRemoteVideoElement(socketId, stream) {
     let remoteVideoItem = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`);
     const template = document.getElementById('remote-video-template');
     if (!template) return;
+
     if (!remoteVideoItem) {
         remoteVideoItem = template.content.cloneNode(true).firstElementChild;
         remoteVideoItem.dataset.peerId = socketId;
-        const videoLabel = remoteVideoItem.querySelector('.video-label');
-        videoLabel.textContent = remoteNicknames[socketId] || `Peer ${socketId.substring(0,4)}...`;
-        remoteVideoItem.addEventListener('click', () => { setMainVideo(socketId); });
+        remoteVideoItem.querySelector('.video-label').textContent = remoteNicknames[socketId] || `Peer ${socketId.substring(0, 4)}...`;
+        remoteVideoItem.addEventListener('click', () => setMainVideo(socketId));
         remoteVideosContainer.appendChild(remoteVideoItem);
     }
+
     const remoteVideo = remoteVideoItem.querySelector('video');
     if (remoteVideo && !remoteVideo.srcObject) remoteVideo.srcObject = stream;
     if (Object.keys(peerConnections).length === 1 && focusedPeerId === 'local') setMainVideo(socketId);
@@ -352,10 +383,10 @@ async function callUser(socketId, isCaller) {
     const pc = getOrCreatePeerConnection(socketId);
     if (isCaller) {
         try {
-            const offer = await pc.createOffer({ offerToReceiveAudio:true, offerToReceiveVideo:true });
+            const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
             await pc.setLocalDescription(offer);
             socket.emit('offer', socketId, pc.localDescription);
-        } catch (error) { console.error('Errore Offer:', error); }
+        } catch (error) { console.error('Errore nella creazione dell\'Offer:', error); }
     }
 }
 
@@ -366,13 +397,13 @@ async function handleOffer(socketId, description) {
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         socket.emit('answer', socketId, pc.localDescription);
-    } catch (error) { console.error('Errore Offer:', error); }
+    } catch (error) { console.error('Errore nella gestione dell\'Offer:', error); }
 }
 
 async function handleAnswer(socketId, description) {
     const pc = getOrCreatePeerConnection(socketId);
     try { await pc.setRemoteDescription(new RTCSessionDescription(description)); }
-    catch (error) { console.error('Errore Answer:', error); }
+    catch (error) { console.error('Errore nella gestione dell\'Answer:', error); }
 }
 
 async function handleCandidate(socketId, candidate) {
@@ -382,18 +413,19 @@ async function handleCandidate(socketId, candidate) {
     } catch (error) {}
 }
 
-function removePeer(socketId, isExternalEvent=true) {
+function removePeer(socketId) {
     const pc = peerConnections[socketId];
-    if (pc && isExternalEvent) pc.close();
+    if (pc) pc.close();
     delete peerConnections[socketId];
     delete remoteNicknames[socketId];
     remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`)?.remove();
     document.getElementById(`list-${socketId}`)?.remove();
+
     if (focusedPeerId === socketId) {
-        const remaining = Object.keys(peerConnections);
-        if (remaining.length > 0) setMainVideo(remaining[0]);
-        else setMainVideo('local');
+        const remainingPeerIds = Object.keys(peerConnections);
+        setMainVideo(remainingPeerIds.length > 0 ? remainingPeerIds[0] : 'local');
     }
+
     updateParticipantCount();
     if (Object.keys(peerConnections).length === 0) remoteVideoPlaceholder?.classList.remove('hidden');
 }
