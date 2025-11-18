@@ -54,8 +54,14 @@ const iceConfiguration = {
 function forceShowChatPanelOnce() {
     if (!chatPanel) return;
     chatPanel.classList.remove('hidden');
-    // rimuove eventuale display inline che nasconde
-    if (chatPanel.style && chatPanel.style.display === 'none') chatPanel.style.display = '';
+
+    // **FIX:** On desktop, ensure any inline display: none is removed
+    const mobileBreakpoint = 900;
+    if (window.innerWidth >= mobileBreakpoint) {
+        if (chatPanel.style.display === 'none') {
+            chatPanel.style.display = ''; // Clear inline style, letting CSS media query take over
+        }
+    }
 }
 
 // Esegui subito e ripeti per i primi istanti per coprire inizializzazioni asincrone
@@ -84,9 +90,15 @@ if (chatPanel && typeof MutationObserver !== 'undefined') {
                         chatPanel.classList.remove('hidden');
                     }
                 }
+                // **Aggiunta all'Observer:** Check per display inline su desktop
+                if (m.type === 'attributes' && m.attributeName === 'style' && window.innerWidth >= 901) {
+                    if (chatPanel.style.display === 'none') {
+                        chatPanel.style.display = '';
+                    }
+                }
             }
         });
-        mo.observe(chatPanel, { attributes: true, attributeFilter: ['class'] });
+        mo.observe(chatPanel, { attributes: true, attributeFilter: ['class', 'style'] });
     } catch (e) {
         console.warn('MutationObserver non disponibile o fallita la registrazione:', e);
     }
@@ -241,18 +253,21 @@ function ensureChatResponsiveState() {
     if (chatPanel) chatPanel.classList.remove('hidden');
 
     if (window.innerWidth >= mobileBreakpoint) {
-        // Desktop: chat sempre visibile
+        // Desktop: chat sempre visibile. Rimuovi ogni inline display che la nasconde.
         if (chatPanel) {
             chatPanel.classList.remove('show');
+            // **FIX:** Clear inline display style to enforce CSS media query
             chatPanel.style.display = '';
         }
         if (videoArea) videoArea.classList.remove('hidden');
         showChatBtn?.setAttribute('aria-expanded', 'false');
     } else {
         // Mobile: default chiuso (aperto solo con .show)
-        if (chatPanel) chatPanel.classList.remove('show');
-        if (videoArea) videoArea.classList.remove('hidden');
-        showChatBtn?.setAttribute('aria-expanded', 'false');
+        // Non rimuovere la classe 'show' qui, lasciala gestire a toggleChatOnMobile
+        if (videoArea && !chatPanel?.classList.contains('show')) {
+            videoArea.classList.remove('hidden');
+        }
+        showChatBtn?.setAttribute('aria-expanded', chatPanel?.classList.contains('show') ? 'true' : 'false');
     }
 }
 
@@ -404,7 +419,7 @@ async function callUser(socketId, isCaller) {
             const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
             await pc.setLocalDescription(offer);
             socket.emit('offer', socketId, pc.localDescription);
-        } catch (error) { console.error('Errore nella creazione dell\\'Offer:', error); }
+        } catch (error) { console.error('Errore nella creazione dell\'Offer:', error); }
     }
 }
 
@@ -415,13 +430,13 @@ async function handleOffer(socketId, description) {
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         socket.emit('answer', socketId, pc.localDescription);
-    } catch (error) { console.error('Errore nella gestione dell\\'Offer:', error); }
+    } catch (error) { console.error('Errore nella gestione dell\'Offer:', error); }
 }
 
 async function handleAnswer(socketId, description) {
     const pc = getOrCreatePeerConnection(socketId);
     try { await pc.setRemoteDescription(new RTCSessionDescription(description)); }
-    catch (error) { console.error('Errore nella gestione dell\\'Answer:', error); }
+    catch (error) { console.error('Errore nella gestione dell\'Answer:', error); }
 }
 
 async function handleCandidate(socketId, candidate) {
