@@ -291,20 +291,24 @@ disconnectButton.addEventListener('click', () => {
 // ============================================
 // ADATTAMENTO CHAT MOBILE CON TASTIERA
 // ============================================
-
 if (window.matchMedia("(max-width: 900px)").matches) {
-    let originalChatHeight = chatPanel.offsetHeight;
+    function adjustChatPanel() {
+        const vh = window.innerHeight; // Altezza visibile della finestra
+        chatPanel.style.height = vh + 'px';
 
-    window.addEventListener('resize', () => {
-        // Solo quando l'input chat è attivo
-        if (document.activeElement === chatMessageInput) {
-            const vh = window.innerHeight;
-            chatPanel.style.height = vh + 'px';
-            // Scroll input in vista
-            chatMessageInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        } else {
-            chatPanel.style.height = '';
-        }
+        // Scroll automatico per vedere l'input e parte alta messaggi
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    window.addEventListener('resize', adjustChatPanel);
+    chatMessageInput.addEventListener('focus', adjustChatPanel);
+    chatMessageInput.addEventListener('blur', () => {
+        chatPanel.style.height = ''; // Ripristina altezza originale
+    });
+
+    // All'apertura del pannello chat
+    showChatBtn.addEventListener('click', () => {
+        setTimeout(adjustChatPanel, 100); // piccolo delay per permettere apertura
     });
 }
 
