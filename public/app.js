@@ -204,6 +204,14 @@ joinButton.addEventListener('click', () => {
             .then(() => {
                 nicknameOverlay.classList.add('hidden');
                 conferenceContainer.classList.remove('hidden');
+                
+                // 🚀 MODIFICA PER MOBILE: Assicurati che i pannelli siano nascosti all'inizio
+                // Quando si entra nella stanza su mobile, i pannelli laterali devono essere nascosti.
+                if (window.matchMedia("(max-width: 900px)").matches) {
+                    participantsPanel.classList.add('hidden');
+                    chatPanel.classList.add('hidden');
+                }
+                
                 initializeSocket();
                 setupRoomLink(); 
             })
@@ -323,13 +331,20 @@ function sendChatMessage() {
 function toggleMobilePanel(panel, otherPanel) {
     const videoArea = document.getElementById('video-area');
 
-    // Se il pannello è nascosto, lo mostriamo (e viceversa)
-    const isNowHidden = panel.classList.toggle('hidden');
-    
-    // Nascondi sempre l'altro pannello
+    // 1. PRIMA: Nascondi l'altro pannello e ripristina i suoi stili se necessario
     if (!otherPanel.classList.contains('hidden')) {
         otherPanel.classList.add('hidden');
+        // ✅ AGGIUNTA PER RIPRISTINARE LO STILE DEL PANNELLO CHIUSO
+        otherPanel.style.position = '';
+        otherPanel.style.inset = '';
+        otherPanel.style.width = '';
+        otherPanel.style.background = '';
+        otherPanel.style.zIndex = '';
     }
+    
+    // 2. Dopo: Inverti lo stato del pannello corrente
+    const isNowHidden = panel.classList.toggle('hidden');
+    
     
     // Logica di layout solo per mobile (max-width: 900px, come da CSS)
     if (window.matchMedia("(max-width: 900px)").matches) {
