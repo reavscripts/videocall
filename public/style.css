@@ -51,6 +51,14 @@ html, body{
     box-shadow: 0 6px 20px rgba(0,0,0,0.5);
 }
 
+/* Stile per il Logo (NUOVO) */
+#app-logo {
+    display: block; /* Essenziale per centrare un'immagine */
+    margin: 0 auto 20px auto; /* Centra orizzontalmente e aggiunge spazio sotto */
+    max-width: 120px; /* Limita la dimensione massima del logo */
+    height: auto;
+}
+
 .card input{
     width: 100%;
     padding: 14px;
