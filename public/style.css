@@ -17,8 +17,8 @@ html, body{
     height: 100%;
     /* AGGIUNTE PER BACKGROUND */
     background-image: url('images/background.jpg'); 
-    background-size: cover; 
-    background-repeat: no-repeat; 
+    background-size: auto; /* Permette alla ripetizione di funzionare */
+    background-repeat: repeat-x; /* Ripete lo sfondo solo orizzontalmente (per tutta la larghezza) */
     background-attachment: fixed;
     background-color: var(--background-dark); 
     /* FINE AGGIUNTE */
