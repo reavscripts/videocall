@@ -285,7 +285,7 @@ function appendMessage(nickname, message, isLocal = false) {
     // Aggiunge la data/ora
     const timeSpan = document.createElement('span');
     timeSpan.classList.add('timestamp');
-    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })})`;
+    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
 
     messageDiv.appendChild(senderSpan);
     messageDiv.appendChild(timeSpan);
@@ -330,11 +330,14 @@ function sendChatMessage() {
  */
 function toggleMobilePanel(panel, otherPanel) {
     const videoArea = document.getElementById('video-area');
+    
+    // Lo stato attuale dell'altro pannello prima di ogni manipolazione
+    const wasOtherPanelVisible = !otherPanel.classList.contains('hidden');
 
-    // 1. PRIMA: Nascondi l'altro pannello e ripristina i suoi stili se necessario
-    if (!otherPanel.classList.contains('hidden')) {
+    // 1. PRIMA: Se l'altro pannello era visibile, nascondilo e ripristina i suoi stili
+    if (wasOtherPanelVisible) {
         otherPanel.classList.add('hidden');
-        // ✅ AGGIUNTA PER RIPRISTINARE LO STILE DEL PANNELLO CHIUSO
+        // Ripristina gli stili
         otherPanel.style.position = '';
         otherPanel.style.inset = '';
         otherPanel.style.width = '';
@@ -351,8 +354,9 @@ function toggleMobilePanel(panel, otherPanel) {
         
         // Quando un pannello è aperto (non nascosto)
         if (!isNowHidden) {
-            videoArea.style.display = 'none';
-
+            // Se un pannello è stato appena aperto, nascondi l'area video
+            videoArea.style.display = 'none'; 
+            
             // Forza il pannello aperto a occupare tutto lo spazio (solo su mobile)
              panel.style.position = 'fixed';
              panel.style.inset = '0';
@@ -368,8 +372,7 @@ function toggleMobilePanel(panel, otherPanel) {
 
 
         } else {
-            // Se entrambi i pannelli sono nascosti, mostra la video-area
-            videoArea.style.display = 'flex';
+            // Se il pannello è stato appena chiuso, ripristina gli stili e mostra l'area video
             
             // Ripristina gli stili del pannello chiuso
              panel.style.position = '';
@@ -377,6 +380,9 @@ function toggleMobilePanel(panel, otherPanel) {
              panel.style.width = '';
              panel.style.background = '';
              panel.style.zIndex = '';
+             
+             // 🎯 CORREZIONE: Mostra l'area video quando il pannello viene chiuso.
+             videoArea.style.display = 'flex'; 
         }
     } else {
         // Logica desktop: i pannelli sono già gestiti dal CSS
@@ -477,6 +483,12 @@ function initializeSocket() {
         callUser(newSocketId, false); // RICEVENTE (crea PC e attende l'Offer)
         remoteVideoPlaceholder?.classList.add('hidden');
     });
+    
+    // 3. Ricezione messaggi di chat
+    // Il server dovrebbe inviare: ID del mittente, Nickname del mittente, Messaggio
+    socket.on('chat-message', (senderId, nickname, message) => {
+        appendMessage(nickname, message, false);
+    });
 
     socket.on('offer', (id, description) => {
         handleOffer(id, description);
@@ -490,11 +502,6 @@ function initializeSocket() {
         handleCandidate(id, candidate);
     });
     
-    // NUOVO: Ricezione messaggi di chat
-    // Il server dovrebbe inviare: ID del mittente, Nickname del mittente, Messaggio
-    socket.on('chat-message', (senderId, nickname, message) => {
-        appendMessage(nickname, message, false);
-    });
 
     socket.on('user-left', (leavingSocketId) => {
         removePeer(leavingSocketId, true);
