@@ -365,7 +365,8 @@ html, body{
     } 
 
     /* Mostra i pulsanti specifici per mobile */
-    .mobile-only {
+    /* Usiamo 'block' per i pulsanti nell'area media-controls */
+    #media-controls .mobile-only {
         display: block !important;
     }
     

@@ -30,7 +30,7 @@ const toggleAudioButton = document.getElementById('toggle-audio-button');
 const toggleVideoButton = document.getElementById('toggle-video-button');
 const disconnectButton = document.getElementById('disconnect-button');
 
-// --- ELEMENTI DOM CHAT/PANEL --- (NUOVI)
+// --- ELEMENTI DOM CHAT/PANEL --- 
 const chatPanel = document.getElementById('chat-panel');
 const messagesContainer = document.getElementById('messages-container');
 const chatMessageInput = document.getElementById('chat-message-input');
@@ -92,8 +92,8 @@ function sendChatMessage() {
 }
 
 // Event Listeners per l'invio
-sendChatButton.addEventListener('click', sendChatMessage);
-chatMessageInput.addEventListener('keypress', (e) => {
+if (sendChatButton) sendChatButton.addEventListener('click', sendChatMessage);
+if (chatMessageInput) chatMessageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         sendChatMessage();
     }
@@ -103,23 +103,23 @@ chatMessageInput.addEventListener('keypress', (e) => {
 // LOGICA PULSANTI MOBILE CHAT/PARTECIPANTI
 // ==============================================================================
 
-showChatBtn.addEventListener('click', () => {
+if (showChatBtn) showChatBtn.addEventListener('click', () => {
     // 1. Alterna la visibilità del pannello chat
-    chatPanel.classList.toggle('hidden');
+    if (chatPanel) chatPanel.classList.toggle('hidden');
     // 2. Assicurati che il pannello partecipanti sia nascosto
-    participantsPanel.classList.add('hidden'); 
+    if (participantsPanel) participantsPanel.classList.add('hidden'); 
     
     // Scorrere in fondo alla chat quando si apre
-    if (!chatPanel.classList.contains('hidden')) {
+    if (chatPanel && messagesContainer && !chatPanel.classList.contains('hidden')) {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 });
 
-showParticipantsBtn.addEventListener('click', () => {
+if (showParticipantsBtn) showParticipantsBtn.addEventListener('click', () => {
     // 1. Alterna la visibilità del pannello partecipanti
-    participantsPanel.classList.toggle('hidden');
+    if (participantsPanel) participantsPanel.classList.toggle('hidden');
     // 2. Assicurati che il pannello chat sia nascosto
-    chatPanel.classList.add('hidden');
+    if (chatPanel) chatPanel.classList.add('hidden');
 });
 
 // ==============================================================================
@@ -440,26 +440,22 @@ function addRemoteVideo(socketId, stream) {
  * Sposta un video feed nella posizione principale.
  */
 function setMainVideo(socketId) {
-    if (focusedPeerId) {
-        // Rimuovi la classe di focus dal peer precedentemente in focus
-        const oldFeed = document.querySelector(`.remote-feed[data-peer-id="${focusedPeerId}"]`);
-        if (oldFeed) oldFeed.classList.remove('is-focused');
-        
-        // Rimuovi la classe di focus dal mio feed locale
-        if (focusedPeerId === 'local') {
-            document.getElementById('main-video-feed').classList.remove('is-focused');
-        }
-    }
+    // Rimuovi la classe di focus da tutti
+    document.getElementById('main-video-feed').classList.remove('is-focused');
+    const focusedFeeds = document.querySelectorAll('.remote-feed.is-focused');
+    focusedFeeds.forEach(feed => feed.classList.remove('is-focused'));
+
 
     focusedPeerId = socketId;
     const mainVideoEl = mainVideoFeed.querySelector('video');
     const mainLabelEl = mainVideoFeed.querySelector('.video-label');
-    const localVideoEl = remoteVideosContainer.querySelector('video'); // Video locale originale
     
     // Gestione video locale
     if (socketId === 'local') {
-        const localVideoStream = localVideoEl.srcObject;
-        mainVideoEl.srcObject = localVideoStream;
+        // CORREZIONE: Usa la variabile globale localStream
+        if (localStream) {
+            mainVideoEl.srcObject = localStream; 
+        }
         mainVideoEl.muted = true;
         mainVideoEl.style.objectFit = 'cover';
         mainLabelEl.textContent = "Tu";
@@ -537,6 +533,7 @@ function updateParticipantAudioStatus(socketId, remoteStream) {
     const listItem = document.getElementById(`list-${socketId}`);
     if (listItem) {
         const indicator = listItem.querySelector('.status-indicator');
+        // Usiamo un controllo più robusto per lo stato delle tracce
         const audioEnabled = remoteStream.getAudioTracks().some(track => track.enabled);
         const videoEnabled = remoteStream.getVideoTracks().some(track => track.enabled);
         indicator.textContent = (audioEnabled ? '🔊' : '🔇') + (videoEnabled ? '📹' : '⬛');
@@ -567,7 +564,8 @@ if (urlRoomId) {
     roomIdInput.value = urlRoomId;
 }
 
-// Inizializza il video principale come locale all'avvio
+// Inizializza il focus al video principale come locale all'avvio
 document.addEventListener('DOMContentLoaded', () => {
-    setMainVideo('local');
+    // La chiamata a setMainVideo('local') è garantita solo dopo che lo stream locale è disponibile
+    // Non la chiamiamo qui per evitare che fallisca prima di startCall
 });
