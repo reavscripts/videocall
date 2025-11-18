@@ -3,67 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VideoCall Room</title>
+    <title>VideoCall</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- Overlay nickname e stanza -->
+<!-- OVERLAY NICKNAME -->
 <div id="nickname-overlay">
-    <img id="app-logo" src="images/logo.png" alt="Logo App">
+    <img id="app-logo" src="images/logo.png" alt="Logo">
     <div class="card">
-        <input type="text" id="nickname-input" placeholder="Inserisci nickname">
+        <input type="text" id="nickname-input" placeholder="Inserisci il tuo nickname">
         <input type="text" id="room-id-input" placeholder="Nome stanza">
-        <button id="join-button">Entra nella stanza</button>
+        <button id="join-button">Entra</button>
     </div>
 </div>
 
-<!-- Contenitore conferenza -->
+<!-- CONFERENZA -->
 <div id="conference-container" class="hidden">
+    <div id="video-area">
+        <!-- MAIN VIDEO -->
+        <div id="main-video-feed">
+            <video autoplay playsinline muted></video>
+            <div class="video-label"></div>
+            <button id="main-mute-btn" class="main-mute-btn">🔊</button>
+        </div>
 
-    <!-- Header stanza -->
+        <!-- REMOTE VIDEOS -->
+        <div id="remote-videos-container"></div>
+    </div>
+
+    <!-- ROOM LINK -->
     <div id="room-header">
-        <h2 class="room-title">Stanza: <span id="room-name-display"></span></h2>
+        <p class="room-title">Link stanza:</p>
         <input type="text" id="share-room-link" readonly>
     </div>
 
-    <!-- Area video -->
-    <div id="video-area">
-        <div id="main-video-feed">
-            <video autoplay muted></video>
-            <div class="video-label"></div>
-            <button class="main-mute-btn" id="main-mute-btn">🔊</button>
-        </div>
-        <div id="remote-videos-container">
-            <template id="remote-video-template">
-                <div class="remote-feed video-feed">
-                    <video autoplay></video>
-                    <div class="video-label"></div>
-                </div>
-            </template>
-        </div>
-        <div id="remote-video-placeholder">Nessun partecipante connesso</div>
-    </div>
-
-    <!-- Pannello chat -->
+    <!-- CHAT -->
     <div id="chat-panel">
-        <h3 id="chat-title">Chat</h3>
+        <h3>Chat</h3>
         <div id="messages-container"></div>
         <div id="chat-input-area">
-            <input type="text" id="chat-message-input" placeholder="Scrivi un messaggio">
+            <input type="text" id="chat-message-input" placeholder="Scrivi un messaggio...">
             <button id="send-chat-button">Invia</button>
         </div>
     </div>
 
-    <!-- Controlli media -->
+    <!-- MEDIA CONTROLS -->
     <div id="media-controls">
         <button id="toggle-audio-button">🎤</button>
         <button id="toggle-video-button">📹</button>
+        <button id="disconnect-button" class="danger">❌</button>
         <button id="show-chat-btn" class="mobile-only">💬</button>
-        <button id="disconnect-button" class="danger">✖</button>
     </div>
-
 </div>
+
+<!-- TEMPLATE VIDEO REMOTE -->
+<template id="remote-video-template">
+    <div class="video-feed remote-feed">
+        <video autoplay playsinline></video>
+        <div class="video-label"></div>
+    </div>
+</template>
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script src="app.js"></script>

@@ -200,6 +200,7 @@ function toggleMobileChat() {
         chatPanel.style.display = 'flex';
         videoArea.style.display = 'none';
         setTimeout(() => chatMessageInput.focus(), 50);
+        adjustChatForKeyboard();
     } else {
         chatPanel.classList.add('hidden');
         chatPanel.style.position = '';
@@ -214,6 +215,24 @@ function toggleMobileChat() {
 }
 
 showChatBtn.addEventListener('click', toggleMobileChat);
+
+// ==============================================================================
+// ADATTAMENTO CHAT MOBILE CON TASTIERA
+// ==============================================================================
+if (window.matchMedia("(max-width: 900px)").matches) {
+    function adjustChatForKeyboard() {
+        const vh = window.innerHeight;
+        const inputHeight = chatMessageInput.offsetHeight + 16;
+        const panelPadding = 20;
+        const availableHeight = vh - inputHeight - panelPadding;
+        messagesContainer.style.height = availableHeight + 'px';
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    window.addEventListener('resize', adjustChatForKeyboard);
+    chatMessageInput.addEventListener('focus', adjustChatForKeyboard);
+    chatMessageInput.addEventListener('blur', adjustChatForKeyboard);
+}
 
 // ==============================================================================
 // CONTROLLI AUDIO/VIDEO/DISCONNECT

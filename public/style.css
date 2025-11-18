@@ -83,31 +83,31 @@ html, body{
 
 #video-area{
     display: grid;
-    grid-template-columns: 330px 1fr 300px; 
+    grid-template-columns: 330px 1fr; 
     grid-template-rows: auto 1fr; 
     gap: 12px;
     height: 100%;
-    padding-right: 312px; 
     padding-left: 12px;
 }
 
 #room-header{
-    text-align: left;
+    position: absolute;
+    top: 10px;
+    left: 12px;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin-bottom: 4px;
     background: rgba(30, 30, 30, 0.8);
     padding: 10px;
     border-radius: 10px;
 }
 
 .room-title{
-    font-size: 1.2rem;
+    font-size: 1rem;
     margin: 0;
 }
 
-#share-room-link {
+#share-room-link{
     width: 100%;
     padding: 8px;
     font-size: 0.9rem;
@@ -115,9 +115,9 @@ html, body{
     border: 1px solid var(--border-color);
     border-radius: 6px;
     color: var(--text-light);
-    text-align: left;
 }
 
+/* MAIN VIDEO */
 #main-video-feed{
     background: #000; 
     border-radius: 10px;
@@ -189,14 +189,7 @@ html, body{
     border-color: var(--primary-color);
 }
 
-/* Chat */
-#chat-title {
-    margin: 0 0 5px 0;
-    font-size: 1rem;
-    font-weight: bold;
-    text-align: left;
-}
-
+/* CHAT */
 #chat-panel{
     position: absolute;
     right: 0; 
@@ -205,7 +198,6 @@ html, body{
     height: 100%;
     background: rgba(30,30,30,0.9);
     padding: 10px;
-    border-left: 1px solid var(--border-color);
     z-index: 50;
     display: flex; 
     flex-direction: column;
@@ -220,33 +212,11 @@ html, body{
     border-radius: 4px;
 }
 
-.message {
-    margin-bottom: 8px;
-    font-size: 0.9rem;
-    line-height: 1.3;
-}
-
-.message .sender {
-    font-weight: bold;
-    color: var(--primary-color);
-}
-
-.message .timestamp {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    font-weight: normal;
-}
-
-.message.self .sender {
-    color: var(--accent-color);
-}
-
 #chat-input-area {
     display: flex;
     gap: 5px;
     padding-top: 5px;
     border-top: 1px solid var(--border-color);
-    flex-shrink: 0;
 }
 
 #chat-message-input {
@@ -268,9 +238,9 @@ html, body{
     cursor: pointer;
 }
 
-/* Controlli media */
+/* MEDIA CONTROLS */
 #media-controls{
-    position: absolute; 
+    position: fixed; 
     bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
@@ -315,7 +285,11 @@ html, body{
     background: rgba(0,0,0,0.8); 
 }
 
-/* Mobile */
+.mobile-only {
+    display: none !important;
+}
+
+/* RESPONSIVE MOBILE */
 @media(max-width: 900px){
     html, body{
         background-image: url('images/BGMOBILE.jpg');
@@ -326,17 +300,34 @@ html, body{
     #video-area{
         display: flex;
         flex-direction: column;
-        padding-right: 12px;
+        padding-left: 12px;
     }
 
     #chat-panel{
-        display: none;
-        right: 0; 
-        width: 100%; 
+        width: 100%;
         height: 100vh;
         max-height: 100vh;
+        display: none;
         flex-direction: column;
-        overflow-y: auto;
+        justify-content: flex-end;
+    }
+
+    #chat-input-area{
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: var(--surface-dark);
+        padding: 8px;
+        box-sizing: border-box;
+    }
+
+    #messages-container{
+        max-height: calc(100vh - 100px);
+    }
+
+    #media-controls{
+        bottom: 60px; /* sopra chat input */
     }
 
     #media-controls .mobile-only {
@@ -351,14 +342,6 @@ html, body{
         height: 40vh; 
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         grid-auto-rows: 110px;
-    }
-
-    #room-header{
-        text-align: left;
-    }
-
-    .room-title{
-        font-size: 1rem;
     }
 }
 
