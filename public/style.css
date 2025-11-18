@@ -92,7 +92,10 @@ html, body{
 
 #video-area{
     display: grid;
+    /* Desktop Grid: 330px (Main Video) | 1fr (Gallery/Header) */
     grid-template-columns: 330px 1fr;
+    /* Desktop Rows: Header (auto) | Video/Gallery (1fr) */
+    grid-template-rows: auto 1fr; /* AGGIUNTO */
     gap: 12px;
     height: 100%;
     padding: 12px;
@@ -100,7 +103,10 @@ html, body{
 
 /* Header stanza */
 #room-header{
-    grid-column: 1 / -1;
+    /* Soluzione al problema 2: non estendere su tutta la griglia, ma solo sulla seconda colonna */
+    grid-column: 2 / -1; /* MODIFICATO */
+    grid-row: 1 / 2; /* AGGIUNTO */
+    
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -132,6 +138,9 @@ html, body{
     position: relative;
     overflow: hidden;
     height: 320px;
+    /* Posizionamento nella griglia desktop */
+    grid-column: 1 / 2; /* AGGIUNTO */
+    grid-row: 2 / 3; /* AGGIUNTO */
 }
 
 #main-video-feed video{
@@ -158,6 +167,9 @@ html, body{
     gap: 10px;
     overflow-y: auto;
     padding: 6px;
+    /* Posizionamento nella griglia desktop */
+    grid-column: 2 / -1; /* AGGIUNTO */
+    grid-row: 2 / 3; /* AGGIUNTO */
 }
 
 .video-feed{
@@ -289,7 +301,8 @@ html, body{
 
 /* Media Controls */
 #media-controls{
-    position: absolute;
+    /* Mantiene la posizione assoluta per il desktop */
+    position: absolute; 
     bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
@@ -298,6 +311,7 @@ html, body{
     background: rgba(20,20,20,0.4); 
     padding: 10px;
     border-radius: 40px;
+    z-index: 100;
 }
 
 #media-controls button{
@@ -352,20 +366,22 @@ html, body{
     }
     
     #video-area{
+        /* Modifica il layout in colonna su mobile */
         display: flex;
         flex-direction: column;
     }
 
     /* Nasconde i pannelli laterali di default su mobile */
     #participants-panel{ 
+        /* Rimosse posizioni assolute, gestite ora dal JS in un layout fixed a schermo intero */
         display: none; 
     }
     #chat-panel{
+        /* Rimosse posizioni assolute, gestite ora dal JS in un layout fixed a schermo intero */
         display: none;
     } 
 
     /* Mostra i pulsanti specifici per mobile */
-    /* Usiamo 'block' per i pulsanti nell'area media-controls */
     #media-controls .mobile-only {
         display: block !important;
     }
@@ -380,18 +396,35 @@ html, body{
         font-size: 1.2rem;
     }
     
+    /* Soluzione al problema 3: i controlli non richiedono scroll perché sono fissi */
+    #media-controls{
+        position: fixed; /* MODIFICATO */
+        bottom: 16px;
+        z-index: 100; 
+    }
+
+    /* Ribilancia l'altezza su mobile per far stare tutto senza scroll */
     #main-video-feed{
-        height: 45vh;
+        height: 40vh; /* MODIFICATO */
+        /* Rimuovi la posizione della griglia quando è flex */
+        grid-column: auto;
+        grid-row: auto;
     }
 
     #remote-videos-container{
-        height: 45vh;
+        height: 40vh; /* MODIFICATO */
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         grid-auto-rows: 110px;
+        /* Rimuovi la posizione della griglia quando è flex */
+        grid-column: auto;
+        grid-row: auto;
     }
 
     #room-header{
         text-align: center;
+        /* Rimuovi la posizione della griglia quando è flex */
+        grid-column: auto;
+        grid-row: auto;
     }
 
     .room-title{

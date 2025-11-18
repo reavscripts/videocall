@@ -12,28 +12,37 @@ const participantsList = document.getElementById('participants-list');
 const participantCountSpan = document.getElementById('participant-count'); 
 const joinButton = document.getElementById('join-button');
 const nicknameInput = document.getElementById('nickname-input');
-const roomIdInput = document.getElementById('room-id-input'); // NUOVO
+const roomIdInput = document.getElementById('room-id-input'); 
 
 // Elementi DOM per il focus e i controlli
 const mainVideoFeed = document.getElementById('main-video-feed');
 const mainMuteBtn = document.getElementById("main-mute-btn");
+const remoteVideoPlaceholder = document.getElementById('remote-video-placeholder');
+const toggleAudioButton = document.getElementById('toggle-audio-button');
+const toggleVideoButton = document.getElementById('toggle-video-button');
+const disconnectButton = document.getElementById('disconnect-button');
+const roomNameDisplay = document.getElementById('room-name-display'); 
+const shareRoomLinkInput = document.getElementById('share-room-link'); // AGGIUNTO: Input link
+
+// Pannelli e pulsanti mobile
+const participantsPanel = document.getElementById('participants-panel'); // AGGIUNTO: Pannello partecipanti
+const chatPanel = document.getElementById('chat-panel'); // AGGIUNTO: Pannello chat
+const showParticipantsBtn = document.getElementById('show-participants-btn'); // AGGIUNTO: Bottone partecipanti
+const showChatBtn = document.getElementById('show-chat-btn'); // AGGIUNTO: Bottone chat
+
+
 mainMuteBtn.addEventListener("click", () => {
     const videoEl = mainVideoFeed.querySelector("video");
     videoEl.muted = !videoEl.muted;
     mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
 });
-const remoteVideoPlaceholder = document.getElementById('remote-video-placeholder');
-const toggleAudioButton = document.getElementById('toggle-audio-button');
-const toggleVideoButton = document.getElementById('toggle-video-button');
-const disconnectButton = document.getElementById('disconnect-button');
-const roomNameDisplay = document.getElementById('room-name-display'); // Per visualizzazione
 
 
 // --- VARIABILI DI STATO ---
 let socket = null;
 let localStream = null;
 let userNickname = 'Ospite';
-let currentRoomId = null; // RESA DINAMICA
+let currentRoomId = null; 
 const peerConnections = {}; // Mappa per RTCPeerConnection: { socketId: RTCPeerConnection }
 const remoteNicknames = {}; // Mappa per i nickname remoti
 let focusedPeerId = 'local'; // 'local' o 'socketId'
@@ -103,7 +112,6 @@ function updateParticipantList(id, nickname, isLocal = false) {
 
     updateParticipantCount(); 
 }
-
 
 // ==============================================================================
 // GESTIONE FOCUS VIDEO
@@ -180,18 +188,19 @@ function setMainVideo(peerId) {
 
 joinButton.addEventListener('click', () => {
     const nickname = nicknameInput.value.trim();
-    const roomId = roomIdInput.value.trim(); // LEGGI IL NUOVO CAMPO
+    const roomId = roomIdInput.value.trim(); 
     
     if (nickname && roomId) {
         userNickname = nickname;
-        currentRoomId = roomId; // IMPOSTA LA STANZA
-        roomNameDisplay.textContent = currentRoomId; // Aggiorna il display in conferenza
+        currentRoomId = roomId; 
+        roomNameDisplay.textContent = currentRoomId; 
         
         startLocalMedia()
             .then(() => {
                 nicknameOverlay.classList.add('hidden');
                 conferenceContainer.classList.remove('hidden');
                 initializeSocket();
+                setupRoomLink(); // AGGIUNTO: Configura il link della stanza
             })
             .catch(error => {
                 console.error("Non è stato possibile avviare la webcam:", error.name, error);
@@ -224,10 +233,89 @@ async function startLocalMedia() {
     }
 }
 
+/**
+ * Gestisce la visualizzazione e la copia del link della stanza.
+ * AGGIUNTO
+ */
+function setupRoomLink() {
+    // L'URL sarà: https://tuodominio.com/?room=NomeStanza
+    const roomUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
+    shareRoomLinkInput.value = roomUrl;
+
+    // Aggiungi listener per la copia
+    shareRoomLinkInput.addEventListener('click', () => {
+        shareRoomLinkInput.select();
+        document.execCommand('copy');
+        
+        // Feedback visivo rapido, l'alert è spesso fastidioso. 
+        // Per semplicità usiamo un alert, ma un tooltip sarebbe meglio.
+        alert('Link della stanza copiato negli appunti!');
+    });
+}
+
+
 // ==============================================================================
-// GESTIONE CONTROLLI MEDIA
+// GESTIONE CONTROLLI MEDIA E MOBILE (AGGIUNTE FUNZIONI MOBILE)
 // ==============================================================================
 
+/**
+ * Funzione per gestire l'apertura/chiusura dei pannelli mobili.
+ * AGGIUNTO
+ */
+function toggleMobilePanel(panel, otherPanel) {
+    const videoArea = document.getElementById('video-area');
+
+    // Se il pannello è nascosto, lo mostriamo (e viceversa)
+    const isNowHidden = panel.classList.toggle('hidden');
+    
+    // Nascondi sempre l'altro pannello
+    if (!otherPanel.classList.contains('hidden')) {
+        otherPanel.classList.add('hidden');
+    }
+    
+    // Logica di layout solo per mobile (max-width: 900px, come da CSS)
+    if (window.matchMedia("(max-width: 900px)").matches) {
+        
+        // Quando un pannello è aperto (non nascosto), nascondi la video-area
+        if (!isNowHidden) {
+            videoArea.style.display = 'none';
+
+            // Forza il pannello aperto a occupare tutto lo spazio (solo su mobile)
+             panel.style.position = 'fixed';
+             panel.style.inset = '0';
+             panel.style.width = '100%';
+             panel.style.background = 'var(--background-dark)';
+             panel.style.zIndex = '150';
+
+        } else {
+            // Se entrambi i pannelli sono nascosti, mostra la video-area
+            videoArea.style.display = 'flex';
+            
+            // Ripristina gli stili del pannello chiuso
+             panel.style.position = '';
+             panel.style.inset = '';
+             panel.style.width = '';
+             panel.style.background = '';
+             panel.style.zIndex = '';
+        }
+    } else {
+        // Logica desktop: i pannelli sono già gestiti dal CSS (position: absolute)
+        // Dobbiamo solo ripristinare il display della video area se era stato nascosto
+        videoArea.style.display = 'grid';
+    }
+}
+
+// Listener per i controlli mobile AGGIUNTI
+showParticipantsBtn.addEventListener('click', () => {
+    toggleMobilePanel(participantsPanel, chatPanel);
+});
+
+showChatBtn.addEventListener('click', () => {
+    // La logica della chat non è implementata, ma l'interfaccia si apre
+    toggleMobilePanel(chatPanel, participantsPanel); 
+});
+
+// Listener esistenti
 toggleAudioButton.addEventListener('click', () => {
     const audioTrack = localStream?.getAudioTracks()[0];
     if (audioTrack) {
