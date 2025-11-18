@@ -1,348 +1,205 @@
-// ==============================================================================
-// public/app.js - VERSIONE NON RESPONSIVE (Chat sempre visibile)
-// ==============================================================================
-const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
+// ===================================
+// CONFIGURAZIONE
+// ===================================
 
-// --- ELEMENTI DOM ---
-const remoteVideosContainer = document.getElementById('remote-videos-container');
-const nicknameOverlay = document.getElementById('nickname-overlay');
-const conferenceContainer = document.getElementById('conference-container');
-const mainVideoFeed = document.getElementById('main-video-feed');
-const mainMuteBtn = document.getElementById("main-mute-btn");
-const toggleAudioButton = document.getElementById('toggle-audio-button');
-const toggleVideoButton = document.getElementById('toggle-video-button');
-const disconnectButton = document.getElementById('disconnect-button');
-const roomNameDisplay = document.getElementById('room-name-display');
-const shareRoomLinkInput = document.getElementById('share-room-link');
+// ** SOSTITUISCI CON L'URL DEL TUO BACKEND RENDER **
+const SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
+const socket = io(SERVER_URL);
+const ROOM_ID = 'mia_stanza_video'; // ID fisso della stanza per semplicità
 
-// Chat
-const chatPanel = document.getElementById('chat-panel');
-const chatMessageInput = document.getElementById('chat-message-input');
-const sendChatButton = document.getElementById('send-chat-button');
-const messagesContainer = document.getElementById('messages-container');
+const localVideo = document.getElementById('localVideo');
+const remoteVideosContainer = document.getElementById('video-grid');
+const messagesContainer = document.getElementById('messages');
+const chatInput = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
 
-// I seguenti elementi DOM sono mantenuti solo come commento per promemoria, ma non sono usati
-// const videoArea = document.getElementById('video-area'); 
-// const showChatBtn = document.getElementById('show-chat-btn'); 
-// const showVideoBtn = document.getElementById('show-video-btn'); 
-
-// Join overlay
-const joinButton = document.getElementById('join-button');
-const nicknameInput = document.getElementById('nickname-input');
-const roomIdInput = document.getElementById('room-id-input');
-
-// ==============================================================================
-// VARIABILI DI STATO
-let socket = null;
-let localStream = null;
-let userNickname = 'Ospite';
-let currentRoomId = null;
-const peerConnections = {};
-const remoteNicknames = {};
-let focusedPeerId = 'local';
-
-const iceConfiguration = {
+// Configurazione base per WebRTC (usa STUN pubblico di Google)
+const iceServers = {
     iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun.l.google.com:19302' }
     ]
 };
 
-// ==============================================================================
-// FUNZIONI UI E HELPERS
-// ==============================================================================
-mainMuteBtn?.addEventListener("click", () => {
-    const videoEl = mainVideoFeed.querySelector("video");
-    if (videoEl) {
-        videoEl.muted = !videoEl.muted;
-        mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
-    }
-});
+let localStream;
+// Mappa per tenere traccia delle connessioni RTCPeerConnection (un oggetto per ogni utente remoto)
+const peerConnections = {};
 
-function setMainVideo(peerId) {
-    let stream, nickname, isLocal = false;
-    if (peerId === 'local') {
-        stream = localStream;
-        nickname = userNickname + " (Tu)";
-        isLocal = true;
-    } else {
-        const remoteVideoElement = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`);
-        if (!remoteVideoElement || !remoteVideoElement.querySelector('video').srcObject) {
-            if (focusedPeerId === 'local') return;
-            setMainVideo('local');
-            return;
-        }
-        stream = remoteVideoElement.querySelector('video').srcObject;
-        nickname = remoteNicknames[peerId];
-    }
+// ===================================
+// 1. GESTIONE MEDIA E INIZIALIZZAZIONE
+// ===================================
 
-    const videoEl = mainVideoFeed.querySelector('video');
-    const labelEl = mainVideoFeed.querySelector('.video-label');
-    if (!videoEl || !labelEl) return;
-
-    document.querySelectorAll('.remote-feed.is-focused').forEach(el => el.classList.remove('is-focused'));
-    if (peerId !== 'local') {
-        remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`)?.classList.add('is-focused');
-    }
-
-    if (stream) {
-        videoEl.srcObject = stream;
-        videoEl.muted = isLocal;
-        labelEl.textContent = nickname;
-        mainMuteBtn.style.display = isLocal ? "none" : "block";
-        mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
-    }
-
-    focusedPeerId = peerId;
-}
-
-// ==============================================================================
-// GESTIONE INGRESSO UTENTE
-// ==============================================================================
-joinButton?.addEventListener('click', () => {
-    const nickname = nicknameInput.value.trim();
-    const roomId = roomIdInput.value.trim();
-
-    if (nickname && roomId) {
-        userNickname = nickname;
-        currentRoomId = roomId;
-        if (roomNameDisplay) roomNameDisplay.textContent = currentRoomId;
-
-        startLocalMedia()
-            .then(() => {
-                nicknameOverlay?.classList.add('hidden'); 
-                conferenceContainer?.classList.remove('hidden');
-                createLocalVideoElement();
-                setMainVideo('local');
-                initializeSocket();
-                setupRoomLink();
-            })
-            .catch(error => {
-                console.error("Non è stato possibile avviare la webcam:", error?.name ?? error, error);
-                alert(`Impossibile avviare la webcam. Controlla i permessi. Errore: ${error?.name ?? error}`);
-            });
-    } else {
-        alert('Per favore, inserisci un nickname e il nome della stanza.');
-    }
-});
-
-async function startLocalMedia() {
-    const constraints = { audio: true, video: true };
+/** Avvia l'accesso a videocamera e microfono */
+async function startMedia() {
     try {
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
-        return localStream;
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localVideo.srcObject = localStream;
+        
+        // Dopo aver ottenuto il media, unisciti alla stanza
+        socket.emit('join-room', ROOM_ID);
     } catch (error) {
-        throw error;
+        console.error('Errore nell\'accesso a media:', error);
+        alert('Impossibile accedere a videocamera/microfono. Controlla i permessi.');
     }
 }
 
-// ==============================================================================
-// ROOM LINK
-// ==============================================================================
-function setupRoomLink() {
-    const roomUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
-    if (shareRoomLinkInput) {
-        shareRoomLinkInput.value = roomUrl;
-        shareRoomLinkInput.addEventListener('click', () => {
-            shareRoomLinkInput.select();
-            document.execCommand('copy');
-            shareRoomLinkInput.value = roomUrl + ' (Link copiato)';
-            setTimeout(() => shareRoomLinkInput.value = roomUrl, 1500);
-        });
-    }
-}
+// ===================================
+// 2. GESTIONE SOCKET.IO (Segnalazione)
+// ===================================
 
-// ==============================================================================
-// CHAT
-// ==============================================================================
-function appendMessage(nickname, message, isLocal = false) {
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message');
-    if (isLocal) messageDiv.classList.add('self');
-
-    const senderSpan = document.createElement('span');
-    senderSpan.classList.add('sender');
-    senderSpan.textContent = isLocal ? 'Tu' : nickname;
-
-    const timeSpan = document.createElement('span');
-    timeSpan.classList.add('timestamp');
-    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })})`;
-
-    messageDiv.appendChild(senderSpan);
-    messageDiv.appendChild(timeSpan);
-    messageDiv.appendChild(document.createTextNode(`: ${message}`));
-    messagesContainer?.appendChild(messageDiv);
-    if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-
-function sendChatMessage() {
-    const message = chatMessageInput?.value.trim();
-    if (message && socket) {
-        appendMessage(userNickname, message, true);
-        socket.emit('chat-message', message);
-        chatMessageInput.value = '';
-        chatMessageInput.focus();
-    }
-}
-
-sendChatButton?.addEventListener('click', sendChatMessage);
-chatMessageInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
-
-// Rimosse: ensureChatResponsiveState, toggleChat, listener di resize e DOMContentLoaded per il responsive
-
-// ==============================================================================
-// CONTROLLI AUDIO/VIDEO/DISCONNECT
-// ==============================================================================
-toggleAudioButton?.addEventListener('click', () => {
-    const audioTrack = localStream?.getAudioTracks()[0];
-    if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        toggleAudioButton.textContent = audioTrack.enabled ? '🔊' : '🔇';
-    }
+socket.on('connect', () => {
+    console.log('Connesso al server Socket.IO');
+    startMedia();
 });
 
-toggleVideoButton?.addEventListener('click', () => {
-    const videoTrack = localStream?.getVideoTracks()[0];
-    if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        toggleVideoButton.textContent = videoTrack.enabled ? '📹' : '❌';
-    }
+// Evento: Un nuovo utente si è connesso alla stanza
+socket.on('user-connected', (userId) => {
+    console.log(`Nuovo utente connesso: ${userId}. Avvio la creazione dell'offerta (Offer).`);
+    // Crea la connessione e invia l'offerta al nuovo peer
+    createPeerConnection(userId, true);
 });
 
-disconnectButton?.addEventListener('click', () => {
-    localStream?.getTracks().forEach(track => track.stop());
-    Object.values(peerConnections).forEach(pc => { try { if (pc && pc.close) pc.close(); } catch(e) {} });
-    socket?.disconnect();
-    window.location.reload();
-});
+// Evento: Ricezione di un'offerta (dal peer che ha avviato la chiamata)
+socket.on('sdp-offer', async ({ senderId, offer }) => {
+    console.log(`Ricevuta offerta da ${senderId}`);
+    // Crea la connessione e imposta l'offerta
+    createPeerConnection(senderId, false);
+    const pc = peerConnections[senderId];
 
-// ==============================================================================
-// WEBRTC / SOCKET.IO
-// ==============================================================================
-function getOrCreatePeerConnection(socketId) {
-    if (peerConnections[socketId]) return peerConnections[socketId];
-    const pc = new RTCPeerConnection(iceConfiguration);
-    if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-    pc.ontrack = (event) => createRemoteVideoElement(socketId, event.streams[0]);
-    pc.onicecandidate = (event) => { if (event.candidate) socket.emit('candidate', socketId, event.candidate); };
-    peerConnections[socketId] = pc;
-    return pc;
-}
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    
+    // Genera la risposta (Answer) e inviala
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
 
-function createLocalVideoElement() {
-    if (remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="local"]`)) return;
-    const template = document.getElementById('remote-video-template');
-    if (!template) return;
-    const localFeed = template.content.cloneNode(true).firstElementChild;
-    localFeed.dataset.peerId = 'local';
-    localFeed.classList.add('local-feed');
-    const remoteVideo = localFeed.querySelector('video');
-    remoteVideo.srcObject = localStream;
-    remoteVideo.muted = true;
-    localFeed.querySelector('.video-label').textContent = userNickname;
-    localFeed.addEventListener('click', () => setMainVideo('local'));
-    remoteVideosContainer.prepend(localFeed);
-}
-
-function createRemoteVideoElement(socketId, stream) {
-    let remoteVideoItem = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`);
-    const template = document.getElementById('remote-video-template');
-    if (!template) return;
-
-    if (!remoteVideoItem) {
-        remoteVideoItem = template.content.cloneNode(true).firstElementChild;
-        remoteVideoItem.dataset.peerId = socketId;
-        remoteVideoItem.querySelector('.video-label').textContent = remoteNicknames[socketId] || `Peer ${socketId.substring(0, 4)}...`;
-        remoteVideoItem.addEventListener('click', () => setMainVideo(socketId));
-        remoteVideosContainer.appendChild(remoteVideoItem);
-    }
-
-    const remoteVideo = remoteVideoItem.querySelector('video');
-    if (remoteVideo && !remoteVideo.srcObject) remoteVideo.srcObject = stream;
-    if (Object.keys(peerConnections).length === 1 && focusedPeerId === 'local') setMainVideo(socketId);
-}
-
-function initializeSocket() {
-    socket = io(RENDER_SERVER_URL, { query: { nickname: userNickname } });
-
-    socket.on('connect', () => {
-        console.log('Connesso al server di segnalazione.');
-        socket.emit('join-room', currentRoomId, userNickname);
+    socket.emit('sdp-answer', { 
+        targetId: senderId, 
+        answer: pc.localDescription,
+        room: ROOM_ID 
     });
+});
 
-    socket.on('users-in-room', (userList) => {
-        userList.forEach(user => {
-            if (user.socketId !== socket.id) {
-                remoteNicknames[user.socketId] = user.nickname;
-                callUser(user.socketId, true);
+// Evento: Ricezione della risposta (Answer)
+socket.on('sdp-answer', async ({ senderId, answer }) => {
+    console.log(`Ricevuta risposta da ${senderId}`);
+    const pc = peerConnections[senderId];
+    // Il peer che ha inviato l'offerta imposta la risposta
+    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+});
+
+// Evento: Ricezione di un candidato ICE
+socket.on('ice-candidate', async ({ senderId, candidate }) => {
+    try {
+        const pc = peerConnections[senderId];
+        if (pc && candidate) {
+             // Aggiunge il candidato alla connessione
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+    } catch (e) {
+        console.error('Errore nell\'aggiunta del candidato ICE:', e);
+    }
+});
+
+// ===================================
+// 3. LOGICA WEBRTC CORE
+// ===================================
+
+/** Crea e configura la RTCPeerConnection */
+function createPeerConnection(userId, isInitiator) {
+    if (peerConnections[userId]) return; // Connessione già esistente
+
+    const pc = new RTCPeerConnection(iceServers);
+    peerConnections[userId] = pc;
+    
+    // Aggiungi il media stream locale a tutti i peer
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+    // A. Gestione Candidati ICE
+    pc.onicecandidate = event => {
+        if (event.candidate) {
+            // Invia il candidato ICE all'altro peer tramite Socket.IO
+            socket.emit('ice-candidate', { 
+                targetId: userId, 
+                candidate: event.candidate,
+                room: ROOM_ID
+            });
+        }
+    };
+
+    // B. Ricezione dello Stream Remoto
+    pc.ontrack = event => {
+        if (document.getElementById(`remote-${userId}`)) return; // Già aggiunto
+
+        console.log(`Stream remoto ricevuto da ${userId}`);
+        const remoteVideoDiv = document.createElement('div');
+        remoteVideoDiv.className = 'video-container';
+        remoteVideoDiv.innerHTML = `<h2>Utente Remoto (${userId.substring(0, 4)}...)</h2>`;
+
+        const remoteVideo = document.createElement('video');
+        remoteVideo.id = `remote-${userId}`;
+        remoteVideo.autoplay = true;
+        remoteVideo.srcObject = event.streams[0];
+        
+        remoteVideoDiv.appendChild(remoteVideo);
+        remoteVideosContainer.appendChild(remoteVideoDiv);
+    };
+
+    // C. Generazione dell'Offerta (solo se è l'iniziatore)
+    if (isInitiator) {
+        pc.onnegotiationneeded = async () => {
+            try {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                
+                // Invia l'offerta al server Socket.IO
+                socket.emit('sdp-offer', { 
+                    targetId: userId, 
+                    offer: pc.localDescription, 
+                    room: ROOM_ID 
+                });
+            } catch (e) {
+                console.error('Errore nella creazione dell\'offerta:', e);
             }
-        });
-    });
-
-    socket.on('user-joined', (newSocketId, newNickname) => {
-        remoteNicknames[newSocketId] = newNickname;
-        callUser(newSocketId, false);
-    });
-
-    socket.on('chat-message', (senderId, nickname, message) => appendMessage(nickname, message, false));
-
-    socket.on('offer', handleOffer);
-    socket.on('answer', handleAnswer);
-    socket.on('candidate', handleCandidate);
-    socket.on('user-left', removePeer);
-    socket.on('disconnect', () => console.log('Disconnesso dal server.'));
-}
-
-async function callUser(socketId, isCaller) {
-    const pc = getOrCreatePeerConnection(socketId);
-    if (isCaller) {
-        try {
-            const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-            await pc.setLocalDescription(offer);
-            socket.emit('offer', socketId, pc.localDescription);
-        } catch (error) { console.error('Errore nella creazione dell\'Offer:', error); }
+        };
     }
 }
 
-async function handleOffer(socketId, description) {
-    const pc = getOrCreatePeerConnection(socketId);
-    try {
-        await pc.setRemoteDescription(new RTCSessionDescription(description));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        socket.emit('answer', socketId, pc.localDescription);
-    } catch (error) { console.error('Errore nella gestione dell\'Offer:', error); }
-}
+// ===================================
+// 4. CHAT INTEGRATA (via Socket.IO)
+// ===================================
 
-async function handleAnswer(socketId, description) {
-    const pc = peerConnections[socketId];
-    try { await pc.setRemoteDescription(new RTCSessionDescription(description)); }
-    catch (error) { console.error('Errore nella gestione dell\'Answer:', error); }
-}
-
-async function handleCandidate(socketId, candidate) {
-    try {
-        const pc = peerConnections[socketId];
-        if (pc && pc.remoteDescription && candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
-    } catch (error) {}
-}
-
-function removePeer(socketId) {
-    const pc = peerConnections[socketId];
-    if (pc) {
-        try { pc.close(); } catch (e) {}
+sendBtn.addEventListener('click', sendMessage);
+chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        sendMessage();
     }
-    delete peerConnections[socketId];
-    delete remoteNicknames[socketId];
-    remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`)?.remove();
+});
 
-    if (focusedPeerId === socketId) {
-        const remainingPeerIds = Object.keys(peerConnections);
-        setMainVideo(remainingPeerIds.length > 0 ? remainingPeerIds[0] : 'local');
+function sendMessage() {
+    const text = chatInput.value.trim();
+    if (text) {
+        const messageData = {
+            user: socket.id.substring(0, 4), // Usa ID tronco come username
+            text: text,
+            room: ROOM_ID
+        };
+        // 1. Invia il messaggio al server
+        socket.emit('chatMessage', messageData);
+        // 2. Pulisci l'input
+        chatInput.value = '';
     }
 }
 
-// ==============================================================================
-// INIZIALIZZAZIONE FINALE
-// ==============================================================================
-// Non c'è più bisogno di ensureChatResponsiveState. La chat è gestita solo dal CSS.
+// Ricezione del messaggio dal server (che lo ha inoltrato)
+socket.on('chatMessage', (msg) => {
+    const p = document.createElement('p');
+    p.className = 'message';
+    
+    // Mostra "Tu" se il messaggio è nostro, altrimenti il nome utente
+    const userDisplay = msg.user === socket.id.substring(0, 4) ? '<strong>Tu</strong>' : `<strong>${msg.user}</strong>`;
+    
+    p.innerHTML = `${userDisplay}: ${msg.text}`;
+    messagesContainer.appendChild(p);
+
+    // Scorri fino all'ultimo messaggio
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+});
