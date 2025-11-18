@@ -39,7 +39,9 @@ mainMuteBtn.addEventListener("click", () => {
     mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
 });
 
-// --- VARIABILI DI STATO ---
+// ==============================================================================
+// VARIABILI DI STATO
+// ==============================================================================
 let socket = null;
 let localStream = null;
 let userNickname = 'Ospite';
@@ -56,9 +58,17 @@ const iceConfiguration = {
 };
 
 // ==============================================================================
+// POPOLAMENTO AUTOMATICO CAMPO STANZA DA URL
+// ==============================================================================
+const urlParams = new URLSearchParams(window.location.search);
+const roomFromUrl = urlParams.get('room');
+if (roomFromUrl) {
+    roomIdInput.value = roomFromUrl;
+}
+
+// ==============================================================================
 // FUNZIONI UI
 // ==============================================================================
-
 function updateParticipantCount() {
     if (participantCountSpan) {
         participantCountSpan.textContent = 1 + Object.keys(remoteNicknames).length;
@@ -94,7 +104,6 @@ function updateParticipantList(id, nickname, isLocal = false) {
 // ==============================================================================
 // GESTIONE FOCUS VIDEO
 // ==============================================================================
-
 function setMainVideo(peerId) {
     let stream, nickname, isLocal = false;
     if (peerId === 'local') {
@@ -138,7 +147,6 @@ function setMainVideo(peerId) {
 // ==============================================================================
 // GESTIONE INGRESSO UTENTE
 // ==============================================================================
-
 joinButton.addEventListener('click', () => {
     const nickname = nicknameInput.value.trim();
     const roomId = roomIdInput.value.trim(); 
@@ -193,7 +201,6 @@ function setupRoomLink() {
 // ==============================================================================
 // CHAT
 // ==============================================================================
-
 function appendMessage(nickname, message, isLocal = false) {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message');
@@ -230,7 +237,6 @@ chatMessageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') se
 // ==============================================================================
 // CONTROLLI MOBILE
 // ==============================================================================
-
 function toggleMobilePanel(panel, otherPanel) {
     const videoArea = document.getElementById('video-area');
     otherPanel.classList.add('hidden');
@@ -288,34 +294,32 @@ disconnectButton.addEventListener('click', () => {
     window.location.reload(); 
 });
 
-// ============================================
+// ==============================================================================
 // ADATTAMENTO CHAT MOBILE CON TASTIERA
-// ============================================
+// ==============================================================================
 if (window.matchMedia("(max-width: 900px)").matches) {
     function adjustChatPanel() {
-        const vh = window.innerHeight; // altezza visibile viewport
-        const inputHeight = chatMessageInput.offsetHeight + 16; // include padding e margine
-        const panelPadding = 20; // padding top/bottom eventuale del pannello
+        const vh = window.innerHeight;
+        const inputHeight = chatMessageInput.offsetHeight + 16;
+        const panelPadding = 20;
         const availableHeight = vh - inputHeight - panelPadding;
 
         messagesContainer.style.height = availableHeight + 'px';
-        messagesContainer.scrollTop = messagesContainer.scrollHeight; // scroll automatico in basso
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    // Aggiorna altezza quando cambia finestra / tastiera
     window.addEventListener('resize', adjustChatPanel);
     chatMessageInput.addEventListener('focus', adjustChatPanel);
     chatMessageInput.addEventListener('blur', adjustChatPanel);
 
-    // All'apertura del pannello chat
     showChatBtn.addEventListener('click', () => {
-        setTimeout(adjustChatPanel, 100); // piccolo delay per apertura pannello
+        setTimeout(adjustChatPanel, 100);
     });
 }
+
 // ==============================================================================
 // SOCKET.IO E WEBRTC
 // ==============================================================================
-
 function initializeSocket() {
     socket = io(RENDER_SERVER_URL, { query: { nickname: userNickname } });
 
@@ -355,7 +359,6 @@ function initializeSocket() {
 // ==============================================================================
 // WEBRTC FUNCTIONS
 // ==============================================================================
-
 function getOrCreatePeerConnection(socketId) {
     if (peerConnections[socketId]) return peerConnections[socketId];
 
