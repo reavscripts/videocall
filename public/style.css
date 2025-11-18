@@ -15,13 +15,14 @@ html, body{
     margin: 0;
     padding: 0;
     height: 100%;
-    /* AGGIUNTE PER BACKGROUND */
-    background-image: url('images/background.jpg'); 
-    background-size: 100% auto; 
-    background-repeat: repeat-x; 
+    
+    /* === 1. BACKGROUND PC (DEFAULT) === */
+    background-image: url('images/BGPC.jpg'); 
+    background-size: cover; 
+    background-repeat: no-repeat; 
     background-attachment: fixed;
     background-color: var(--background-dark); 
-    /* FINE AGGIUNTE */
+    
     color: var(--text-light);
     font-family: "Roboto", Arial, sans-serif;
 }
@@ -32,13 +33,12 @@ html, body{
 #nickname-overlay{
     position: fixed;
     inset: 0;
-    /* MODIFICA: Rimosso il filtro blur e ridotta l'opacità */
     background: rgba(0,0,0,0.6); 
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 200;
-    backdrop-filter: none; /* Rimosso l'effetto sfocato */
+    backdrop-filter: none;
 }
 
 .card{
@@ -85,7 +85,7 @@ html, body{
     gap: 12px;
     height: 100%;
     padding: 12px;
-    /* Rimosso background (era #000) per mostrare lo sfondo chiaro */
+    /* Rimosso background nero */
 }
 
 /* Header stanza */
@@ -95,7 +95,6 @@ html, body{
     flex-direction: column;
     gap: 6px;
     margin-bottom: 4px;
-    /* Mantenuto uno sfondo per leggibilità, ma puoi cambiarlo se preferisci la trasparenza */
     background: rgba(30, 30, 30, 0.8);
     padding: 10px;
     border-radius: 10px;
@@ -118,7 +117,7 @@ html, body{
 
 /* Main video */
 #main-video-feed{
-    background: #000; /* Mantenuto nero per il video se non ci sono stream */
+    background: #000; 
     border-radius: 10px;
     position: relative;
     overflow: hidden;
@@ -191,7 +190,6 @@ html, body{
     top: 0;
     width: 240px;
     height: 100%;
-    /* Rimosso sfondo scuro quasi opaco */
     background: rgba(30,30,30,0.9);
     padding: 10px;
     border-left: 1px solid var(--border-color);
@@ -223,7 +221,6 @@ html, body{
     transform: translateX(-50%);
     display: flex;
     gap: 12px;
-    /* MODIFICA: Reso molto più trasparente per un background chiaro */
     background: rgba(20,20,20,0.4); 
     padding: 10px;
     border-radius: 40px;
@@ -268,6 +265,13 @@ html, body{
 /* ========================= */
 
 @media(max-width: 900px){
+    /* === 2. BACKGROUND MOBILE === */
+    html, body{
+        background-image: url('images/BGMOBILE.jpg');
+        background-size: cover; 
+        background-repeat: no-repeat;
+    }
+    
     #video-area{
         display: flex;
         flex-direction: column;
