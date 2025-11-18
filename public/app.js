@@ -4,14 +4,8 @@
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
 // --- ELEMENTI DOM ---
-const remoteVideosContainer = document.getElementById('remote-videos-container');
 const nicknameOverlay = document.getElementById('nickname-overlay');
 const conferenceContainer = document.getElementById('conference-container');
-const participantsList = document.getElementById('participants-list');
-const participantCountSpan = document.getElementById('participant-count'); 
-const joinButton = document.getElementById('join-button');
-const nicknameInput = document.getElementById('nickname-input');
-const roomIdInput = document.getElementById('room-id-input'); 
 const mainVideoFeed = document.getElementById('main-video-feed');
 const mainMuteBtn = document.getElementById("main-mute-btn");
 const remoteVideoPlaceholder = document.getElementById('remote-video-placeholder');
@@ -20,18 +14,17 @@ const toggleVideoButton = document.getElementById('toggle-video-button');
 const disconnectButton = document.getElementById('disconnect-button');
 const roomNameDisplay = document.getElementById('room-name-display'); 
 const shareRoomLinkInput = document.getElementById('share-room-link'); 
-const copyNotification = document.getElementById('copy-notification');
-
-// Pannelli e pulsanti mobile
-const participantsPanel = document.getElementById('participants-panel'); 
-const chatPanel = document.getElementById('chat-panel'); 
-const showParticipantsBtn = document.getElementById('show-participants-btn'); 
-const showChatBtn = document.getElementById('show-chat-btn'); 
 
 // Chat
+const chatPanel = document.getElementById('chat-panel'); 
 const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
 const messagesContainer = document.getElementById('messages-container');
+
+// Join
+const joinButton = document.getElementById('join-button');
+const nicknameInput = document.getElementById('nickname-input');
+const roomIdInput = document.getElementById('room-id-input'); 
 
 mainMuteBtn.addEventListener("click", () => {
     const videoEl = mainVideoFeed.querySelector("video");
@@ -56,45 +49,8 @@ const iceConfiguration = {
 };
 
 // ==============================================================================
-// FUNZIONI UI
-// ==============================================================================
-
-function updateParticipantCount() {
-    if (participantCountSpan) {
-        participantCountSpan.textContent = 1 + Object.keys(remoteNicknames).length;
-    }
-}
-
-function updateParticipantList(id, nickname, isLocal = false) {
-    let li = document.getElementById(`list-${id}`);
-    const liTemplate = document.getElementById('participant-item-template');
-
-    if (!li && liTemplate) {
-        li = liTemplate.content.cloneNode(true).firstElementChild;
-        li.id = `list-${id}`;
-        li.dataset.peerId = id; 
-        const nameEl = li.querySelector('.participant-name');
-        if (nameEl) {
-             nameEl.textContent = isLocal ? `${nickname} (Tu)` : nickname;
-        }
-        participantsList.appendChild(li);
-        li.addEventListener('click', () => setMainVideo(id));
-    }
-    
-    if (li) {
-        const nameEl = li.querySelector('.participant-name');
-        if (nameEl) nameEl.textContent = isLocal ? `${nickname} (Tu)` : nickname;
-        document.querySelectorAll('#participants-list li').forEach(el => el.classList.remove('participant-focused'));
-        if (id === focusedPeerId) li.classList.add('participant-focused');
-    }
-
-    updateParticipantCount(); 
-}
-
-// ==============================================================================
 // GESTIONE FOCUS VIDEO
 // ==============================================================================
-
 function setMainVideo(peerId) {
     let stream, nickname, isLocal = false;
     if (peerId === 'local') {
@@ -102,7 +58,7 @@ function setMainVideo(peerId) {
         nickname = userNickname + " (Tu)";
         isLocal = true;
     } else {
-        const remoteVideoElement = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`);
+        const remoteVideoElement = document.querySelector(`.remote-feed[data-peer-id="${peerId}"]`);
         if (!remoteVideoElement || !remoteVideoElement.querySelector('video').srcObject) {
             if (focusedPeerId === 'local') return; 
             setMainVideo('local');
@@ -128,22 +84,14 @@ function setMainVideo(peerId) {
     }
 
     focusedPeerId = peerId;
-    updateParticipantList(peerId, isLocal ? userNickname : remoteNicknames[peerId], isLocal); 
-
     document.querySelectorAll('.remote-feed').forEach(el => el.classList.remove('is-focused'));
-    const focusedFeed = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`);
+    const focusedFeed = document.querySelector(`.remote-feed[data-peer-id="${peerId}"]`);
     if (focusedFeed) focusedFeed.classList.add('is-focused');
 }
 
 // ==============================================================================
 // GESTIONE INGRESSO UTENTE
 // ==============================================================================
-
-// Popola stanza da URL se presente
-const urlParams = new URLSearchParams(window.location.search);
-const roomFromUrl = urlParams.get('room');
-if (roomFromUrl) roomIdInput.value = roomFromUrl;
-
 joinButton.addEventListener('click', () => {
     const nickname = nicknameInput.value.trim();
     const roomId = roomIdInput.value.trim(); 
@@ -157,10 +105,6 @@ joinButton.addEventListener('click', () => {
             .then(() => {
                 nicknameOverlay.classList.add('hidden');
                 conferenceContainer.classList.remove('hidden');
-                if (window.matchMedia("(max-width: 900px)").matches) {
-                    participantsPanel.classList.add('hidden');
-                    chatPanel.classList.add('hidden');
-                }
                 initializeSocket();
                 setupRoomLink(); 
             })
@@ -185,26 +129,20 @@ async function startLocalMedia() {
     }
 }
 
-// ==============================================================================
-// GESTIONE LINK STANZA
-// ==============================================================================
-
 function setupRoomLink() {
     const roomUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
     shareRoomLinkInput.value = roomUrl;
-
     shareRoomLinkInput.addEventListener('click', () => {
         shareRoomLinkInput.select();
         document.execCommand('copy');
-        copyNotification.style.opacity = '1';
-        setTimeout(() => { copyNotification.style.opacity = '0'; }, 1500);
+        shareRoomLinkInput.value = 'Link copiato'; // mostra messaggio
+        setTimeout(() => shareRoomLinkInput.value = roomUrl, 1200); // ripristina link
     });
 }
 
 // ==============================================================================
 // CHAT
 // ==============================================================================
-
 function appendMessage(nickname, message, isLocal = false) {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message');
@@ -216,7 +154,7 @@ function appendMessage(nickname, message, isLocal = false) {
     
     const timeSpan = document.createElement('span');
     timeSpan.classList.add('timestamp');
-    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })})`;
+    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
 
     messageDiv.appendChild(senderSpan);
     messageDiv.appendChild(timeSpan);
@@ -239,43 +177,8 @@ sendChatButton.addEventListener('click', sendChatMessage);
 chatMessageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
 // ==============================================================================
-// CONTROLLI MOBILE
+// CONTROLLI MEDIA
 // ==============================================================================
-
-function toggleMobilePanel(panel, otherPanel) {
-    const videoArea = document.getElementById('video-area');
-    otherPanel.classList.add('hidden');
-
-    const isHidden = panel.classList.contains('hidden');
-
-    if (isHidden) {
-        panel.classList.remove('hidden');
-        panel.style.position = 'fixed';
-        panel.style.inset = '0';
-        panel.style.width = '100%';
-        panel.style.height = '100%';
-        panel.style.background = 'var(--background-dark)';
-        panel.style.zIndex = '150';
-        panel.style.display = 'flex';
-        videoArea.style.display = 'none';
-        
-        if (panel === chatPanel) setTimeout(() => chatMessageInput.focus(), 50);
-    } else {
-        panel.classList.add('hidden');
-        panel.style.position = '';
-        panel.style.inset = '';
-        panel.style.width = '';
-        panel.style.height = '';
-        panel.style.background = '';
-        panel.style.zIndex = '';
-        panel.style.display = '';
-        videoArea.style.display = 'flex';
-    }
-}
-
-showParticipantsBtn.addEventListener('click', () => toggleMobilePanel(participantsPanel, chatPanel));
-showChatBtn.addEventListener('click', () => toggleMobilePanel(chatPanel, participantsPanel));
-
 toggleAudioButton.addEventListener('click', () => {
     const audioTrack = localStream?.getAudioTracks()[0];
     if (audioTrack) {
@@ -300,38 +203,12 @@ disconnectButton.addEventListener('click', () => {
 });
 
 // ==============================================================================
-// ADATTAMENTO CHAT MOBILE CON TASTIERA
-// ==============================================================================
-
-if (window.matchMedia("(max-width: 900px)").matches) {
-    function adjustChatPanel() {
-        const vh = window.innerHeight; 
-        const inputHeight = chatMessageInput.offsetHeight + 16; 
-        const panelPadding = 20; 
-        const availableHeight = vh - inputHeight - panelPadding;
-
-        messagesContainer.style.height = availableHeight + 'px';
-        messagesContainer.scrollTop = messagesContainer.scrollHeight; 
-    }
-
-    window.addEventListener('resize', adjustChatPanel);
-    chatMessageInput.addEventListener('focus', adjustChatPanel);
-    chatMessageInput.addEventListener('blur', adjustChatPanel);
-
-    showChatBtn.addEventListener('click', () => {
-        setTimeout(adjustChatPanel, 100);
-    });
-}
-
-// ==============================================================================
 // SOCKET.IO E WEBRTC
 // ==============================================================================
-
 function initializeSocket() {
     socket = io(RENDER_SERVER_URL, { query: { nickname: userNickname } });
 
     socket.on('connect', () => {
-        console.log('Connesso al server di segnalazione.');
         socket.emit('join-room', currentRoomId, userNickname);
     });
 
@@ -339,23 +216,19 @@ function initializeSocket() {
         userList.forEach(user => {
             if (user.socketId !== socket.id) {
                 remoteNicknames[user.socketId] = user.nickname;
-                updateParticipantList(user.socketId, user.nickname);
                 callUser(user.socketId, true);
             }
         });
         if (userList.length > 0) remoteVideoPlaceholder?.classList.add('hidden');
-        updateParticipantList(socket.id, userNickname, true);
     });
 
     socket.on('user-joined', (newSocketId, newNickname) => {
         remoteNicknames[newSocketId] = newNickname;
-        updateParticipantList(newSocketId, newNickname);
         callUser(newSocketId, false);
         remoteVideoPlaceholder?.classList.add('hidden');
     });
 
     socket.on('chat-message', (senderId, nickname, message) => appendMessage(nickname, message, false));
-
     socket.on('offer', handleOffer);
     socket.on('answer', handleAnswer);
     socket.on('candidate', handleCandidate);
@@ -366,7 +239,6 @@ function initializeSocket() {
 // ==============================================================================
 // WEBRTC FUNCTIONS
 // ==============================================================================
-
 function getOrCreatePeerConnection(socketId) {
     if (peerConnections[socketId]) return peerConnections[socketId];
 
@@ -381,7 +253,7 @@ function getOrCreatePeerConnection(socketId) {
 }
 
 function createLocalVideoElement() {
-    if (remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="local"]`)) return;
+    if (document.querySelector(`.remote-feed[data-peer-id="local"]`)) return;
     const template = document.getElementById('remote-video-template');
     if (!template) return;
 
@@ -393,11 +265,11 @@ function createLocalVideoElement() {
     remoteVideo.muted = true;
     localFeed.querySelector('.video-label').textContent = userNickname;
     localFeed.addEventListener('click', () => setMainVideo('local'));
-    remoteVideosContainer.prepend(localFeed);
+    document.getElementById('remote-videos-container').prepend(localFeed);
 }
 
 function createRemoteVideoElement(socketId, stream) {
-    let remoteVideoItem = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`);
+    let remoteVideoItem = document.querySelector(`.remote-feed[data-peer-id="${socketId}"]`);
     const template = document.getElementById('remote-video-template');
     if (!template) return;
 
@@ -406,7 +278,7 @@ function createRemoteVideoElement(socketId, stream) {
         remoteVideoItem.dataset.peerId = socketId;
         remoteVideoItem.querySelector('.video-label').textContent = remoteNicknames[socketId] || `Peer ${socketId.substring(0, 4)}...`;
         remoteVideoItem.addEventListener('click', () => setMainVideo(socketId));
-        remoteVideosContainer.appendChild(remoteVideoItem);
+        document.getElementById('remote-videos-container').appendChild(remoteVideoItem);
     }
 
     const remoteVideo = remoteVideoItem.querySelector('video');
@@ -453,14 +325,7 @@ function removePeer(socketId) {
     if (pc) pc.close();
     delete peerConnections[socketId];
     delete remoteNicknames[socketId];
-    remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`)?.remove();
-    document.getElementById(`list-${socketId}`)?.remove();
+    document.querySelector(`.remote-feed[data-peer-id="${socketId}"]`)?.remove();
 
-    if (focusedPeerId === socketId) {
-        const remainingPeerIds = Object.keys(peerConnections);
-        setMainVideo(remainingPeerIds.length > 0 ? remainingPeerIds[0] : 'local');
-    }
-
-    updateParticipantCount();
-    if (Object.keys(peerConnections).length === 0) remoteVideoPlaceholder?.classList.remove('hidden');
+    if (focusedPeerId === socketId) setMainVideo('local');
 }
