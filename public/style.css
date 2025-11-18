@@ -15,17 +15,15 @@ html, body{
     margin: 0;
     padding: 0;
     height: 100%;
-    /* AGGIUNTE PER BACKGROUND */
     background-image: url('images/background.jpg'); 
-    background-size: auto; /* Permette alla ripetizione di funzionare */
-    background-repeat: repeat-x; /* Ripete lo sfondo solo orizzontalmente (per tutta la larghezza) */
+    /* MODIFICA: La larghezza è del 100%, l'altezza è automatica per mantenere le proporzioni */
+    background-size: 100% auto; 
+    background-repeat: repeat-x; /* Ripete orizzontalmente */
     background-attachment: fixed;
     background-color: var(--background-dark); 
-    /* FINE AGGIUNTE */
     color: var(--text-light);
     font-family: "Roboto", Arial, sans-serif;
 }
-
 .hidden{ display:none !important; }
 
 /* Overlay ingresso */
