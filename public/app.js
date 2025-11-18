@@ -70,8 +70,8 @@ const iceConfiguration = {
  */
 function updateParticipantCount() {
     if (participantCountSpan) {
-        // La lista include l'utente locale (1) + il numero di peer
-        participantCountCountSpan.textContent = 1 + Object.keys(remoteNicknames).length;
+        // ✅ CORREZIONE: Uso il nome variabile corretto: participantCountSpan
+        participantCountSpan.textContent = 1 + Object.keys(remoteNicknames).length;
     }
 }
 
@@ -470,7 +470,7 @@ function initializeSocket() {
         handleCandidate(id, candidate);
     });
     
-    // ✅ RICEZIONE MESSAGGI DI CHAT (Questa è la parte corretta lato client)
+    // Ricezione messaggi di chat (logica corretta)
     socket.on('chat-message', (senderId, nickname, message) => {
         appendMessage(nickname, message, false);
     });
