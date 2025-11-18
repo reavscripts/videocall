@@ -26,14 +26,15 @@ html, body{
 
 .hidden{ display:none !important; }
 
-#nickname-overlay {
+#nickname-overlay{
     position: fixed;
     inset: 0;
+    background: rgba(0,0,0,0.6); 
     display: flex;
-    justify-content: flex-start; /* allinea orizzontalmente a sinistra */
-    align-items: flex-start;     /* allinea verticalmente in alto */
-    flex-direction: column;
-    padding: 20px;               /* distanza dai bordi */
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+    flex-direction: column; 
 }
 
 #app-logo {
