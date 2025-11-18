@@ -24,13 +24,13 @@ const disconnectButton = document.getElementById('disconnect-button');
 const roomNameDisplay = document.getElementById('room-name-display'); 
 const shareRoomLinkInput = document.getElementById('share-room-link'); 
 
-// Pannelli e pulsanti mobile AGGIUNTI
+// Pannelli e pulsanti mobile
 const participantsPanel = document.getElementById('participants-panel'); 
 const chatPanel = document.getElementById('chat-panel'); 
 const showParticipantsBtn = document.getElementById('show-participants-btn'); 
 const showChatBtn = document.getElementById('show-chat-btn'); 
 
-// Elementi Chat AGGIUNTI
+// Nuovi elementi Chat AGGIUNTI
 const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
 const messagesContainer = document.getElementById('messages-container');
@@ -257,7 +257,7 @@ function setupRoomLink() {
 
 
 // ==============================================================================
-// GESTIONE CHAT (FUNZIONI AGGIUNTE)
+// GESTIONE CHAT (NUOVE FUNZIONI AGGIUNTE)
 // ==============================================================================
 
 /**
@@ -307,7 +307,7 @@ function sendChatMessage() {
         // 3. Pulisci l'input
         chatMessageInput.value = '';
         
-        // 4. Ri-focus l'input per continuare a scrivere (utile su desktop e mobile)
+        // 4. Ri-focus l'input per continuare a scrivere (utile su desktop)
         chatMessageInput.focus(); 
     }
 }
@@ -319,15 +319,14 @@ function sendChatMessage() {
 
 /**
  * Funzione per gestire l'apertura/chiusura dei pannelli mobili.
- * Questa funzione è FONDAMENTALE per la visualizzazione mobile.
  */
 function toggleMobilePanel(panel, otherPanel) {
     const videoArea = document.getElementById('video-area');
 
-    // Se il pannello è nascosto, usiamo .toggle('hidden') per mostrarlo (e viceversa)
+    // Se il pannello è nascosto, lo mostriamo (e viceversa)
     const isNowHidden = panel.classList.toggle('hidden');
     
-    // Nascondi sempre l'altro pannello per evitare sovrapposizioni su mobile
+    // Nascondi sempre l'altro pannello
     if (!otherPanel.classList.contains('hidden')) {
         otherPanel.classList.add('hidden');
     }
@@ -337,19 +336,18 @@ function toggleMobilePanel(panel, otherPanel) {
         
         // Quando un pannello è aperto (non nascosto)
         if (!isNowHidden) {
-            // Nasconde l'area video per dare spazio al pannello
             videoArea.style.display = 'none';
 
             // Forza il pannello aperto a occupare tutto lo spazio (solo su mobile)
              panel.style.position = 'fixed';
              panel.style.inset = '0';
              panel.style.width = '100%';
-             panel.style.height = '100%'; // Uso 100% qui per consistenza, anche se CSS ha 100vh
              panel.style.background = 'var(--background-dark)';
              panel.style.zIndex = '150';
              
-             // SOLUZIONE MOBILE: Focus sull'input della chat (migliora usabilità)
+             // SOLUZIONE MOBILE: Focus sull'input della chat dopo che il pannello è visibile
              if (panel === chatPanel) {
+                 // Aspetta un frame per assicurarsi che il pannello sia visibile nel DOM
                  setTimeout(() => chatMessageInput.focus(), 50); 
              }
 
@@ -362,7 +360,6 @@ function toggleMobilePanel(panel, otherPanel) {
              panel.style.position = '';
              panel.style.inset = '';
              panel.style.width = '';
-             panel.style.height = '';
              panel.style.background = '';
              panel.style.zIndex = '';
         }
@@ -372,7 +369,7 @@ function toggleMobilePanel(panel, otherPanel) {
     }
 }
 
-// Listener per la chat
+// Listener per la chat (AGGIUNTI)
 sendChatButton.addEventListener('click', sendChatMessage);
 
 chatMessageInput.addEventListener('keypress', (e) => {
@@ -382,7 +379,7 @@ chatMessageInput.addEventListener('keypress', (e) => {
 });
 
 
-// Listener per i pulsanti mobile (FONDAMENTALI per far funzionare i pannelli)
+// Listener esistenti
 showParticipantsBtn.addEventListener('click', () => {
     toggleMobilePanel(participantsPanel, chatPanel);
 });
@@ -391,7 +388,6 @@ showChatBtn.addEventListener('click', () => {
     toggleMobilePanel(chatPanel, participantsPanel); 
 });
 
-// Listener per i controlli media (come nella tua vecchia versione)
 toggleAudioButton.addEventListener('click', () => {
     const audioTrack = localStream?.getAudioTracks()[0];
     if (audioTrack) {
@@ -479,7 +475,8 @@ function initializeSocket() {
         handleCandidate(id, candidate);
     });
     
-    // Ricezione messaggi di chat
+    // NUOVO: Ricezione messaggi di chat
+    // Il server dovrebbe inviare: ID del mittente, Nickname del mittente, Messaggio
     socket.on('chat-message', (senderId, nickname, message) => {
         appendMessage(nickname, message, false);
     });
