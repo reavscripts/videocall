@@ -1,5 +1,5 @@
 // ==============================================================================
-// public/app.js - VERSIONE DEFINITIVA
+// public/app.js - VERSIONE DEFINITIVA E ROBUSTA (Aggressive Fix)
 // ==============================================================================
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
@@ -49,12 +49,44 @@ const iceConfiguration = {
 };
 
 // ==============================================================================
-// UTILITY: RIMUOVE ESPLICITAMENTE LA CLASSE HIDDEN DALLA CHAT
+// UTILITY: Forza la rimozione della classe 'hidden' sul pannello chat (Aggressive Fix)
 // ==============================================================================
-function ensureChatPanelIsNotHidden() {
-    if (chatPanel && chatPanel.classList.contains('hidden')) {
-        chatPanel.classList.remove('hidden');
-        // console.log("FIX: Classe 'hidden' rimossa da #chat-panel.");
+function forceShowChatPanelOnce() {
+    if (!chatPanel) return;
+    // Rimuove la classe 'hidden' dal DOM
+    chatPanel.classList.remove('hidden');
+    // Rimuove eventuale style inline 'display: none' che nasconde
+    if (chatPanel.style && chatPanel.style.display === 'none') chatPanel.style.display = '';
+}
+
+// Esegui subito e ripeti per i primi istanti per coprire inizializzazioni asincrone
+(function ensureChatVisibleImmediately() {
+    forceShowChatPanelOnce();
+    let tries = 0;
+    const maxTries = 8;
+    const intervalId = setInterval(() => {
+        tries++;
+        forceShowChatPanelOnce();
+        if (tries >= maxTries) clearInterval(intervalId);
+    }, 250);
+    setTimeout(() => forceShowChatPanelOnce(), 2500);
+})();
+
+// MutationObserver: se qualche script ri-aggiunge 'hidden', lo rimuoviamo immediatamente
+if (chatPanel && typeof MutationObserver !== 'undefined') {
+    try {
+        const mo = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                if (m.type === 'attributes' && m.attributeName === 'class') {
+                    if (chatPanel.classList.contains('hidden')) {
+                        chatPanel.classList.remove('hidden');
+                    }
+                }
+            }
+        });
+        mo.observe(chatPanel, { attributes: true, attributeFilter: ['class'] });
+    } catch (e) {
+        console.warn('MutationObserver non disponibile o fallita la registrazione:', e);
     }
 }
 
@@ -120,8 +152,7 @@ joinButton?.addEventListener('click', () => {
 
         startLocalMedia()
             .then(() => {
-                // L'overlay del join usa la classe 'hidden', che NON deve essere rimossa.
-                nicknameOverlay?.classList.add('hidden'); 
+                nicknameOverlay?.classList.add('hidden');
                 conferenceContainer?.classList.remove('hidden');
                 createLocalVideoElement();
                 setMainVideo('local');
@@ -204,27 +235,16 @@ chatMessageInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') s
 // ==============================================================================
 function ensureChatResponsiveState() {
     const mobileBreakpoint = 900;
-    const mobileControls = document.getElementById('mobile-controls'); 
     
-    // RIMUOVE LA CLASSE HIDDEN ANCHE QUI, PER ESTREMA SICUREZZA
-    ensureChatPanelIsNotHidden();
+    // Assicura che la classe 'hidden' sia rimossa
+    forceShowChatPanelOnce(); 
 
     if (window.innerWidth >= mobileBreakpoint) {
-        // Desktop: Chat visibile per default (il CSS lo fa), inizializziamo lo stato a 'aperto'
-        
-        // FIX: FORZA LA VISIBILITÀ DI #mobile-controls TRAMITE JS
-        if (mobileControls) {
-            mobileControls.style.display = 'flex'; 
-            mobileControls.classList.remove('hidden'); 
-        }
-
+        // Desktop: Chat visibile per default (il CSS lo fa)
         if (chatPanel) {
-            // Se non ha la classe 'show' (che usiamo come indicatore di stato), la aggiungiamo e assicuriamo 'flex'
-            if (!chatPanel.classList.contains('show')) {
-                 chatPanel.style.display = 'flex';
-                 chatPanel.classList.add('show');
-            }
-            // Aggiorna il pulsante per lo stato "chiudi"
+            // Inizializza forzando 'show' e 'flex' per lo stato iniziale di default aperto
+            chatPanel.style.display = 'flex';
+            chatPanel.classList.add('show');
             if (showChatBtn) showChatBtn.textContent = '❌ Chiudi Chat';
             showChatBtn?.setAttribute('aria-expanded', 'true');
         }
@@ -233,12 +253,10 @@ function ensureChatResponsiveState() {
     } else {
         // Mobile: default chiuso (aperto solo con .show)
         if (chatPanel) {
-            // Su mobile, la classe 'show' è usata per aprirla
             chatPanel.classList.remove('show');
             chatPanel.style.display = ''; // Rimuovi lo style inline per far funzionare le media query
         }
         if (videoArea) videoArea.classList.remove('hidden');
-        // Aggiorna il pulsante per lo stato "apri"
         if (showChatBtn) showChatBtn.textContent = '💬 Chat';
         showChatBtn?.setAttribute('aria-expanded', 'false');
     }
@@ -260,7 +278,7 @@ function toggleChat() {
         
         if (window.innerWidth >= mobileBreakpoint) {
             // Desktop: nascondi e cambia testo
-            chatPanel.style.display = 'none';
+            chatPanel.style.display = 'none'; // Setta display: none per permettere il toggle
             if (showChatBtn) showChatBtn.textContent = '💬 Mostra Chat';
         } else {
             // Mobile: lascia che il CSS gestisca la chiusura e mostra la video area
@@ -276,7 +294,7 @@ function toggleChat() {
 
         if (window.innerWidth >= mobileBreakpoint) {
             // Desktop: mostra e cambia testo
-            chatPanel.style.display = 'flex';
+            chatPanel.style.display = 'flex'; // Ri-mostra forzando flex
             if (showChatBtn) showChatBtn.textContent = '❌ Chiudi Chat';
         } else {
             // Mobile: nascondi la video area e cambia testo
@@ -293,7 +311,7 @@ function hideChatOnBackdropClick(e) {
     }
 }
 
-// Bottone mobile "torna alla webcam" (se presente)
+// Bottone mobile "torna alla webcam"
 showVideoBtn?.addEventListener('click', () => {
     if (window.innerWidth < 900) {
         chatPanel?.classList.remove('show');
@@ -304,7 +322,7 @@ showVideoBtn?.addEventListener('click', () => {
 });
 
 // ==============================================================================
-// CONTROLLI AUDIO/VIDEO/DISCONNECT
+// CONTROLLI AUDIO/VIDEO/DISCONNECT (omesse per brevità, sono invariate)
 // ==============================================================================
 toggleAudioButton?.addEventListener('click', () => {
     const audioTrack = localStream?.getAudioTracks()[0];
@@ -329,8 +347,9 @@ disconnectButton?.addEventListener('click', () => {
     window.location.reload();
 });
 
+
 // ==============================================================================
-// WEBRTC / SOCKET.IO (mantieni il resto del tuo codice esistente)
+// WEBRTC / SOCKET.IO (omesse per brevità, sono invariate)
 // ==============================================================================
 function getOrCreatePeerConnection(socketId) {
     if (peerConnections[socketId]) return peerConnections[socketId];
@@ -459,9 +478,8 @@ function removePeer(socketId) {
 // INIZIALIZZAZIONE FINALE
 // ==============================================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Rimuove immediatamente la classe 'hidden' al caricamento
-    ensureChatPanelIsNotHidden();
-    
     console.log('DOMContentLoaded: Inizializzazione logica responsive chat.');
+    // Rimuove la classe 'hidden' per sicurezza all'avvio del DOM
+    forceShowChatPanelOnce(); 
     ensureChatResponsiveState();
 });

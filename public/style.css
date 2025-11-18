@@ -92,7 +92,7 @@ body {
 /* MOBILE CONTROLS */
 /* ============================================================================== */
 #mobile-controls {
-    display: none; /* Nascosto di default. Sarà visibile solo su mobile, o forzato su desktop */
+    display: none;
     position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); gap: 10px; z-index: 9999;
 }
 #mobile-controls button {
@@ -121,20 +121,15 @@ body {
     /* Hide video area when chat is open */
     #video-area.hidden { display: none; }
 
-    #mobile-controls { display: flex; } /* Mostra i controlli su mobile */
+    #mobile-controls { display: flex; }
 
     #show-chat-btn { display: inline-block !important; }
 
     #chat-panel { padding-top: 8px; }
-    
-    /* Nascondi il pulsante "Torna alla webcam" nel pannello chat */
-    #chat-panel #show-video-btn {
-        display: inline-block;
-    }
 }
 
 /* ============================================================================== */
-/* FORCE RULES FOR DESKTOP (>= 901px) */
+/* FORCE RULES FOR DESKTOP */
 /* ============================================================================== */
 @media (min-width: 901px) {
     #chat-panel {
@@ -149,25 +144,14 @@ body {
     /* NEW EXTREME SPECIFICITY FIX */
     /* Forces chat to be visible even if a script adds the 'hidden' class */
     #chat-panel.hidden {
-        display: flex !important;
+        display: flex !important; /* Questo vincerà sul display: none !important della classe .hidden generale */
         opacity: 1 !important;
         visibility: visible !important;
     }
 
-    /* ********** FIX: Forziamo la visibilità del contenitore dei pulsanti ********** */
-    #mobile-controls { 
-        display: flex !important; /* <--- QUESTA È LA CHIAVE */
-        position: fixed !important; 
-        bottom: unset !important;
-        top: 10px !important;
-        left: unset !important;
-        right: 10px !important;
-        transform: none !important;
-        z-index: 9999 !important;
-    }
-    
-    /* Assicura che il pulsante Chat (#show-chat-btn) sia visibile */
-    #show-chat-btn { display: inline-block !important; }
+    /* Nascondi i controlli mobile su desktop */
+    #mobile-controls { display: none !important; }
+    #show-chat-btn { display: none !important; }
     
     /* Nascondi il pulsante "Torna alla webcam" che è solo per mobile */
     #chat-panel #show-video-btn {
