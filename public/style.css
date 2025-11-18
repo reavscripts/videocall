@@ -39,6 +39,16 @@ html, body{
     align-items: center;
     z-index: 200;
     backdrop-filter: none;
+    /* MODIFICATO: Allinea logo e card in colonna */
+    flex-direction: column; 
+}
+
+/* Stile per il Logo (AGGIORNATO) */
+#app-logo {
+    /* Centrato automaticamente dal flexbox di #nickname-overlay */
+    margin: 0 auto 30px auto; /* Spazio tra logo e card */
+    max-width: 150px; 
+    height: auto;
 }
 
 .card{
@@ -49,14 +59,6 @@ html, body{
     max-width: 430px;
     text-align: center;
     box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-}
-
-/* Stile per il Logo (NUOVO) */
-#app-logo {
-    display: block; /* Essenziale per centrare un'immagine */
-    margin: 0 auto 20px auto; /* Centra orizzontalmente e aggiunge spazio sotto */
-    max-width: 120px; /* Limita la dimensione massima del logo */
-    height: auto;
 }
 
 .card input{
@@ -93,7 +95,6 @@ html, body{
     gap: 12px;
     height: 100%;
     padding: 12px;
-    /* Rimosso background nero */
 }
 
 /* Header stanza */
