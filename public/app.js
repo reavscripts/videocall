@@ -118,55 +118,25 @@ function sendChatMessage() {
 sendChatButton.addEventListener('click', sendChatMessage);
 chatMessageInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendChatMessage(); });
 
-// ==============================================================================
-// MOBILE CHAT TOGGLE
-// ==============================================================================
+// MOSTRA/NASCONDI CHAT MOBILE
 function toggleMobileChat() {
-    const isHidden = chatPanel.classList.contains('hidden');
+    const isVisible = chatPanel.classList.contains('show');
 
-    if (isHidden) {
-        // Apri chat mobile
-        chatPanel.classList.remove('hidden');
-        chatPanel.style.display = 'flex';
-        chatPanel.style.position = 'fixed';
-        chatPanel.style.inset = '0';
-        chatPanel.style.width = '100%';
-        chatPanel.style.height = '100%';
-        chatPanel.style.background = 'var(--background-dark)';
-        chatPanel.style.flexDirection = 'column';
-        chatPanel.style.zIndex = '200';
-
-        // Nascondi video e peer feeds
+    if (!isVisible) {
+        chatPanel.classList.add('show');
         mainVideoFeed.style.display = 'none';
         remoteVideosContainer.style.display = 'none';
         mediaControls.style.display = 'none';
 
-        // Mostra pulsante toggle sopra chat
         showVideoBtn.style.display = 'block';
-        showVideoBtn.style.position = 'absolute';
-        showVideoBtn.style.top = '12px';
-        showVideoBtn.style.right = '12px';
-        showVideoBtn.style.zIndex = '250';
         showVideoBtn.textContent = '❌ Chiudi chat';
-
         setTimeout(() => chatMessageInput.focus(), 50);
     } else {
-        // Chiudi chat e torna alla webcam
-        chatPanel.classList.add('hidden');
-        chatPanel.style.display = '';
-        chatPanel.style.position = '';
-        chatPanel.style.inset = '';
-        chatPanel.style.width = '';
-        chatPanel.style.height = '';
-        chatPanel.style.background = '';
-        chatPanel.style.flexDirection = '';
-        chatPanel.style.zIndex = '';
-
+        chatPanel.classList.remove('show');
         mainVideoFeed.style.display = '';
         remoteVideosContainer.style.display = '';
         mediaControls.style.display = 'flex';
 
-        // Nascondi pulsante toggle sopra chat
         showVideoBtn.style.display = 'none';
     }
 }
