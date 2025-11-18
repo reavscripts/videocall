@@ -125,12 +125,31 @@ function toggleMobileChat() {
     const isHidden = chatPanel.classList.contains('hidden');
     if (isHidden) {
         chatPanel.classList.remove('hidden');
+        chatPanel.style.display = 'flex';
+        chatPanel.style.position = 'fixed';
+        chatPanel.style.inset = '0';
+        chatPanel.style.width = '100%';
+        chatPanel.style.height = '100%';
+        chatPanel.style.background = 'var(--background-dark)';
+        chatPanel.style.flexDirection = 'column';
+        chatPanel.style.zIndex = '200';
+        
         mediaControls.style.display = 'none';
         mainVideoFeed.style.display = 'none';
         remoteVideosContainer.style.display = 'none';
+
         setTimeout(() => chatMessageInput.focus(), 50);
     } else {
         chatPanel.classList.add('hidden');
+        chatPanel.style.display = '';
+        chatPanel.style.position = '';
+        chatPanel.style.inset = '';
+        chatPanel.style.width = '';
+        chatPanel.style.height = '';
+        chatPanel.style.background = '';
+        chatPanel.style.flexDirection = '';
+        chatPanel.style.zIndex = '';
+
         mediaControls.style.display = 'flex';
         mainVideoFeed.style.display = '';
         remoteVideosContainer.style.display = '';
