@@ -118,25 +118,23 @@ function sendChatMessage() {
 sendChatButton.addEventListener('click', sendChatMessage);
 chatMessageInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendChatMessage(); });
 
-// MOSTRA/NASCONDI CHAT MOBILE
+// ==============================================================================
+// MOBILE CHAT TOGGLE
+// ==============================================================================
 function toggleMobileChat() {
-    const isVisible = chatPanel.classList.contains('show');
+    const isShown = chatPanel.classList.contains('show');
 
-    if (!isVisible) {
+    if (!isShown) {
         chatPanel.classList.add('show');
         mainVideoFeed.style.display = 'none';
         remoteVideosContainer.style.display = 'none';
         mediaControls.style.display = 'none';
-
         showVideoBtn.style.display = 'block';
-        showVideoBtn.textContent = '❌ Chiudi chat';
-        setTimeout(() => chatMessageInput.focus(), 50);
     } else {
         chatPanel.classList.remove('show');
         mainVideoFeed.style.display = '';
         remoteVideosContainer.style.display = '';
         mediaControls.style.display = 'flex';
-
         showVideoBtn.style.display = 'none';
     }
 }
@@ -159,7 +157,7 @@ joinButton.addEventListener('click', () => {
             .then(() => {
                 nicknameOverlay.classList.add('hidden');
                 conferenceContainer.classList.remove('hidden');
-                if (window.matchMedia("(max-width: 900px)").matches) chatPanel.classList.add('hidden');
+                if (window.matchMedia("(max-width: 900px)").matches) chatPanel.classList.remove('show');
                 initializeSocket();
             })
             .catch(err => {
