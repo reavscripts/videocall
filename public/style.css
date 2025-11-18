@@ -86,6 +86,8 @@ html, body{
 #conference-container{
     position: relative;
     height: 100vh;
+    /* Aggiunge spazio extra in basso per i controlli fissi, in modo che l'ultima miniatura non sia coperta */
+    padding-bottom: 70px; 
 }
 
 #video-area{
@@ -93,7 +95,8 @@ html, body{
     grid-template-columns: 330px 1fr;
     gap: 12px;
     height: 100%;
-    padding: 12px;
+    padding: 12px 12px 0 12px; /* Rimuove il padding in basso, gestito da #conference-container */
+    overflow-y: auto; /* Permette lo scroll per vedere tutte le miniature */
 }
 
 /* Header stanza */
@@ -106,7 +109,7 @@ html, body{
     background: rgba(30, 30, 30, 0.8);
     padding: 10px;
     border-radius: 10px;
-    /* ✅ FIX: Allinea al centro per centrare il campo link su schermi grandi */
+    /* ✅ FIX: Allinea al centro per centrare il box link (che ha un max-width) */
     align-items: center; 
 }
 
@@ -125,6 +128,7 @@ html, body{
     border: 1px solid var(--border-color);
     border-radius: 6px;
     color: var(--text-light);
+    text-align: center;
 }
 
 /* Main video */
@@ -158,8 +162,8 @@ html, body{
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     grid-auto-rows: 150px;
     gap: 10px;
-    overflow-y: auto;
     padding: 6px;
+    /* Rimosso overflow-y: auto; per far gestire lo scroll a #video-area */
 }
 
 .video-feed{
@@ -204,7 +208,7 @@ html, body{
     height: 100%;
     background: rgba(30,30,30,0.9);
     padding: 10px;
-    border-left: 1px solid var(--border-color);
+    border-left: 1px solid rgba(255,255,255,0.15); /* Bordo più visibile per distinguere */
     overflow-y: auto;
     z-index: 50;
 }
@@ -234,7 +238,7 @@ html, body{
     height: 100%;
     background: rgba(30,30,30,0.9);
     padding: 10px;
-    border-left: 1px solid var(--border-color);
+    border-left: 1px solid rgba(255,255,255,0.15); /* Bordo più visibile per distinguere */
     z-index: 50;
     display: flex; 
     flex-direction: column;
@@ -291,15 +295,21 @@ html, body{
 
 /* Media Controls */
 #media-controls{
-    position: absolute;
-    bottom: 16px;
+    /* ✅ FIX: Fissa i controlli in basso e centrali per una facile accessibilità su mobile */
+    position: fixed; 
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
+    width: 100%; /* Occupa l'intera larghezza */
+    max-width: 400px; /* Limita la larghezza effettiva su PC */
     display: flex;
+    justify-content: center; /* Centra i pulsanti all'interno del contenitore */
     gap: 12px;
-    background: rgba(20,20,20,0.4); 
+    background: rgba(20,20,20,0.8); /* Aumentato l'opacità per renderlo più visibile */
     padding: 10px;
-    border-radius: 40px;
+    border-radius: 10px 10px 0 0; /* Rimosso border-radius: 40px; per adattarlo al basso */
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.5); /* Aggiunge un'ombra in alto */
+    z-index: 100;
 }
 
 #media-controls button{
@@ -353,22 +363,30 @@ html, body{
         background-repeat: no-repeat;
     }
     
+    /* Riduce il padding-bottom solo per i controlli fissi */
+    #conference-container{
+         padding-bottom: 66px; 
+    }
+
     #video-area{
         display: flex;
         flex-direction: column;
+        padding-bottom: 0; /* Lo scroll è su video-area */
     }
 
-    /* ❗✅ FIX MOBILE CHAT & PARTECIPANTI: Usa position: fixed e copre l'intero viewport per una visualizzazione corretta su mobile */
+    /* ❗✅ FIX MOBILE CHAT & PARTECIPANTI: Usa position: fixed e copre l'intero viewport per una visualizzazione corretta su mobile (incluso gestione tastiera virtuale) */
     #participants-panel, #chat-panel{
         position: fixed; 
         inset: 0;      
         width: 100%;    
         height: 100%;   
         padding: 10px; 
+        padding-bottom: 76px; /* Aggiunge spazio in basso per non coprire i media controls */
         background: var(--background-dark); 
         z-index: 150; 
-        display: flex; /* Forza flex per ripristinare il layout interno della chat */
-        flex-direction: column; /* Necessario per la chat */
+        display: flex; 
+        flex-direction: column; 
+        border-left: none; /* Rimuove il bordo su schermo intero */
     }
 
     /* Nasconde i pannelli laterali di default su mobile (il display:flex/column è controllato da JS) */
