@@ -18,7 +18,7 @@ const shareRoomLinkInput = document.getElementById('share-room-link');
 // Partecipanti (NUOVI)
 const participantCount = document.getElementById('participant-count');
 const participantsList = document.getElementById('participants-list');
-const participantsPanel = document.getElementById('participants-panel'); // Aggiunto
+const participantsPanel = document.getElementById('participants-panel'); 
 
 // Chat
 const chatPanel = document.getElementById('chat-panel');
@@ -28,7 +28,7 @@ const messagesContainer = document.getElementById('messages-container');
 
 // Mobile
 const showChatBtn = document.getElementById('show-chat-btn');
-const showParticipantsBtn = document.getElementById('show-participants-btn'); // Aggiunto
+const showParticipantsBtn = document.getElementById('show-participants-btn'); 
 
 // Join overlay
 const joinButton = document.getElementById('join-button');
@@ -119,13 +119,7 @@ joinButton.addEventListener('click', () => {
                 nicknameOverlay.classList.add('hidden');
                 conferenceContainer.classList.remove('hidden');
                 
-                // Nascondi chat e pannello partecipanti di default su mobile
-                if (window.matchMedia("(max-width: 900px)").matches) {
-                    chatPanel.classList.add('hidden');
-                    participantsPanel.classList.add('hidden');
-                }
-
-                // Aggiungi subito l'utente locale alla lista partecipanti
+                // Inizializza la lista partecipanti
                 addParticipantToDOM('local', userNickname + " (Tu)");
                 updateParticipantCount();
 
@@ -154,12 +148,12 @@ async function startLocalMedia() {
 }
 
 // ==============================================================================
-// GESTIONE PARTECIPANTI (NUOVO)
+// GESTIONE PARTECIPANTI
 // ==============================================================================
 function updateParticipantList(userList) {
     participantsList.innerHTML = ''; // Pulisce la lista
     
-    // Aggiungi l'utente locale (è già stato aggiunto nel join, lo riaggiungiamo per sicurezza)
+    // Aggiungi l'utente locale
     addParticipantToDOM('local', userNickname + " (Tu)"); 
 
     // Aggiungi gli utenti remoti
@@ -253,24 +247,21 @@ function toggleMobileChat() {
     const videoArea = document.getElementById('video-area');
     
     // Se il pannello partecipanti è aperto, chiudilo
-    if (isMobileParticipantsPanelVisible) {
-        participantsPanel.classList.add('hidden');
-        isMobileParticipantsPanelVisible = false;
-        // La videoArea rimane hidden finché non viene chiusa la chat
+    if (participantsPanel.classList.contains('show-mobile')) {
+        toggleMobileParticipants(); 
     }
 
-    const isHidden = chatPanel.classList.contains('hidden');
+    // Toggle della classe 'show' che gestisce la trasformazione CSS
+    const isHidden = !chatPanel.classList.contains('show'); 
 
     if (isHidden) {
         // Mostra Chat
-        chatPanel.classList.remove('hidden');
         chatPanel.classList.add('show');
         videoArea.classList.add('hidden'); 
         setTimeout(() => chatMessageInput.focus(), 50);
         adjustChatForKeyboard();
     } else {
         // Nascondi Chat
-        chatPanel.classList.add('hidden');
         chatPanel.classList.remove('show');
         videoArea.classList.remove('hidden');
     }
@@ -281,37 +272,20 @@ function toggleMobileParticipants() {
     
     // Se la chat è aperta, chiudila
     if (chatPanel.classList.contains('show')) {
-        chatPanel.classList.add('hidden');
-        chatPanel.classList.remove('show');
-        // La videoArea rimane hidden finché non viene chiuso il pannello partecipanti
+        toggleMobileChat(); 
     }
 
-    const isHidden = participantsPanel.classList.contains('hidden');
+    // Toggle della classe 'show-mobile'
+    const isHidden = !participantsPanel.classList.contains('show-mobile');
     
     if (isHidden) {
-        // Mostra Partecipanti
-        participantsPanel.classList.remove('hidden');
-        participantsPanel.style.position = 'fixed';
-        participantsPanel.style.inset = '0';
-        participantsPanel.style.width = '100%';
-        participantsPanel.style.height = '100%';
-        participantsPanel.style.background = 'var(--background-dark)';
-        participantsPanel.style.zIndex = '150';
-        participantsPanel.style.display = 'flex';
+        // Mostra Partecipanti (usa la classe 'show-mobile' per gli stili full-screen)
+        participantsPanel.classList.add('show-mobile');
         videoArea.classList.add('hidden');
-        isMobileParticipantsPanelVisible = true;
     } else {
         // Nascondi Partecipanti
-        participantsPanel.classList.add('hidden');
-        participantsPanel.style.position = '';
-        participantsPanel.style.inset = '';
-        participantsPanel.style.width = '';
-        participantsPanel.style.height = '';
-        participantsPanel.style.background = '';
-        participantsPanel.style.zIndex = '';
-        participantsPanel.style.display = 'none';
+        participantsPanel.classList.remove('show-mobile');
         videoArea.classList.remove('hidden');
-        isMobileParticipantsPanelVisible = false;
     }
 }
 
@@ -323,14 +297,8 @@ showParticipantsBtn.addEventListener('click', toggleMobileParticipants);
 // ==============================================================================
 if (window.matchMedia("(max-width: 900px)").matches) {
     function adjustChatForKeyboard() {
-        // Logica semplificata, assumendo che i messaggi debbano occupare tutto lo spazio disponibile.
-        // La gestione di `max-height` viene fatta in CSS, qui ci assicuriamo che l'area sia visibile.
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
-
-    // Le logiche focus/blur e resize sono corrette, ma ho rimosso l'impostazione di `height` in JS
-    // preferendo la gestione in CSS per una maggiore compatibilità mobile.
-    // Tuttavia, lasciamo gli handler per scorrere in fondo e re-focus.
 
     window.addEventListener('resize', () => {
         if (chatPanel.classList.contains('show')) adjustChatForKeyboard();
@@ -347,6 +315,8 @@ toggleAudioButton.addEventListener('click', () => {
     if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         toggleAudioButton.textContent = audioTrack.enabled ? '🎤' : '🔇';
+        // Non è necessario inviare il segnale mute agli altri, ma è una buona pratica
+        // per aggiornare la visualizzazione locale.
     }
 });
 

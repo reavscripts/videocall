@@ -33,24 +33,21 @@
         <aside id="chat-panel">
             <h3>💬 Chat di Stanza</h3>
             <div id="messages-container">
-                </div>
+            </div>
             <div id="chat-input-area">
                 <input type="text" id="chat-message-input" placeholder="Scrivi un messaggio...">
                 <button id="send-chat-button">Invia</button>
             </div>
         </aside>
 
-
         <main id="video-area">
-
-            <div id="room-header">
-                <h1 class="room-title">Stanza: <span id="room-name-display"></span></h1>
-                <input type="text" id="share-room-link" readonly>
-				<div id="copy-notification">Link copiato</div>
-            </div>
+            <header id="room-header">
+                <p class="room-title">Stanza: <strong id="room-name-display">ROOM_NAME</strong></p>
+                <input type="text" id="share-room-link" readonly placeholder="Link Stanza">
+            </header>
 
             <div id="main-video-feed" class="video-feed">
-                <button id="main-mute-btn" class="main-mute-btn">🔇</button>
+                <button id="main-mute-btn" class="main-mute-btn">🔊</button>
                 <video autoplay muted playsinline></video>
                 <div class="video-label">Tu</div>
             </div>
@@ -64,7 +61,7 @@
             <button id="toggle-audio-button">🎤</button>
             <button id="toggle-video-button">📹</button>
             
-            <button id="show-participants-btn" class="mobile-only">👥</button>
+            <button id="show-participants-btn" class="mobile-only">🧑‍🤝‍🧑</button>
             <button id="show-chat-btn" class="mobile-only">💬</button>
             
             <button id="disconnect-button" class="danger">📞</button>
@@ -86,7 +83,8 @@
         </li>
     </template>
 
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
