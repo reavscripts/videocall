@@ -91,9 +91,8 @@ html, body{
     padding-left: 12px;
 }
 
-#room-header{
-    grid-column: 2 / 3; 
-    grid-row: 1 / 2; 
+#room-header {
+    text-align: left; /* forza il contenuto a partire da sinistra */
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -101,13 +100,6 @@ html, body{
     background: rgba(30, 30, 30, 0.8);
     padding: 10px;
     border-radius: 10px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.room-title{
-    font-size: 1.2rem;
-    margin: 0;
 }
 
 #share-room-link {
@@ -118,7 +110,12 @@ html, body{
     border: 1px solid var(--border-color);
     border-radius: 6px;
     color: var(--text-light);
-    text-align: left;  /* <-- aggiunto per partire da sinistra */
+    text-align: left;
+}
+
+.room-title{
+    font-size: 1.2rem;
+    margin: 0;
 }
 
 #copy-notification {
