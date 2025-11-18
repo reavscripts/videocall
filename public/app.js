@@ -71,7 +71,7 @@ const iceConfiguration = {
 function updateParticipantCount() {
     if (participantCountSpan) {
         // La lista include l'utente locale (1) + il numero di peer
-        participantCountSpan.textContent = 1 + Object.keys(remoteNicknames).length;
+        participantCountCountSpan.textContent = 1 + Object.keys(remoteNicknames).length;
     }
 }
 
@@ -151,10 +151,9 @@ function setMainVideo(peerId) {
     }
     
     // 2. Aggiorna il video principale
-    const videoEl = mainVideoFeed.querySelector('video'); // RICERCA AFFIDABILE
-    const labelEl = mainVideoFeed.querySelector('.video-label'); // RICERCA AFFIDABILE
+    const videoEl = mainVideoFeed.querySelector('video'); 
+    const labelEl = mainVideoFeed.querySelector('.video-label'); 
 
-    // Non ricreare l'HTML, assumi che esista da index.html
     if (!videoEl || !labelEl) {
         console.error("Elementi video o label non trovati in #main-video-feed.");
         return; 
@@ -206,6 +205,16 @@ joinButton.addEventListener('click', () => {
                 conferenceContainer.classList.remove('hidden');
                 initializeSocket();
                 setupRoomLink(); 
+                
+                // === INIZIALIZZAZIONE MOBILE PER NASCONDERE I PANNELLI ALL'INGRESSO ===
+                if (window.matchMedia("(max-width: 900px)").matches) {
+                    // Nasconde esplicitamente i pannelli (la classe 'hidden' è di base)
+                    participantsPanel.classList.add('hidden');
+                    chatPanel.classList.add('hidden');
+                    // Assicura che l'area video sia visualizzata correttamente
+                    document.getElementById('video-area').style.display = 'flex'; 
+                }
+                // =====================================================================
             })
             .catch(error => {
                 console.error("Non è stato possibile avviare la webcam:", error.name, error);
@@ -301,7 +310,7 @@ function sendChatMessage() {
         // 1. Visualizza localmente
         appendMessage(userNickname, message, true);
         
-        // 2. Invia agli altri peer (il server aggiungerà il nickname del mittente)
+        // 2. Invia agli altri peer (il server farà il broadcast)
         socket.emit('chat-message', message);
         
         // 3. Pulisci l'input
@@ -319,7 +328,6 @@ function sendChatMessage() {
 
 /**
  * Funzione per gestire l'apertura/chiusura dei pannelli mobili.
- * Questa funzione è stata semplificata per affidare il layout mobile al CSS.
  */
 function toggleMobilePanel(panel, otherPanel) {
     const videoArea = document.getElementById('video-area');
@@ -462,7 +470,7 @@ function initializeSocket() {
         handleCandidate(id, candidate);
     });
     
-    // Ricezione messaggi di chat
+    // ✅ RICEZIONE MESSAGGI DI CHAT (Questa è la parte corretta lato client)
     socket.on('chat-message', (senderId, nickname, message) => {
         appendMessage(nickname, message, false);
     });

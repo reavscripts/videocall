@@ -213,7 +213,7 @@ html, body{
     border-left: 1px solid var(--border-color);
     overflow-y: auto;
     z-index: 50;
-    display: flex; /* Necessario per il layout chat/partecipanti anche se è la stessa struttura */
+    display: flex; 
     flex-direction: column; 
 }
 
@@ -380,13 +380,13 @@ html, body{
 
     /* Stili di base per i pannelli mobile (nascosti di default) */
     #participants-panel, #chat-panel {
-        /* Questo è importante per il layout flex column e lo sfondo solido */
+        /* Permette a JS di nasconderli/mostrarli con 'hidden' */
         position: absolute; 
         right: 0; 
         top: 0;
         width: 100%; 
-        height: 100%; /* Altezza 100% rispetto al genitore (#conference-container) */
-        background: var(--background-dark); /* SFONDO SOLIDO per coprire l'immagine del body */
+        height: 100%; 
+        background: var(--background-dark); 
         padding: 10px;
         z-index: 140; 
     }
@@ -399,7 +399,7 @@ html, body{
         width: 100vw;
         height: 100vh;
         z-index: 150;
-        display: flex; /* Il JS deve impostare il display: flex; invece di block per questo punto */
+        display: flex; 
         flex-direction: column;
     } 
 
