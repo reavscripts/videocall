@@ -1,10 +1,12 @@
 // ==============================================================================
-// CONFIGURAZIONE WEB RTC E SOCKET.IO (estratto rilevante)
+// public/app.js - versione con fix per la chat (rimuove la logica partecipanti)
 // ==============================================================================
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
 // --- ELEMENTI DOM ---
 const remoteVideosContainer = document.getElementById('remote-videos-container');
+const nicknameOverlay = document.getElementById('nickname-overlay');
+const conferenceContainer = document.getElementById('conference-container');
 const mainVideoFeed = document.getElementById('main-video-feed');
 const mainMuteBtn = document.getElementById("main-mute-btn");
 const toggleAudioButton = document.getElementById('toggle-audio-button');
@@ -22,8 +24,9 @@ const messagesContainer = document.getElementById('messages-container');
 // Mobile
 const videoArea = document.getElementById('video-area');
 const showChatBtn = document.getElementById('show-chat-btn');
+const showVideoBtn = document.getElementById('show-video-btn');
 
-// Join overlay elements (se presenti nella pagina)
+// Join overlay
 const joinButton = document.getElementById('join-button');
 const nicknameInput = document.getElementById('nickname-input');
 const roomIdInput = document.getElementById('room-id-input');
@@ -95,6 +98,62 @@ function setMainVideo(peerId) {
 }
 
 // ==============================================================================
+// GESTIONE INGRESSO UTENTE
+// ==============================================================================
+joinButton?.addEventListener('click', () => {
+    const nickname = nicknameInput.value.trim();
+    const roomId = roomIdInput.value.trim();
+
+    if (nickname && roomId) {
+        userNickname = nickname;
+        currentRoomId = roomId;
+        roomNameDisplay.textContent = currentRoomId;
+
+        startLocalMedia()
+            .then(() => {
+                nicknameOverlay.classList.add('hidden');
+                conferenceContainer.classList.remove('hidden');
+                createLocalVideoElement();
+                setMainVideo('local');
+                initializeSocket();
+                setupRoomLink();
+            })
+            .catch(error => {
+                console.error("Non è stato possibile avviare la webcam:", error.name, error);
+                alert(`Impossibile avviare la webcam. Controlla i permessi. Errore: ${error.name}`);
+            });
+    } else {
+        alert('Per favore, inserisci un nickname e il nome della stanza.');
+    }
+});
+
+async function startLocalMedia() {
+    const constraints = { audio: true, video: true };
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        return localStream;
+    } catch (error) {
+        throw error;
+    }
+}
+
+// ==============================================================================
+// ROOM LINK
+// ==============================================================================
+function setupRoomLink() {
+    const roomUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
+    if (shareRoomLinkInput) {
+        shareRoomLinkInput.value = roomUrl;
+        shareRoomLinkInput.addEventListener('click', () => {
+            shareRoomLinkInput.select();
+            document.execCommand('copy');
+            shareRoomLinkInput.value = roomUrl + ' (Link copiato)';
+            setTimeout(() => shareRoomLinkInput.value = roomUrl, 1500);
+        });
+    }
+}
+
+// ==============================================================================
 // CHAT
 // ==============================================================================
 function appendMessage(nickname, message, isLocal = false) {
@@ -113,12 +172,12 @@ function appendMessage(nickname, message, isLocal = false) {
     messageDiv.appendChild(senderSpan);
     messageDiv.appendChild(timeSpan);
     messageDiv.appendChild(document.createTextNode(`: ${message}`));
-    messagesContainer.appendChild(messageDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    messagesContainer?.appendChild(messageDiv);
+    if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
 function sendChatMessage() {
-    const message = chatMessageInput.value.trim();
+    const message = chatMessageInput?.value.trim();
     if (message && socket) {
         appendMessage(userNickname, message, true);
         socket.emit('chat-message', message);
@@ -131,14 +190,38 @@ sendChatButton?.addEventListener('click', sendChatMessage);
 chatMessageInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
 // ==============================================================================
-// MOBILE CHAT TOGGLE
+// MOBILE CHAT (fix e stato responsivo)
 // ==============================================================================
+function ensureChatResponsiveState() {
+    const mobileBreakpoint = 900;
+    if (chatPanel) chatPanel.classList.remove('hidden');
+
+    if (window.innerWidth >= mobileBreakpoint) {
+        if (chatPanel) {
+            chatPanel.classList.remove('show');
+            chatPanel.style.display = '';
+        }
+        if (videoArea) videoArea.classList.remove('hidden');
+        showChatBtn?.setAttribute('aria-expanded', 'false');
+    } else {
+        if (chatPanel) chatPanel.classList.remove('show');
+        if (videoArea) videoArea.classList.remove('hidden');
+        showChatBtn?.setAttribute('aria-expanded', 'false');
+    }
+}
+
+// esegui subito la pulizia iniziale
+if (chatPanel) {
+    chatPanel.classList.remove('hidden');
+    if (chatPanel.style.display === 'none') chatPanel.style.display = '';
+}
+
+window.addEventListener('resize', ensureChatResponsiveState);
+window.addEventListener('load', ensureChatResponsiveState);
+
 function toggleChatOnMobile() {
     const mobileBreakpoint = 900;
-    if (window.innerWidth >= mobileBreakpoint) {
-        // On desktop chat is always visible: do nothing
-        return;
-    }
+    if (window.innerWidth >= mobileBreakpoint) return;
 
     const isVisible = chatPanel.classList.contains('show');
     if (isVisible) {
@@ -149,39 +232,101 @@ function toggleChatOnMobile() {
         chatPanel.classList.add('show');
         videoArea?.classList.add('hidden');
         showChatBtn?.setAttribute('aria-expanded', 'true');
-        // move focus to input for accessibility
         setTimeout(() => chatMessageInput?.focus(), 50);
     }
 }
-
 showChatBtn?.addEventListener('click', toggleChatOnMobile);
 
-// allow clicking on the chat overlay background (panel container) to close (mobile)
 function hideChatOnBackdropClick(e) {
-    if (chatPanel.classList.contains('show') && e.target === chatPanel) {
+    if (chatPanel?.classList.contains('show') && e.target === chatPanel) {
         toggleChatOnMobile();
     }
 }
 chatPanel?.addEventListener('click', hideChatOnBackdropClick);
 
-// ensure correct state on resize/load
-function ensureChatResponsiveState() {
-    const mobileBreakpoint = 900;
-    if (window.innerWidth >= mobileBreakpoint) {
-        chatPanel?.classList.remove('show');
-        videoArea?.classList.remove('hidden');
-        showChatBtn?.setAttribute('aria-expanded', 'false');
-    } else {
+// Bottone mobile "torna alla webcam" (se presente)
+showVideoBtn?.addEventListener('click', () => {
+    if (window.innerWidth < 900) {
         chatPanel?.classList.remove('show');
         videoArea?.classList.remove('hidden');
         showChatBtn?.setAttribute('aria-expanded', 'false');
     }
-}
-window.addEventListener('resize', ensureChatResponsiveState);
-window.addEventListener('load', ensureChatResponsiveState);
+});
 
 // ==============================================================================
-// (Resto delle funzioni WebRTC / Socket.IO rimangono invariate — non toccate)
+// CONTROLLI AUDIO/VIDEO/DISCONNECT
+// ==============================================================================
+toggleAudioButton?.addEventListener('click', () => {
+    const audioTrack = localStream?.getAudioTracks()[0];
+    if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        toggleAudioButton.textContent = audioTrack.enabled ? '🔊' : '🔇';
+    }
+});
+
+toggleVideoButton?.addEventListener('click', () => {
+    const videoTrack = localStream?.getVideoTracks()[0];
+    if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        toggleVideoButton.textContent = videoTrack.enabled ? '📹' : '❌';
+    }
+});
+
+disconnectButton?.addEventListener('click', () => {
+    localStream?.getTracks().forEach(track => track.stop());
+    Object.values(peerConnections).forEach(pc => { if (pc && pc.close) pc.close(); });
+    socket?.disconnect();
+    window.location.reload();
+});
+
+// ==============================================================================
+// WEBRTC FUNZIONI
+// ==============================================================================
+function getOrCreatePeerConnection(socketId) {
+    if (peerConnections[socketId]) return peerConnections[socketId];
+    const pc = new RTCPeerConnection(iceConfiguration);
+    if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    pc.ontrack = (event) => createRemoteVideoElement(socketId, event.streams[0]);
+    pc.onicecandidate = (event) => { if (event.candidate) socket.emit('candidate', socketId, event.candidate); };
+    peerConnections[socketId] = pc;
+    return pc;
+}
+
+function createLocalVideoElement() {
+    if (remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="local"]`)) return;
+    const template = document.getElementById('remote-video-template');
+    if (!template) return;
+    const localFeed = template.content.cloneNode(true).firstElementChild;
+    localFeed.dataset.peerId = 'local';
+    localFeed.classList.add('local-feed');
+    const remoteVideo = localFeed.querySelector('video');
+    remoteVideo.srcObject = localStream;
+    remoteVideo.muted = true;
+    localFeed.querySelector('.video-label').textContent = userNickname;
+    localFeed.addEventListener('click', () => setMainVideo('local'));
+    remoteVideosContainer.prepend(localFeed);
+}
+
+function createRemoteVideoElement(socketId, stream) {
+    let remoteVideoItem = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`);
+    const template = document.getElementById('remote-video-template');
+    if (!template) return;
+
+    if (!remoteVideoItem) {
+        remoteVideoItem = template.content.cloneNode(true).firstElementChild;
+        remoteVideoItem.dataset.peerId = socketId;
+        remoteVideoItem.querySelector('.video-label').textContent = remoteNicknames[socketId] || `Peer ${socketId.substring(0, 4)}...`;
+        remoteVideoItem.addEventListener('click', () => setMainVideo(socketId));
+        remoteVideosContainer.appendChild(remoteVideoItem);
+    }
+
+    const remoteVideo = remoteVideoItem.querySelector('video');
+    if (remoteVideo && !remoteVideo.srcObject) remoteVideo.srcObject = stream;
+    if (Object.keys(peerConnections).length === 1 && focusedPeerId === 'local') setMainVideo(socketId);
+}
+
+// ==============================================================================
+// SOCKET.IO
 // ==============================================================================
 function initializeSocket() {
     socket = io(RENDER_SERVER_URL, { query: { nickname: userNickname } });
@@ -195,14 +340,14 @@ function initializeSocket() {
         userList.forEach(user => {
             if (user.socketId !== socket.id) {
                 remoteNicknames[user.socketId] = user.nickname;
-                // callUser(user.socketId, true); // lasciare la logica che avevi
+                callUser(user.socketId, true);
             }
         });
     });
 
     socket.on('user-joined', (newSocketId, newNickname) => {
         remoteNicknames[newSocketId] = newNickname;
-        // callUser(newSocketId, false);
+        callUser(newSocketId, false);
     });
 
     socket.on('chat-message', (senderId, nickname, message) => appendMessage(nickname, message, false));
@@ -214,4 +359,60 @@ function initializeSocket() {
     socket.on('disconnect', () => console.log('Disconnesso dal server.'));
 }
 
-// Mantieni il resto del tuo file (callUser, handleOffer, handleAnswer, handleCandidate, removePeer) senza modifiche.
+async function callUser(socketId, isCaller) {
+    const pc = getOrCreatePeerConnection(socketId);
+    if (isCaller) {
+        try {
+            const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+            await pc.setLocalDescription(offer);
+            socket.emit('offer', socketId, pc.localDescription);
+        } catch (error) { console.error('Errore nella creazione dell\'Offer:', error); }
+    }
+}
+
+async function handleOffer(socketId, description) {
+    const pc = getOrCreatePeerConnection(socketId);
+    try {
+        await pc.setRemoteDescription(new RTCSessionDescription(description));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit('answer', socketId, pc.localDescription);
+    } catch (error) { console.error('Errore nella gestione dell\'Offer:', error); }
+}
+
+async function handleAnswer(socketId, description) {
+    const pc = getOrCreatePeerConnection(socketId);
+    try { await pc.setRemoteDescription(new RTCSessionDescription(description)); }
+    catch (error) { console.error('Errore nella gestione dell\'Answer:', error); }
+}
+
+async function handleCandidate(socketId, candidate) {
+    try {
+        const pc = peerConnections[socketId];
+        if (pc && pc.remoteDescription && candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (error) {}
+}
+
+function removePeer(socketId) {
+    const pc = peerConnections[socketId];
+    if (pc) {
+        try { pc.close(); } catch (e) {}
+    }
+    delete peerConnections[socketId];
+    delete remoteNicknames[socketId];
+    remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`)?.remove();
+
+    if (focusedPeerId === socketId) {
+        const remainingPeerIds = Object.keys(peerConnections);
+        setMainVideo(remainingPeerIds.length > 0 ? remainingPeerIds[0] : 'local');
+    }
+}
+
+// ==============================================================================
+// Inizializzazione iniziale: assicurati che la chat non sia forzatamente nascosta
+// ==============================================================================
+if (chatPanel) {
+    chatPanel.classList.remove('hidden');
+    if (chatPanel.style.display === 'none') chatPanel.style.display = '';
+}
+ensureChatResponsiveState();
