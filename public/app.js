@@ -293,25 +293,25 @@ disconnectButton.addEventListener('click', () => {
 // ============================================
 if (window.matchMedia("(max-width: 900px)").matches) {
     function adjustChatPanel() {
-        const vh = window.innerHeight; // Altezza visibile della finestra
-        chatPanel.style.height = vh + 'px';
+        const vh = window.innerHeight; // altezza visibile viewport
+        const inputHeight = chatMessageInput.offsetHeight + 16; // include padding e margine
+        const panelPadding = 20; // padding top/bottom eventuale del pannello
+        const availableHeight = vh - inputHeight - panelPadding;
 
-        // Scroll automatico per vedere l'input e parte alta messaggi
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        messagesContainer.style.height = availableHeight + 'px';
+        messagesContainer.scrollTop = messagesContainer.scrollHeight; // scroll automatico in basso
     }
 
+    // Aggiorna altezza quando cambia finestra / tastiera
     window.addEventListener('resize', adjustChatPanel);
     chatMessageInput.addEventListener('focus', adjustChatPanel);
-    chatMessageInput.addEventListener('blur', () => {
-        chatPanel.style.height = ''; // Ripristina altezza originale
-    });
+    chatMessageInput.addEventListener('blur', adjustChatPanel);
 
     // All'apertura del pannello chat
     showChatBtn.addEventListener('click', () => {
-        setTimeout(adjustChatPanel, 100); // piccolo delay per permettere apertura
+        setTimeout(adjustChatPanel, 100); // piccolo delay per apertura pannello
     });
 }
-
 // ==============================================================================
 // SOCKET.IO E WEBRTC
 // ==============================================================================
