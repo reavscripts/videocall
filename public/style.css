@@ -146,35 +146,6 @@ body {
 }
 
 /* ============================================================================== */
-/* PARTECIPANTI PANEL (DESKTOP) */
-/* ============================================================================== */
-#participants-panel {
-    width: 200px;
-    background: #1a1a1a;
-    border-left: 2px solid #333;
-    display: flex;
-    flex-direction: column;
-}
-
-#participants-panel h3 {
-    margin: 0;
-    padding: 10px;
-    background: #222;
-    font-size: 16px;
-}
-
-#participants-list {
-    flex: 1;
-    overflow-y: auto;
-    list-style: none;
-    padding: 0 10px;
-}
-
-#participants-list li {
-    margin-bottom: 4px;
-}
-
-/* ============================================================================== */
 /* MOBILE CONTROLS */
 /* ============================================================================== */
 #mobile-controls {
@@ -204,9 +175,8 @@ body {
         flex-direction: column;
     }
 
-    /* Chat e partecipanti nascosti di default */
-    #chat-panel,
-    #participants-panel {
+    /* Chat nascosta di default */
+    #chat-panel {
         display: none !important;
         position: fixed;
         top: 0;
@@ -217,12 +187,12 @@ body {
         flex-direction: column;
     }
 
-    /* Sidebar visibili se JS aggiunge classi */
-    #chat-panel.show,
-    #participants-panel.show-mobile {
+    /* Chat visibile se JS aggiunge la classe show */
+    #chat-panel.show {
         display: flex !important;
     }
 
+    /* Nasconde l’area video quando chat aperta */
     #video-area.hidden {
         display: none;
     }
@@ -232,8 +202,7 @@ body {
     }
 
     /* Pulsante per tornare ai video */
-    #chat-panel::before,
-    #participants-panel::before {
+    #chat-panel::before {
         content: '← Torna ai video';
         display: block;
         padding: 10px;
