@@ -112,7 +112,7 @@ function sendChatMessage() {
         socket.emit('chat-message', msg);
         chatMessageInput.value = '';
         chatMessageInput.focus();
-    } 
+    }
 }
 
 sendChatButton.addEventListener('click', sendChatMessage);
@@ -124,7 +124,6 @@ chatMessageInput.addEventListener('keypress', e => { if (e.key === 'Enter') send
 function toggleMobileChat() {
     const isHidden = chatPanel.classList.contains('hidden');
     if (isHidden) {
-        // Apri chat
         chatPanel.classList.remove('hidden');
         chatPanel.style.display = 'flex';
         chatPanel.style.position = 'fixed';
@@ -140,28 +139,33 @@ function toggleMobileChat() {
         remoteVideosContainer.style.display = 'none';
 
         setTimeout(() => chatMessageInput.focus(), 50);
-        showVideoBtn.textContent = '❌ Chiudi chat';
     } else {
-        // Chiudi chat e torna alla webcam
-        chatPanel.classList.add('hidden');
-        chatPanel.style.display = '';
-        chatPanel.style.position = '';
-        chatPanel.style.inset = '';
-        chatPanel.style.width = '';
-        chatPanel.style.height = '';
-        chatPanel.style.background = '';
-        chatPanel.style.flexDirection = '';
-        chatPanel.style.zIndex = '';
-
-        mediaControls.style.display = 'flex';
-        mainVideoFeed.style.display = '';
-        remoteVideosContainer.style.display = '';
-        showVideoBtn.textContent = '🎥 Torna alla webcam';
+        showVideoFromChat();
     }
 }
 
 showChatBtn.addEventListener('click', toggleMobileChat);
-showVideoBtn.addEventListener('click', toggleMobileChat); // stesso toggle
+
+// ==============================================================================
+// MOSTRA WEBCAM DA CHAT MOBILE
+// ==============================================================================
+function showVideoFromChat() {
+    chatPanel.classList.add('hidden');
+    chatPanel.style.display = '';
+    chatPanel.style.position = '';
+    chatPanel.style.inset = '';
+    chatPanel.style.width = '';
+    chatPanel.style.height = '';
+    chatPanel.style.background = '';
+    chatPanel.style.flexDirection = '';
+    chatPanel.style.zIndex = '';
+
+    mediaControls.style.display = 'flex';
+    mainVideoFeed.style.display = '';
+    remoteVideosContainer.style.display = '';
+}
+
+showVideoBtn.addEventListener('click', showVideoFromChat);
 
 // ==============================================================================
 // JOIN STANZA
