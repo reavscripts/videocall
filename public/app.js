@@ -49,50 +49,6 @@ const iceConfiguration = {
 };
 
 // ==============================================================================
-// UTILITY: Forza la rimozione della classe 'hidden' sul pannello chat
-// ==============================================================================
-function forceShowChatPanelOnce() {
-    if (!chatPanel) return;
-    chatPanel.classList.remove('hidden');
-    // rimuove eventuale display inline che nasconde
-    if (chatPanel.style && chatPanel.style.display === 'none') chatPanel.style.display = '';
-}
-
-// Esegui subito e ripeti per i primi istanti per coprire inizializzazioni asincrone
-(function ensureChatVisibleImmediately() {
-    // immediato
-    forceShowChatPanelOnce();
-    // ripeti un paio di volte nei successivi 2 secondi (protezione contro script che settano 'hidden' dopo)
-    let tries = 0;
-    const maxTries = 8;
-    const intervalId = setInterval(() => {
-        tries++;
-        forceShowChatPanelOnce();
-        if (tries >= maxTries) clearInterval(intervalId);
-    }, 250);
-    // anche una rimozione ritardata più lunga (ultimo tentativo)
-    setTimeout(() => forceShowChatPanelOnce(), 2500);
-})();
-
-// MutationObserver: se qualche script ri-aggiunge 'hidden', lo rimuoviamo immediatamente
-if (chatPanel && typeof MutationObserver !== 'undefined') {
-    try {
-        const mo = new MutationObserver((mutations) => {
-            for (const m of mutations) {
-                if (m.type === 'attributes' && m.attributeName === 'class') {
-                    if (chatPanel.classList.contains('hidden')) {
-                        chatPanel.classList.remove('hidden');
-                    }
-                }
-            }
-        });
-        mo.observe(chatPanel, { attributes: true, attributeFilter: ['class'] });
-    } catch (e) {
-        console.warn('MutationObserver non disponibile o fallita la registrazione:', e);
-    }
-}
-
-// ==============================================================================
 // FUNZIONI UI E HELPERS
 // ==============================================================================
 mainMuteBtn?.addEventListener("click", () => {
@@ -154,7 +110,8 @@ joinButton?.addEventListener('click', () => {
 
         startLocalMedia()
             .then(() => {
-                nicknameOverlay?.classList.add('hidden');
+                // L'overlay del join usa la classe 'hidden', che NON deve essere rimossa.
+                nicknameOverlay?.classList.add('hidden'); 
                 conferenceContainer?.classList.remove('hidden');
                 createLocalVideoElement();
                 setMainVideo('local');
@@ -210,7 +167,7 @@ function appendMessage(nickname, message, isLocal = false) {
 
     const timeSpan = document.createElement('span');
     timeSpan.classList.add('timestamp');
-    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
+    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })})`;
 
     messageDiv.appendChild(senderSpan);
     messageDiv.appendChild(timeSpan);
@@ -237,20 +194,18 @@ chatMessageInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') s
 // ==============================================================================
 function ensureChatResponsiveState() {
     const mobileBreakpoint = 900;
-    const mobileControls = document.getElementById('mobile-controls'); // Riferimento al contenitore dei pulsanti
+    const mobileControls = document.getElementById('mobile-controls'); 
     
-    // Forziamo rimozione 'hidden' (la usiamo solo per il toggle)
-    if (chatPanel) chatPanel.classList.remove('hidden');
+    // RIMOSSA: chatPanel.classList.remove('hidden'); 
 
     if (window.innerWidth >= mobileBreakpoint) {
         // Desktop: Chat visibile per default (il CSS lo fa), inizializziamo lo stato a 'aperto'
         
-        // ******* FIX AGGIUNTO QUI: FORZA LA VISIBILITÀ DI #mobile-controls TRAMITE JS *******
+        // FIX: FORZA LA VISIBILITÀ DI #mobile-controls TRAMITE JS
         if (mobileControls) {
             mobileControls.style.display = 'flex'; 
             mobileControls.classList.remove('hidden'); 
         }
-        // *********************************************************************************
 
         if (chatPanel) {
             // Se non ha la classe 'show' (che usiamo come indicatore di stato), la aggiungiamo e assicuriamo 'flex'
@@ -490,10 +445,9 @@ function removePeer(socketId) {
 }
 
 // ==============================================================================
-// INIZIALIZZAZIONE FINALE - **FIXED TIMING**
+// INIZIALIZZAZIONE FINALE
 // ==============================================================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOMContentLoaded: Assicurazione finale visibilità chat.');
-    forceShowChatPanelOnce();
+    console.log('DOMContentLoaded: Inizializzazione logica responsive chat.');
     ensureChatResponsiveState();
 });
