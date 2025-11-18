@@ -1,5 +1,5 @@
 // ==============================================================================
-// public/app.js - versione robusta per garantire visibilità chat su desktop (FIXED)
+// public/app.js - versione robusta per garantire visibilità chat su desktop (FIXED TIMING)
 // ==============================================================================
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
@@ -53,17 +53,9 @@ const iceConfiguration = {
 // ==============================================================================
 function forceShowChatPanelOnce() {
     if (!chatPanel) return;
-    // Rimuovi la classe 'hidden' che nasconde il pannello.
     chatPanel.classList.remove('hidden');
-
-    // **FIX:** On desktop (>= 901px), ensure any inline display: none is removed,
-    // allowing the CSS media query (display: flex !important) to take effect.
-    const mobileBreakpoint = 900;
-    if (window.innerWidth >= mobileBreakpoint) {
-        if (chatPanel.style.display === 'none') {
-            chatPanel.style.display = ''; 
-        }
-    }
+    // rimuove eventuale display inline che nasconde
+    if (chatPanel.style && chatPanel.style.display === 'none') chatPanel.style.display = '';
 }
 
 // Esegui subito e ripeti per i primi istanti per coprire inizializzazioni asincrone
@@ -82,27 +74,19 @@ function forceShowChatPanelOnce() {
     setTimeout(() => forceShowChatPanelOnce(), 2500);
 })();
 
-// MutationObserver: se qualche script ri-aggiunge 'hidden' o 'display:none', lo rimuoviamo
+// MutationObserver: se qualche script ri-aggiunge 'hidden', lo rimuoviamo immediatamente
 if (chatPanel && typeof MutationObserver !== 'undefined') {
     try {
         const mo = new MutationObserver((mutations) => {
             for (const m of mutations) {
-                if (m.type === 'attributes') {
-                    // Check for class change (e.g., 'hidden' being added)
-                    if (m.attributeName === 'class' && chatPanel.classList.contains('hidden')) {
+                if (m.type === 'attributes' && m.attributeName === 'class') {
+                    if (chatPanel.classList.contains('hidden')) {
                         chatPanel.classList.remove('hidden');
-                    }
-                    
-                    // Check for style change (e.g., inline 'display: none') on desktop
-                    if (m.attributeName === 'style' && window.innerWidth >= 901) {
-                        if (chatPanel.style.display === 'none') {
-                            chatPanel.style.display = '';
-                        }
                     }
                 }
             }
         });
-        mo.observe(chatPanel, { attributes: true, attributeFilter: ['class', 'style'] });
+        mo.observe(chatPanel, { attributes: true, attributeFilter: ['class'] });
     } catch (e) {
         console.warn('MutationObserver non disponibile o fallita la registrazione:', e);
     }
@@ -249,30 +233,32 @@ sendChatButton?.addEventListener('click', sendChatMessage);
 chatMessageInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
 // ==============================================================================
-// MOBILE CHAT (stato responsivo)
+// MOBILE CHAT (fix e stato responsivo)
 // ==============================================================================
 function ensureChatResponsiveState() {
     const mobileBreakpoint = 900;
-    // Forziamo rimozione 'hidden' (già gestito in forceShowChatPanelOnce, ma ripetiamo per sicurezza)
+    // forziamo rimozione 'hidden' (non dovremmo mai usare 'hidden' per desktop)
     if (chatPanel) chatPanel.classList.remove('hidden');
 
     if (window.innerWidth >= mobileBreakpoint) {
-        // Desktop: chat sempre visibile. 
+        // Desktop: chat sempre visibile
         if (chatPanel) {
             chatPanel.classList.remove('show');
-            // Rimuovi esplicitamente l'inline style display: none per far prevalere il CSS media query
             chatPanel.style.display = '';
         }
         if (videoArea) videoArea.classList.remove('hidden');
         showChatBtn?.setAttribute('aria-expanded', 'false');
     } else {
         // Mobile: default chiuso (aperto solo con .show)
-        showChatBtn?.setAttribute('aria-expanded', chatPanel?.classList.contains('show') ? 'true' : 'false');
+        if (chatPanel) chatPanel.classList.remove('show');
+        if (videoArea) videoArea.classList.remove('hidden');
+        showChatBtn?.setAttribute('aria-expanded', 'false');
     }
 }
 
 window.addEventListener('resize', ensureChatResponsiveState);
 window.addEventListener('load', ensureChatResponsiveState);
+document.addEventListener('DOMContentLoaded', ensureChatResponsiveState);
 
 function toggleChatOnMobile() {
     const mobileBreakpoint = 900;
@@ -464,17 +450,13 @@ function removePeer(socketId) {
 // INIZIALIZZAZIONE FINALE - **FIXED TIMING**
 // ==============================================================================
 
-// Esegui la logica di visibilità una volta che tutti gli elementi DOM sono caricati.
+// Rimuovi le chiamate dirette alla fine del file per prevenire l'esecuzione troppo anticipata
+// forceShowChatPanelOnce();
+// ensureChatResponsiveState();
+
+// Esegui la logica di visibilità solo dopo che tutti gli elementi DOM sono caricati.
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOMContentLoaded: Assicurazione finale visibilità chat.');
-    forceShowChatPanelOnce();
-    ensureChatResponsiveState();
-});
-
-// Aggiunto l'ascoltatore anche per l'evento 'load' per massima compatibilità,
-// specialmente se ci sono immagini o risorse che ritardano il layout.
-window.addEventListener('load', () => {
-    console.log('Window Load: Assicurazione finale visibilità chat.');
     forceShowChatPanelOnce();
     ensureChatResponsiveState();
 });

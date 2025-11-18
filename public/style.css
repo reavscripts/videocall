@@ -140,6 +140,15 @@ body {
         visibility: visible !important;
         z-index: 8000 !important;
     }
+    
+    /* NEW EXTREME SPECIFICITY FIX */
+    /* Forces chat to be visible even if a script adds the 'hidden' class */
+    #chat-panel.hidden {
+        display: flex !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
     #mobile-controls { display: none !important; }
     #show-chat-btn { display: none !important; }
 }
