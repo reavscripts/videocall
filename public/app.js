@@ -131,7 +131,7 @@ function updateParticipantList(id, nickname, isLocal = false) {
 
 /**
  * Sposta lo stream del peer specificato nel mainVideoFeed.
- * **CORREZIONE MUTE**: Gestisce lo stato e la visibilità del pulsante mute.
+ * CORREZIONE: Assicura che l'icona mute/unmute rifletta lo stato attuale del video.
  */
 function setMainVideo(peerId) {
     let stream, nickname, isLocal = false;
@@ -171,16 +171,16 @@ function setMainVideo(peerId) {
 		videoEl.srcObject = stream;
 		labelEl.textContent = nickname;
 
-        // **LOGICA MUTE**
+        // **LOGICA MUTE CORRETTA**
 		if (isLocal) {
             videoEl.muted = true; // Locale sempre mutato per evitare l'eco
 			muteBtn.style.display = "none";      // Nasconde il pulsante
 		} else {
-            // Se è remoto, manteniamo lo stato 'muted' che aveva prima
-            // Se lo stato non è mai stato toccato, rimane false (unmuted)
+            // Se è remoto, manteniamo lo stato 'muted' che aveva (default: false / audio attivo)
             
 			muteBtn.style.display = "block";     // Mostra il pulsante
-			// Aggiorna l'icona in base allo stato attuale del video
+			
+            // AGGIORNAMENTO CRITICO: Imposta l'icona in base allo stato attuale di videoEl.muted
 			muteBtn.textContent = videoEl.muted ? "🔇" : "🔊"; 
 		}
 	}
