@@ -58,7 +58,7 @@ mainMuteBtn.addEventListener("click", () => {
     const videoEl = mainVideoFeed.querySelector("video");
     if(videoEl){
         videoEl.muted = !videoEl.muted;
-        mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
+        mainMuteBtn.textContent = videoEl.muted ? "ðŸ”‡" : "ðŸ”Š";
     }
 });
 
@@ -94,7 +94,7 @@ function setMainVideo(peerId) {
         videoEl.muted = isLocal;
         labelEl.textContent = nickname;
         mainMuteBtn.style.display = isLocal ? "none" : "block";
-        mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
+        mainMuteBtn.textContent = videoEl.muted ? "ðŸ”‡" : "ðŸ”Š";
     }
 
     focusedPeerId = peerId;
@@ -122,7 +122,7 @@ joinButton.addEventListener('click', () => {
                 setupRoomLink(); 
             })
             .catch(error => {
-                console.error("Non è stato possibile avviare la webcam:", error.name, error);
+                console.error("Non Ã¨ stato possibile avviare la webcam:", error.name, error);
                 alert(`Impossibile avviare la webcam. Controlla i permessi. Errore: ${error.name}`);
             });
     } else {
@@ -197,7 +197,7 @@ function togglePanel(panel) {
     // 1. Definisce lo stato (usa la classe 'show' per matchare il CSS)
     const isVisible = panel.classList.contains('show'); 
     
-    // 2. Chiude l'altro pannello se è aperto
+    // 2. Chiude l'altro pannello se Ã¨ aperto
     if (panel === chatPanel) {
         participantsPanel?.classList.remove('show');
     } else if (panel === participantsPanel) {
@@ -226,7 +226,7 @@ showParticipantsBtn.addEventListener('click', () => {
 
 // Listener per tornare ai video (gestisce il click sulla parte superiore del pannello)
 function hidePanelOnClick(e) {
-    // Se il click è sull'elemento container stesso (chatPanel o participantsPanel) e il pannello è aperto
+    // Se il click Ã¨ sull'elemento container stesso (chatPanel o participantsPanel) e il pannello Ã¨ aperto
     if (chatPanel.classList.contains('show') && e.target === chatPanel) {
         togglePanel(chatPanel);
     } else if (participantsPanel.classList.contains('show') && e.target === participantsPanel) {
@@ -244,7 +244,7 @@ toggleAudioButton.addEventListener('click', () => {
     const audioTrack = localStream?.getAudioTracks()[0];
     if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
-        toggleAudioButton.textContent = audioTrack.enabled ? '🎤' : '🔇';
+        toggleAudioButton.textContent = audioTrack.enabled ? 'ðŸŽ¤' : 'ðŸ”‡';
     }
 });
 
@@ -252,7 +252,7 @@ toggleVideoButton.addEventListener('click', () => {
     const videoTrack = localStream?.getVideoTracks()[0];
     if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
-        toggleVideoButton.textContent = videoTrack.enabled ? '📹' : '⬛';
+        toggleVideoButton.textContent = videoTrack.enabled ? 'ðŸ“¹' : 'â¬›';
     }
 });
 

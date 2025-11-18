@@ -51,7 +51,7 @@ body {
     background: rgba(0,0,0,0.5);
     color: white;
     cursor: pointer;
-    display: none; /* nascosto di default sul video principale (se non è un video remoto) */
+    display: none; /* nascosto di default sul video principale (se non Ã¨ un video remoto) */
 }
 
 /* Remote videos */
@@ -236,7 +236,7 @@ body {
         display: flex !important;
     }
 
-    /* Nasconde l’area video quando chat o partecipanti aperti */
+    /* Nasconde lâ€™area video quando chat o partecipanti aperti */
     #video-area.hidden {
         display: none;
     }
@@ -247,7 +247,7 @@ body {
 
     /* Pulsante per tornare ai video (simulato tramite pseudo-elemento) */
     #chat-panel::before, #participants-panel::before {
-        content: '← Torna ai video';
+        content: 'â† Torna ai video';
         display: block;
         padding: 10px;
         background: #222;
