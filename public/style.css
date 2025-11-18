@@ -61,7 +61,7 @@ body {
     flex-shrink: 0;
     background: #1a1a1a;
     border-left: 2px solid #333;
-    display: flex;               /* Ensure visible by default on desktop */
+    display: flex !important;                /* Ensure visible by default on desktop */
     flex-direction: column;
     z-index: 8000;
     position: relative;
