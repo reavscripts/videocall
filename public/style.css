@@ -39,24 +39,25 @@ html, body{
     align-items: center;
     z-index: 200;
     backdrop-filter: none;
-    /* MODIFICATO: Allinea logo e card in colonna */
     flex-direction: column; 
 }
 
 /* Stile per il Logo (AGGIORNATO) */
 #app-logo {
-    /* Centrato automaticamente dal flexbox di #nickname-overlay */
-    margin: 0 auto 30px auto; /* Spazio tra logo e card */
-    max-width: 150px; 
+    /* Larghezza impostata a 90% del contenitore e limitata a 430px, come la card */
+    width: 90%; 
+    max-width: 430px; 
     height: auto;
+    margin: 0 auto 15px auto; /* Spazio tra logo e card */
 }
 
 .card{
     background: var(--surface-dark);
     padding: 32px;
     border-radius: 12px;
-    width: 90%;
-    max-width: 430px;
+    /* Mantenute le stesse regole di larghezza del logo per l'allineamento */
+    width: 90%; 
+    max-width: 430px; 
     text-align: center;
     box-shadow: 0 6px 20px rgba(0,0,0,0.5);
 }
