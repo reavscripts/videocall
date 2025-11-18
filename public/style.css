@@ -90,17 +90,18 @@ html, body{
     height: 100vh;
 }
 
+/* * LAYOUT GRID DESKTOP CORRETTO:
+ * Colonna 1: Video Principale (330px)
+ * Colonna 2: Header + Galleria Miniature (1fr)
+ * Colonna 3: Chat Panel (300px) 
+*/
 #video-area{
     display: grid;
-    /* Desktop Grid: 330px (Main Video) | 1fr (Gallery/Header) | 300px (Chat Panel) */
-    grid-template-columns: 330px 1fr 300px; /* MODIFICATO per includere la chat */
-    /* Desktop Rows: Header (auto) | Video/Gallery (1fr) */
+    grid-template-columns: 330px 1fr 300px; /* MODIFICATO */
     grid-template-rows: auto 1fr; 
     gap: 12px;
     height: 100%;
-    padding: 12px;
-    /* Padding Rimosso o Modificato: gestiamo l'overlap con i pannelli */
-    padding-right: 312px; /* AGGIUNTO: Lascia spazio a destra per la chat (300px + 12px padding destro) */
+    padding-right: 312px; /* AGGIUNTO: spazio a destra per la chat (300px + 12px di padding destro) */
     padding-left: 12px;
 }
 
@@ -208,8 +209,9 @@ html, body{
 
 /* Pannello partecipanti (Desktop) */
 #participants-panel{
+    /* Posiziona a sinistra della Chat (che è 300px) */
     position: absolute;
-    right: 300px; /* AGGIUNTO: Sposta a sinistra della chat (300px) */
+    right: 300px; /* AGGIUNTO */
     top: 0;
     width: 240px;
     height: 100%;
@@ -238,22 +240,22 @@ html, body{
 
 /* Stili Chat Panel (Desktop) */
 #chat-panel{
-    /* Soluzione per il Problema 2 (PC): posizione fissa a destra per la chat */
+    /* Fissa all'estrema destra */
     position: absolute;
-    right: 0; /* AGGIUNTO: Fissa all'estrema destra */
+    right: 0; 
     top: 0;
-    width: 300px; /* AGGIUNTO: Larghezza definita per la colonna */
+    width: 300px; 
     height: 100%;
     background: rgba(30,30,30,0.9);
     padding: 10px;
     border-left: 1px solid var(--border-color);
     z-index: 50;
     display: flex; 
-    flex-direction: column;
+    flex-direction: column; /* Messaggi sopra, input sotto */
 }
 
 #messages-container {
-    flex-grow: 1;
+    flex-grow: 1; /* Il contenitore dei messaggi occupa lo spazio principale */
     overflow-y: auto;
     padding: 5px;
     margin-bottom: 10px;
@@ -272,13 +274,22 @@ html, body{
     color: var(--primary-color);
 }
 
+.message .timestamp {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: normal;
+}
+
 .message.self .sender {
     color: var(--accent-color);
 }
 
 #chat-input-area {
+    /* Mantenuto flessibile per input e bottone */
     display: flex;
     gap: 5px;
+    padding-top: 5px;
+    border-top: 1px solid var(--border-color);
 }
 
 #chat-message-input {
@@ -360,9 +371,14 @@ html, body{
 /* ========================= */
 
 @media(max-width: 900px){
-    /* ... (altri stili mobile) ... */
-
-    /* Riaffermiamo il layout base di #video-area per mobile */
+    /* === 2. BACKGROUND MOBILE === */
+    html, body{
+        background-image: url('images/BGMOBILE.jpg');
+        background-size: cover; 
+        background-repeat: no-repeat;
+    }
+    
+    /* Layout video mobile: colonna singola */
     #video-area{
         display: flex;
         flex-direction: column;
@@ -370,14 +386,16 @@ html, body{
         padding-right: 12px; /* Rimuove lo spazio extra per la chat desktop */
     }
 
-    /* Nasconde i pannelli laterali di default su mobile (Problema 1 risolto) */
+    /* Nasconde i pannelli laterali di default su mobile */
     #participants-panel{ 
-        display: none; 
-        right: 0; /* Ripristina la posizione assoluta per essere gestita dal JS */
+        display: none; /* Nascosto di default, aperto da JS */
+        right: 0; 
+        width: 100%; /* La larghezza 100% sarà gestita dal JS quando è aperto (fixed) */
     }
     #chat-panel{
-        display: none; /* AGGIUNTO: Nascosto di default su mobile, aperto da JS */
-        right: 0; /* Ripristina la posizione assoluta per essere gestita dal JS */
+        display: none; /* Nascosto di default, aperto da JS */
+        right: 0; 
+        width: 100%; /* La larghezza 100% sarà gestita dal JS quando è aperto (fixed) */
     } 
 
     /* Mostra i pulsanti specifici per mobile */
@@ -395,7 +413,7 @@ html, body{
         font-size: 1.2rem;
     }
     
-    /* I controlli non richiedono scroll perché sono fissi */
+    /* I controlli sono fissi su mobile */
     #media-controls{
         position: fixed; 
         bottom: 16px;

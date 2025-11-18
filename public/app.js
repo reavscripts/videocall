@@ -22,13 +22,18 @@ const toggleAudioButton = document.getElementById('toggle-audio-button');
 const toggleVideoButton = document.getElementById('toggle-video-button');
 const disconnectButton = document.getElementById('disconnect-button');
 const roomNameDisplay = document.getElementById('room-name-display'); 
-const shareRoomLinkInput = document.getElementById('share-room-link'); // AGGIUNTO: Input link
+const shareRoomLinkInput = document.getElementById('share-room-link'); 
 
 // Pannelli e pulsanti mobile
-const participantsPanel = document.getElementById('participants-panel'); // AGGIUNTO: Pannello partecipanti
-const chatPanel = document.getElementById('chat-panel'); // AGGIUNTO: Pannello chat
-const showParticipantsBtn = document.getElementById('show-participants-btn'); // AGGIUNTO: Bottone partecipanti
-const showChatBtn = document.getElementById('show-chat-btn'); // AGGIUNTO: Bottone chat
+const participantsPanel = document.getElementById('participants-panel'); 
+const chatPanel = document.getElementById('chat-panel'); 
+const showParticipantsBtn = document.getElementById('show-participants-btn'); 
+const showChatBtn = document.getElementById('show-chat-btn'); 
+
+// Nuovi elementi Chat AGGIUNTI
+const chatMessageInput = document.getElementById('chat-message-input');
+const sendChatButton = document.getElementById('send-chat-button');
+const messagesContainer = document.getElementById('messages-container');
 
 
 mainMuteBtn.addEventListener("click", () => {
@@ -43,9 +48,9 @@ let socket = null;
 let localStream = null;
 let userNickname = 'Ospite';
 let currentRoomId = null; 
-const peerConnections = {}; // Mappa per RTCPeerConnection: { socketId: RTCPeerConnection }
-const remoteNicknames = {}; // Mappa per i nickname remoti
-let focusedPeerId = 'local'; // 'local' o 'socketId'
+const peerConnections = {}; 
+const remoteNicknames = {}; 
+let focusedPeerId = 'local'; 
 
 
 // Configurazione STUN (Server Traversal Utilities for NAT)
@@ -200,7 +205,7 @@ joinButton.addEventListener('click', () => {
                 nicknameOverlay.classList.add('hidden');
                 conferenceContainer.classList.remove('hidden');
                 initializeSocket();
-                setupRoomLink(); // AGGIUNTO: Configura il link della stanza
+                setupRoomLink(); 
             })
             .catch(error => {
                 console.error("Non è stato possibile avviare la webcam:", error.name, error);
@@ -235,7 +240,6 @@ async function startLocalMedia() {
 
 /**
  * Gestisce la visualizzazione e la copia del link della stanza.
- * AGGIUNTO
  */
 function setupRoomLink() {
     // L'URL sarà: https://tuodominio.com/?room=NomeStanza
@@ -247,20 +251,74 @@ function setupRoomLink() {
         shareRoomLinkInput.select();
         document.execCommand('copy');
         
-        // Feedback visivo rapido, l'alert è spesso fastidioso. 
-        // Per semplicità usiamo un alert, ma un tooltip sarebbe meglio.
         alert('Link della stanza copiato negli appunti!');
     });
 }
 
 
 // ==============================================================================
-// GESTIONE CONTROLLI MEDIA E MOBILE (AGGIUNTE FUNZIONI MOBILE)
+// GESTIONE CHAT (NUOVE FUNZIONI AGGIUNTE)
+// ==============================================================================
+
+/**
+ * Aggiunge un messaggio alla chat.
+ */
+function appendMessage(nickname, message, isLocal = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message');
+    if (isLocal) {
+        messageDiv.classList.add('self');
+    }
+
+    const senderSpan = document.createElement('span');
+    senderSpan.classList.add('sender');
+    senderSpan.textContent = isLocal ? 'Tu' : nickname;
+    
+    // Aggiunge la data/ora
+    const timeSpan = document.createElement('span');
+    timeSpan.classList.add('timestamp');
+    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })})`;
+
+    messageDiv.appendChild(senderSpan);
+    messageDiv.appendChild(timeSpan);
+    
+    // Sanifica il messaggio base (semplice)
+    const textNode = document.createTextNode(`: ${message}`);
+    messageDiv.appendChild(textNode);
+
+    messagesContainer.appendChild(messageDiv);
+    
+    // Scroll automatico in basso
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+/**
+ * Gestisce l'invio del messaggio e l'emissione tramite Socket.
+ */
+function sendChatMessage() {
+    const message = chatMessageInput.value.trim();
+    if (message && socket) {
+        // 1. Visualizza localmente
+        appendMessage(userNickname, message, true);
+        
+        // 2. Invia agli altri peer (il server aggiungerà il nickname del mittente)
+        socket.emit('chat-message', message);
+        
+        // 3. Pulisci l'input
+        chatMessageInput.value = '';
+        
+        // 4. Ri-focus l'input per continuare a scrivere (utile su desktop)
+        chatMessageInput.focus(); 
+    }
+}
+
+
+// ==============================================================================
+// GESTIONE CONTROLLI MEDIA E MOBILE 
 // ==============================================================================
 
 /**
  * Funzione per gestire l'apertura/chiusura dei pannelli mobili.
- * AGGIUNTO
  */
 function toggleMobilePanel(panel, otherPanel) {
     const videoArea = document.getElementById('video-area');
@@ -276,7 +334,7 @@ function toggleMobilePanel(panel, otherPanel) {
     // Logica di layout solo per mobile (max-width: 900px, come da CSS)
     if (window.matchMedia("(max-width: 900px)").matches) {
         
-        // Quando un pannello è aperto (non nascosto), nascondi la video-area
+        // Quando un pannello è aperto (non nascosto)
         if (!isNowHidden) {
             videoArea.style.display = 'none';
 
@@ -286,6 +344,13 @@ function toggleMobilePanel(panel, otherPanel) {
              panel.style.width = '100%';
              panel.style.background = 'var(--background-dark)';
              panel.style.zIndex = '150';
+             
+             // SOLUZIONE MOBILE: Focus sull'input della chat dopo che il pannello è visibile
+             if (panel === chatPanel) {
+                 // Aspetta un frame per assicurarsi che il pannello sia visibile nel DOM
+                 setTimeout(() => chatMessageInput.focus(), 50); 
+             }
+
 
         } else {
             // Se entrambi i pannelli sono nascosti, mostra la video-area
@@ -299,23 +364,30 @@ function toggleMobilePanel(panel, otherPanel) {
              panel.style.zIndex = '';
         }
     } else {
-        // Logica desktop: i pannelli sono già gestiti dal CSS (position: absolute)
-        // Dobbiamo solo ripristinare il display della video area se era stato nascosto
+        // Logica desktop: i pannelli sono già gestiti dal CSS
         videoArea.style.display = 'grid';
     }
 }
 
-// Listener per i controlli mobile AGGIUNTI
+// Listener per la chat (AGGIUNTI)
+sendChatButton.addEventListener('click', sendChatMessage);
+
+chatMessageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        sendChatMessage();
+    }
+});
+
+
+// Listener esistenti
 showParticipantsBtn.addEventListener('click', () => {
     toggleMobilePanel(participantsPanel, chatPanel);
 });
 
 showChatBtn.addEventListener('click', () => {
-    // La logica della chat non è implementata, ma l'interfaccia si apre
     toggleMobilePanel(chatPanel, participantsPanel); 
 });
 
-// Listener esistenti
 toggleAudioButton.addEventListener('click', () => {
     const audioTrack = localStream?.getAudioTracks()[0];
     if (audioTrack) {
@@ -401,6 +473,12 @@ function initializeSocket() {
 
     socket.on('candidate', (id, candidate) => {
         handleCandidate(id, candidate);
+    });
+    
+    // NUOVO: Ricezione messaggi di chat
+    // Il server dovrebbe inviare: ID del mittente, Nickname del mittente, Messaggio
+    socket.on('chat-message', (senderId, nickname, message) => {
+        appendMessage(nickname, message, false);
     });
 
     socket.on('user-left', (leavingSocketId) => {
