@@ -15,6 +15,11 @@ const disconnectButton = document.getElementById('disconnect-button');
 const roomNameDisplay = document.getElementById('room-name-display'); 
 const shareRoomLinkInput = document.getElementById('share-room-link'); 
 
+// Partecipanti (NUOVI)
+const participantCount = document.getElementById('participant-count');
+const participantsList = document.getElementById('participants-list');
+const participantsPanel = document.getElementById('participants-panel'); // Aggiunto
+
 // Chat
 const chatPanel = document.getElementById('chat-panel');
 const chatMessageInput = document.getElementById('chat-message-input');
@@ -23,6 +28,7 @@ const messagesContainer = document.getElementById('messages-container');
 
 // Mobile
 const showChatBtn = document.getElementById('show-chat-btn');
+const showParticipantsBtn = document.getElementById('show-participants-btn'); // Aggiunto
 
 // Join overlay
 const joinButton = document.getElementById('join-button');
@@ -39,6 +45,7 @@ let currentRoomId = null;
 const peerConnections = {}; 
 const remoteNicknames = {}; 
 let focusedPeerId = 'local'; 
+let isMobileParticipantsPanelVisible = false;
 
 const iceConfiguration = {
     iceServers: [
@@ -78,6 +85,12 @@ function setMainVideo(peerId) {
 
     if (!videoEl || !labelEl) return;
 
+    // Rimuovi focus da tutti e applica al nuovo
+    document.querySelectorAll('.remote-feed.is-focused').forEach(el => el.classList.remove('is-focused'));
+    if (peerId !== 'local') {
+         remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`)?.classList.add('is-focused');
+    }
+
     if (stream) {
         videoEl.srcObject = stream;
         videoEl.muted = isLocal;
@@ -105,9 +118,17 @@ joinButton.addEventListener('click', () => {
             .then(() => {
                 nicknameOverlay.classList.add('hidden');
                 conferenceContainer.classList.remove('hidden');
+                
+                // Nascondi chat e pannello partecipanti di default su mobile
                 if (window.matchMedia("(max-width: 900px)").matches) {
                     chatPanel.classList.add('hidden');
+                    participantsPanel.classList.add('hidden');
                 }
+
+                // Aggiungi subito l'utente locale alla lista partecipanti
+                addParticipantToDOM('local', userNickname + " (Tu)");
+                updateParticipantCount();
+
                 initializeSocket();
                 setupRoomLink(); 
             })
@@ -130,6 +151,49 @@ async function startLocalMedia() {
     } catch (error) {
         throw error;
     }
+}
+
+// ==============================================================================
+// GESTIONE PARTECIPANTI (NUOVO)
+// ==============================================================================
+function updateParticipantList(userList) {
+    participantsList.innerHTML = ''; // Pulisce la lista
+    
+    // Aggiungi l'utente locale (è già stato aggiunto nel join, lo riaggiungiamo per sicurezza)
+    addParticipantToDOM('local', userNickname + " (Tu)"); 
+
+    // Aggiungi gli utenti remoti
+    userList.filter(u => u.socketId !== socket.id).forEach(user => {
+        addParticipantToDOM(user.socketId, user.nickname);
+    });
+
+    updateParticipantCount();
+}
+
+function addParticipantToDOM(id, nickname) {
+    // Evita duplicati
+    if (participantsList.querySelector(`li[data-peer-id="${id}"]`)) return;
+
+    const template = document.getElementById('participant-item-template');
+    if (!template) return;
+    
+    const listItem = template.content.cloneNode(true).firstElementChild;
+    listItem.dataset.peerId = id;
+    
+    const nameSpan = listItem.querySelector('.participant-name');
+    if (nameSpan) nameSpan.textContent = nickname;
+    
+    participantsList.appendChild(listItem);
+    updateParticipantCount();
+}
+
+function removeParticipantFromDOM(socketId) {
+    participantsList.querySelector(`li[data-peer-id="${socketId}"]`)?.remove();
+    updateParticipantCount();
+}
+
+function updateParticipantCount() {
+    participantCount.textContent = participantsList.children.length;
 }
 
 // ==============================================================================
@@ -187,49 +251,90 @@ chatMessageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') se
 // ==============================================================================
 function toggleMobileChat() {
     const videoArea = document.getElementById('video-area');
+    
+    // Se il pannello partecipanti è aperto, chiudilo
+    if (isMobileParticipantsPanelVisible) {
+        participantsPanel.classList.add('hidden');
+        isMobileParticipantsPanelVisible = false;
+        // La videoArea rimane hidden finché non viene chiusa la chat
+    }
+
     const isHidden = chatPanel.classList.contains('hidden');
 
     if (isHidden) {
+        // Mostra Chat
         chatPanel.classList.remove('hidden');
-        chatPanel.style.position = 'fixed';
-        chatPanel.style.inset = '0';
-        chatPanel.style.width = '100%';
-        chatPanel.style.height = '100%';
-        chatPanel.style.background = 'var(--background-dark)';
-        chatPanel.style.zIndex = '150';
-        chatPanel.style.display = 'flex';
-        videoArea.style.display = 'none';
+        chatPanel.classList.add('show');
+        videoArea.classList.add('hidden'); 
         setTimeout(() => chatMessageInput.focus(), 50);
         adjustChatForKeyboard();
     } else {
+        // Nascondi Chat
         chatPanel.classList.add('hidden');
-        chatPanel.style.position = '';
-        chatPanel.style.inset = '';
-        chatPanel.style.width = '';
-        chatPanel.style.height = '';
-        chatPanel.style.background = '';
-        chatPanel.style.zIndex = '';
-        chatPanel.style.display = '';
-        videoArea.style.display = 'flex';
+        chatPanel.classList.remove('show');
+        videoArea.classList.remove('hidden');
+    }
+}
+
+function toggleMobileParticipants() {
+    const videoArea = document.getElementById('video-area');
+    
+    // Se la chat è aperta, chiudila
+    if (chatPanel.classList.contains('show')) {
+        chatPanel.classList.add('hidden');
+        chatPanel.classList.remove('show');
+        // La videoArea rimane hidden finché non viene chiuso il pannello partecipanti
+    }
+
+    const isHidden = participantsPanel.classList.contains('hidden');
+    
+    if (isHidden) {
+        // Mostra Partecipanti
+        participantsPanel.classList.remove('hidden');
+        participantsPanel.style.position = 'fixed';
+        participantsPanel.style.inset = '0';
+        participantsPanel.style.width = '100%';
+        participantsPanel.style.height = '100%';
+        participantsPanel.style.background = 'var(--background-dark)';
+        participantsPanel.style.zIndex = '150';
+        participantsPanel.style.display = 'flex';
+        videoArea.classList.add('hidden');
+        isMobileParticipantsPanelVisible = true;
+    } else {
+        // Nascondi Partecipanti
+        participantsPanel.classList.add('hidden');
+        participantsPanel.style.position = '';
+        participantsPanel.style.inset = '';
+        participantsPanel.style.width = '';
+        participantsPanel.style.height = '';
+        participantsPanel.style.background = '';
+        participantsPanel.style.zIndex = '';
+        participantsPanel.style.display = 'none';
+        videoArea.classList.remove('hidden');
+        isMobileParticipantsPanelVisible = false;
     }
 }
 
 showChatBtn.addEventListener('click', toggleMobileChat);
+showParticipantsBtn.addEventListener('click', toggleMobileParticipants);
 
 // ==============================================================================
 // ADATTAMENTO CHAT MOBILE CON TASTIERA
 // ==============================================================================
 if (window.matchMedia("(max-width: 900px)").matches) {
     function adjustChatForKeyboard() {
-        const vh = window.innerHeight;
-        const inputHeight = chatMessageInput.offsetHeight + 16;
-        const panelPadding = 20;
-        const availableHeight = vh - inputHeight - panelPadding;
-        messagesContainer.style.height = availableHeight + 'px';
+        // Logica semplificata, assumendo che i messaggi debbano occupare tutto lo spazio disponibile.
+        // La gestione di `max-height` viene fatta in CSS, qui ci assicuriamo che l'area sia visibile.
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    window.addEventListener('resize', adjustChatForKeyboard);
+    // Le logiche focus/blur e resize sono corrette, ma ho rimosso l'impostazione di `height` in JS
+    // preferendo la gestione in CSS per una maggiore compatibilità mobile.
+    // Tuttavia, lasciamo gli handler per scorrere in fondo e re-focus.
+
+    window.addEventListener('resize', () => {
+        if (chatPanel.classList.contains('show')) adjustChatForKeyboard();
+    });
     chatMessageInput.addEventListener('focus', adjustChatForKeyboard);
     chatMessageInput.addEventListener('blur', adjustChatForKeyboard);
 }
@@ -324,12 +429,14 @@ function initializeSocket() {
                 callUser(user.socketId, true);
             }
         });
+        updateParticipantList(userList); // Aggiorna la lista partecipanti
         if (userList.length > 0) document.getElementById('remote-video-placeholder')?.classList.add('hidden');
     });
 
     socket.on('user-joined', (newSocketId, newNickname) => {
         remoteNicknames[newSocketId] = newNickname;
         callUser(newSocketId, false);
+        addParticipantToDOM(newSocketId, newNickname); // Aggiungi il nuovo utente alla lista
         document.getElementById('remote-video-placeholder')?.classList.add('hidden');
     });
 
@@ -382,6 +489,8 @@ function removePeer(socketId) {
     delete peerConnections[socketId];
     delete remoteNicknames[socketId];
     remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`)?.remove();
+    
+    removeParticipantFromDOM(socketId); // Rimuovi l'utente dalla lista
 
     if (focusedPeerId === socketId) {
         const remainingPeerIds = Object.keys(peerConnections);

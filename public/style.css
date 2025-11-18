@@ -76,14 +76,65 @@ html, body{
     cursor: pointer;
 }
 
+/* Modifiche per il layout desktop con griglia */
 #conference-container{
-    position: relative;
+    display: grid; /* Abilita la griglia */
+    /* Colonna Partecipanti (280px), Area Video (1fr), Chat (300px) */
+    grid-template-columns: 280px 1fr 300px; 
+    grid-template-rows: 100vh;
+    gap: 12px;
+    padding: 12px;
     height: 100vh;
+    width: 100vw;
+    position: relative;
+}
+
+/* PANNELLO PARTECIPANTI */
+#participants-panel{
+    grid-column: 1 / 2; /* Prima colonna */
+    grid-row: 1 / 1;
+    background: rgba(30,30,30,0.9);
+    padding: 15px;
+    border-radius: 12px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+#participants-panel h3{
+    margin-top: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+#participants-list{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-grow: 1;
+}
+
+#participants-list li{
+    padding: 8px 0;
+    border-bottom: 1px dotted rgba(255,255,255,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-indicator{
+    width: 8px;
+    height: 8px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 5px;
 }
 
 /* ROOM HEADER */
 #room-header{
-    position: relative;
+    /* Posiziona nell'area principale (colonna 2) */
     grid-column: 1 / 3;
     grid-row: 1 / 2;
     background: rgba(30,30,30,0.85);
@@ -114,11 +165,12 @@ html, body{
 
 /* VIDEO AREA */
 #video-area{
+    grid-column: 2 / 3; /* Seconda colonna */
+    grid-row: 1 / 1;
     display: grid;
     grid-template-columns: 330px 1fr; 
     grid-template-rows: auto 1fr; 
     gap: 12px;
-    height: 100%;
     position: relative;
 }
 
@@ -197,19 +249,20 @@ html, body{
 
 /* CHAT */
 #chat-panel{
-    position: absolute;
-    right: 0; 
-    top: 0;
-    width: 300px; 
+    grid-column: 3 / 4; /* Terza colonna */
+    grid-row: 1 / 1;
+    width: 100%; /* Rimosso position: absolute per layout desktop */
     height: 100%;
     background: rgba(30,30,30,0.9);
     padding: 10px;
     z-index: 100;
     display: flex; 
     flex-direction: column;
+    border-radius: 12px; /* Aggiunto rounded corners come il pannello partecipanti */
 }
 
 #chat-panel.show {
+    /* Questo è per il mobile, lascialo così */
     display: flex !important;
 }
 
@@ -324,11 +377,27 @@ html, body{
         background-size: cover; 
         background-repeat: no-repeat;
     }
+    
+    /* Configurazione per Mobile: Flexbox invece di Grid */
+    #conference-container{
+        display: flex;
+        flex-direction: column;
+        padding: 12px;
+        gap: 12px;
+        height: 100vh;
+        width: 100vw;
+        overflow-y: hidden; /* Evita lo scroll indesiderato */
+    }
+
+    #participants-panel {
+        display: none; /* Nascondi il pannello partecipanti su mobile */
+    }
 
     #video-area{
         display: flex;
         flex-direction: column;
-        padding-left: 12px;
+        padding-left: 0; /* Rimosso padding-left: 12px; */
+        flex-grow: 1;
     }
 
     #chat-panel{
@@ -344,18 +413,24 @@ html, body{
         z-index: 200;
         transform: translateX(100%);
         transition: transform 0.3s ease;
+        padding-bottom: 70px; /* Spazio per i controlli media */
     }
-
+    
     #chat-panel.show{
         transform: translateX(0);
+        display: flex; /* Assicura la visualizzazione quando mostrato */
     }
 
     #messages-container{
-        max-height: calc(100vh - 100px);
+        /* max-height: calc(100vh - 100px); */
+        /* La gestione dell'altezza è demandata alla funzione adjustChatForKeyboard in JS */
+        max-height: none;
     }
 
     #media-controls{
-        bottom: 60px; 
+        bottom: 12px; /* Posizionato meglio per non sovrapporsi all'input della chat */
+        padding: 8px;
+        background: rgba(20,20,20,0.8);
     }
 
     #media-controls .mobile-only {
@@ -364,12 +439,15 @@ html, body{
 
     #main-video-feed{
         height: 40vh; 
+        grid-column: 1 / 3; /* Occupa tutta la larghezza in mobile */
+        grid-row: 2 / 3; 
     }
 
     #remote-videos-container{
         height: 40vh; 
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         grid-auto-rows: 110px;
+        flex-grow: 1;
     }
 }
 
