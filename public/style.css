@@ -99,7 +99,7 @@ html, body{
     padding: 15px;
     border-radius: 12px;
     height: 100%;
-    display: flex; /* DEVE ESSERE FLEX SU DESKTOP */
+    display: flex; /* VISIBILE SU DESKTOP */
     flex-direction: column;
     overflow-y: auto;
 }
@@ -134,7 +134,7 @@ html, body{
     margin-left: 5px;
 }
 
-/* ROOM HEADER (Posizionato sopra l'area video e la lista remota) */
+/* ROOM HEADER */
 #room-header{
     grid-column: 2 / 3;
     grid-row: 1 / 2;
@@ -257,7 +257,7 @@ html, body{
     background: rgba(30,30,30,0.9);
     padding: 10px;
     z-index: 100;
-    display: flex; /* DEVE ESSERE FLEX SU DESKTOP */
+    display: flex; /* VISIBILE SU DESKTOP */
     flex-direction: column;
     border-radius: 12px;
 }
@@ -387,20 +387,12 @@ html, body{
         overflow-y: hidden; 
     }
 
-    /* L'area video deve occupare tutto lo spazio quando i pannelli sono chiusi */
-    #video-area{
-        display: flex;
-        flex-direction: column;
-        padding-left: 0; 
-        flex-grow: 1;
-    }
-
     /* Nascondi video area quando la chat/partecipanti sono aperti */
     #video-area.hidden {
         display: none !important;
     }
 
-    /* Nascondi pannelli laterali di default su mobile */
+    /* Stili per overlay full screen su mobile */
     #participants-panel, 
     #chat-panel {
         /* Reset da desktop grid */
@@ -420,33 +412,32 @@ html, body{
         z-index: 200;
     }
     
-    /* CHAT MOBILE */
+    /* CHAT MOBILE: Nascosta tramite trasformazione e display: none iniziale */
     #chat-panel{
         transform: translateX(100%);
         transition: transform 0.3s ease;
-        padding-bottom: 70px; /* Spazio per i controlli media */
-        display: none; /* Nascondi di default */
+        padding-bottom: 70px; 
+        display: none; /* Inizialmente nascosto */
     }
     
     #chat-panel.show{
         transform: translateX(0);
-        display: flex; /* Mostra la chat quando ha la classe 'show' */
+        display: flex; /* MOSTRA la chat quando ha la classe 'show' */
     }
     
-    /* PARTECIPANTI MOBILE */
+    /* PARTECIPANTI MOBILE: Nascosto tramite trasformazione e display: none iniziale */
     #participants-panel {
         transform: translateX(100%);
         transition: transform 0.3s ease;
-        display: none; /* Nascondi di default */
+        display: none; /* Inizialmente nascosto */
     }
 
     #participants-panel.show-mobile {
         transform: translateX(0);
-        display: flex; /* Mostra i partecipanti quando ha la classe 'show-mobile' */
+        display: flex; /* MOSTRA i partecipanti quando ha la classe 'show-mobile' */
         z-index: 250;
     }
     
-
     #media-controls{
         bottom: 12px; 
         padding: 8px;

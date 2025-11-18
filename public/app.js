@@ -246,12 +246,11 @@ chatMessageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') se
 function toggleMobileChat() {
     const videoArea = document.getElementById('video-area');
     
-    // Se il pannello partecipanti è aperto, chiudilo
+    // Se i partecipanti sono aperti, chiudili
     if (participantsPanel.classList.contains('show-mobile')) {
-        toggleMobileParticipants(); 
+        participantsPanel.classList.remove('show-mobile');
     }
 
-    // Toggle della classe 'show' che gestisce la trasformazione CSS
     const isHidden = !chatPanel.classList.contains('show'); 
 
     if (isHidden) {
@@ -272,14 +271,13 @@ function toggleMobileParticipants() {
     
     // Se la chat è aperta, chiudila
     if (chatPanel.classList.contains('show')) {
-        toggleMobileChat(); 
+        chatPanel.classList.remove('show');
     }
 
-    // Toggle della classe 'show-mobile'
     const isHidden = !participantsPanel.classList.contains('show-mobile');
     
     if (isHidden) {
-        // Mostra Partecipanti (usa la classe 'show-mobile' per gli stili full-screen)
+        // Mostra Partecipanti
         participantsPanel.classList.add('show-mobile');
         videoArea.classList.add('hidden');
     } else {
