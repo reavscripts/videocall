@@ -81,13 +81,13 @@ body {
 }
 
 /* ============================================================================== */
-/* CHAT PANEL (DESKTOP) */
+/* CHAT PANEL (DESKTOP) - VISIBILE PER DEFAULT */
 /* ============================================================================== */
 #chat-panel {
     width: 300px;
     background: #1a1a1a;
     border-left: 2px solid #333;
-    display: flex;
+    display: flex; /* La chat è VISIBILE sul desktop (> 900px) */
     flex-direction: column;
 }
 
@@ -175,9 +175,9 @@ body {
         flex-direction: column;
     }
 
-    /* Chat nascosta di default */
+    /* Chat nascosta di default su mobile */
     #chat-panel {
-        display: none !important;
+        display: none; 
         position: fixed;
         top: 0;
         left: 0;
@@ -187,8 +187,8 @@ body {
         flex-direction: column;
     }
 
-    /* Chat visibile se JS aggiunge la classe show */
-    #chat-panel.show {
+    /* Chat visibile se JS aggiunge la classe show-mobile */
+    #chat-panel.show-mobile { 
         display: flex !important;
     }
 

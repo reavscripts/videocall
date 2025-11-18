@@ -20,6 +20,8 @@ const chatPanel = document.getElementById('chat-panel');
 const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
 const messagesContainer = document.getElementById('messages-container');
+// Area Video (aggiunta per la gestione mobile)
+const videoArea = document.getElementById('video-area');
 
 // Mobile
 const showChatBtn = document.getElementById('show-chat-btn'); 
@@ -187,10 +189,23 @@ sendChatButton.addEventListener('click', sendChatMessage);
 chatMessageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
 // ==============================================================================
-// MOBILE CHAT
+// MOBILE CHAT (LOGICA AGGIUNTA)
 // ==============================================================================
 showChatBtn.addEventListener('click', () => {
-    chatPanel.classList.toggle('show-mobile');
+    // 1. Usa la classe 'show-mobile' per coerenza con style.css
+    chatPanel.classList.add('show-mobile');
+    // 2. Nasconde l'area video principale (mobile)
+    videoArea.classList.add('hidden'); 
+});
+
+// Listener per tornare ai video (gestisce il click sull'area superiore del chat-panel)
+chatPanel.addEventListener('click', (e) => {
+    // Controlla se l'elemento cliccato è il chatPanel stesso e se la chat è aperta.
+    // Questo è un workaround per intercettare il click sul pseudo-elemento ::before.
+    if(chatPanel.classList.contains('show-mobile') && e.target === chatPanel) {
+        chatPanel.classList.remove('show-mobile');
+        videoArea.classList.remove('hidden');
+    }
 });
 
 // ==============================================================================
