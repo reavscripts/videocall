@@ -1,5 +1,5 @@
 // ==============================================================================
-// public/app.js - VERSIONE DEFINITIVA E ROBUSTA (Aggressive Fix)
+// public/app.js - VERSIONE PULITA
 // ==============================================================================
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
@@ -47,48 +47,6 @@ const iceConfiguration = {
         { urls: 'stun:stun1.l.google.com:19302' },
     ]
 };
-
-// ==============================================================================
-// UTILITY: Forza la rimozione della classe 'hidden' sul pannello chat (Aggressive Fix)
-// ==============================================================================
-function forceShowChatPanelOnce() {
-    if (!chatPanel) return;
-    // Rimuove la classe 'hidden' dal DOM
-    chatPanel.classList.remove('hidden');
-    // Rimuove eventuale style inline 'display: none' che nasconde
-    if (chatPanel.style && chatPanel.style.display === 'none') chatPanel.style.display = '';
-}
-
-// Esegui subito e ripeti per i primi istanti per coprire inizializzazioni asincrone
-(function ensureChatVisibleImmediately() {
-    forceShowChatPanelOnce();
-    let tries = 0;
-    const maxTries = 8;
-    const intervalId = setInterval(() => {
-        tries++;
-        forceShowChatPanelOnce();
-        if (tries >= maxTries) clearInterval(intervalId);
-    }, 250);
-    setTimeout(() => forceShowChatPanelOnce(), 2500);
-})();
-
-// MutationObserver: se qualche script ri-aggiunge 'hidden', lo rimuoviamo immediatamente
-if (chatPanel && typeof MutationObserver !== 'undefined') {
-    try {
-        const mo = new MutationObserver((mutations) => {
-            for (const m of mutations) {
-                if (m.type === 'attributes' && m.attributeName === 'class') {
-                    if (chatPanel.classList.contains('hidden')) {
-                        chatPanel.classList.remove('hidden');
-                    }
-                }
-            }
-        });
-        mo.observe(chatPanel, { attributes: true, attributeFilter: ['class'] });
-    } catch (e) {
-        console.warn('MutationObserver non disponibile o fallita la registrazione:', e);
-    }
-}
 
 // ==============================================================================
 // FUNZIONI UI E HELPERS
@@ -152,7 +110,7 @@ joinButton?.addEventListener('click', () => {
 
         startLocalMedia()
             .then(() => {
-                nicknameOverlay?.classList.add('hidden');
+                nicknameOverlay?.classList.add('hidden'); 
                 conferenceContainer?.classList.remove('hidden');
                 createLocalVideoElement();
                 setMainVideo('local');
@@ -236,11 +194,10 @@ chatMessageInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') s
 function ensureChatResponsiveState() {
     const mobileBreakpoint = 900;
     
-    // Assicura che la classe 'hidden' sia rimossa
-    forceShowChatPanelOnce(); 
-
+    // Su desktop (>=901px), il CSS gestisce la visibilità di default.
+    // Usiamo lo stato 'show' per indicare se la chat è 'aperta' (visibile) o 'chiusa' (nascosta)
     if (window.innerWidth >= mobileBreakpoint) {
-        // Desktop: Chat visibile per default (il CSS lo fa)
+        // Desktop: Chat visibile per default.
         if (chatPanel) {
             // Inizializza forzando 'show' e 'flex' per lo stato iniziale di default aperto
             chatPanel.style.display = 'flex';
@@ -251,7 +208,7 @@ function ensureChatResponsiveState() {
         if (videoArea) videoArea.classList.remove('hidden');
         
     } else {
-        // Mobile: default chiuso (aperto solo con .show)
+        // Mobile: default chiuso.
         if (chatPanel) {
             chatPanel.classList.remove('show');
             chatPanel.style.display = ''; // Rimuovi lo style inline per far funzionare le media query
@@ -322,7 +279,7 @@ showVideoBtn?.addEventListener('click', () => {
 });
 
 // ==============================================================================
-// CONTROLLI AUDIO/VIDEO/DISCONNECT (omesse per brevità, sono invariate)
+// CONTROLLI AUDIO/VIDEO/DISCONNECT
 // ==============================================================================
 toggleAudioButton?.addEventListener('click', () => {
     const audioTrack = localStream?.getAudioTracks()[0];
@@ -347,9 +304,8 @@ disconnectButton?.addEventListener('click', () => {
     window.location.reload();
 });
 
-
 // ==============================================================================
-// WEBRTC / SOCKET.IO (omesse per brevità, sono invariate)
+// WEBRTC / SOCKET.IO
 // ==============================================================================
 function getOrCreatePeerConnection(socketId) {
     if (peerConnections[socketId]) return peerConnections[socketId];
@@ -479,7 +435,5 @@ function removePeer(socketId) {
 // ==============================================================================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOMContentLoaded: Inizializzazione logica responsive chat.');
-    // Rimuove la classe 'hidden' per sicurezza all'avvio del DOM
-    forceShowChatPanelOnce(); 
     ensureChatResponsiveState();
 });
