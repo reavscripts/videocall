@@ -97,17 +97,17 @@ html, body{
 */
 #video-area{
     display: grid;
-    grid-template-columns: 330px 1fr 300px; /* MODIFICATO */
+    grid-template-columns: 330px 1fr 300px; 
     grid-template-rows: auto 1fr; 
     gap: 12px;
     height: 100%;
-    padding-right: 312px; /* AGGIUNTO: spazio a destra per la chat (300px + 12px di padding destro) */
+    padding-right: 312px; 
     padding-left: 12px;
 }
 
 /* Header stanza */
 #room-header{
-    grid-column: 2 / 3; /* MODIFICATO: L'header va nella colonna centrale */
+    grid-column: 2 / 3; 
     grid-row: 1 / 2; 
     
     display: flex;
@@ -169,7 +169,7 @@ html, body{
     gap: 10px;
     overflow-y: auto;
     padding: 6px;
-    grid-column: 2 / 3; /* MODIFICATO: La galleria va nella colonna centrale */
+    grid-column: 2 / 3; 
     grid-row: 2 / 3; 
 }
 
@@ -211,7 +211,7 @@ html, body{
 #participants-panel{
     /* Posiziona a sinistra della Chat (che è 300px) */
     position: absolute;
-    right: 300px; /* AGGIUNTO */
+    right: 300px; 
     top: 0;
     width: 240px;
     height: 100%;
@@ -387,15 +387,20 @@ html, body{
     }
 
     /* Nasconde i pannelli laterali di default su mobile */
+    /* Importante: il display è 'none' per default, il JS gestisce 'fixed' e 'inset: 0' all'apertura */
     #participants-panel{ 
-        display: none; /* Nascosto di default, aperto da JS */
+        display: none; 
         right: 0; 
-        width: 100%; /* La larghezza 100% sarà gestita dal JS quando è aperto (fixed) */
+        width: 100%; 
     }
     #chat-panel{
-        display: none; /* Nascosto di default, aperto da JS */
+        display: none; /* Nascosto di default */
         right: 0; 
-        width: 100%; /* La larghezza 100% sarà gestita dal JS quando è aperto (fixed) */
+        width: 100%; 
+        /* Aggiungo esplicitamente height: 100vh qui. 
+           Il JS imposta 'position: fixed' e 'inset: 0' che è necessario per
+           il corretto dimensionamento a schermo intero su mobile. */
+        height: 100vh;
     } 
 
     /* Mostra i pulsanti specifici per mobile */
