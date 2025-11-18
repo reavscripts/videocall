@@ -24,13 +24,13 @@ const disconnectButton = document.getElementById('disconnect-button');
 const roomNameDisplay = document.getElementById('room-name-display'); 
 const shareRoomLinkInput = document.getElementById('share-room-link'); 
 
-// Pannelli e pulsanti mobile AGGIUNTI
+// Pannelli e pulsanti mobile
 const participantsPanel = document.getElementById('participants-panel'); 
 const chatPanel = document.getElementById('chat-panel'); 
 const showParticipantsBtn = document.getElementById('show-participants-btn'); 
 const showChatBtn = document.getElementById('show-chat-btn'); 
 
-// Elementi Chat AGGIUNTI
+// Elementi Chat
 const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
 const messagesContainer = document.getElementById('messages-container');
@@ -257,7 +257,7 @@ function setupRoomLink() {
 
 
 // ==============================================================================
-// GESTIONE CHAT (FUNZIONI AGGIUNTE)
+// GESTIONE CHAT
 // ==============================================================================
 
 /**
@@ -307,7 +307,7 @@ function sendChatMessage() {
         // 3. Pulisci l'input
         chatMessageInput.value = '';
         
-        // 4. Ri-focus l'input per continuare a scrivere (utile su desktop e mobile)
+        // 4. Ri-focus l'input per continuare a scrivere
         chatMessageInput.focus(); 
     }
 }
@@ -319,15 +319,15 @@ function sendChatMessage() {
 
 /**
  * Funzione per gestire l'apertura/chiusura dei pannelli mobili.
- * Questa funzione è FONDAMENTALE per la visualizzazione mobile.
+ * Questa funzione è stata semplificata per affidare il layout mobile al CSS.
  */
 function toggleMobilePanel(panel, otherPanel) {
     const videoArea = document.getElementById('video-area');
 
-    // Se il pannello è nascosto, usiamo .toggle('hidden') per mostrarlo (e viceversa)
+    // Togli o aggiungi la classe 'hidden' al pannello corrente
     const isNowHidden = panel.classList.toggle('hidden');
     
-    // Nascondi sempre l'altro pannello per evitare sovrapposizioni su mobile
+    // Nascondi sempre l'altro pannello
     if (!otherPanel.classList.contains('hidden')) {
         otherPanel.classList.add('hidden');
     }
@@ -337,38 +337,21 @@ function toggleMobilePanel(panel, otherPanel) {
         
         // Quando un pannello è aperto (non nascosto)
         if (!isNowHidden) {
-            // Nasconde l'area video per dare spazio al pannello
+            // Nasconde l'area video
             videoArea.style.display = 'none';
-
-            // Forza il pannello aperto a occupare tutto lo spazio (solo su mobile)
-             panel.style.position = 'fixed';
-             panel.style.inset = '0';
-             panel.style.width = '100%';
-             panel.style.height = '100%'; // Uso 100% qui per consistenza, anche se CSS ha 100vh
-             panel.style.background = 'var(--background-dark)';
-             panel.style.zIndex = '150';
              
-             // SOLUZIONE MOBILE: Focus sull'input della chat (migliora usabilità)
-             if (panel === chatPanel) {
+            // SOLUZIONE MOBILE: Focus sull'input della chat
+            if (panel === chatPanel) {
+                 // Attendiamo un attimo per dare al browser il tempo di visualizzare il pannello
                  setTimeout(() => chatMessageInput.focus(), 50); 
-             }
-
+            }
 
         } else {
             // Se entrambi i pannelli sono nascosti, mostra la video-area
             videoArea.style.display = 'flex';
-            
-            // Ripristina gli stili del pannello chiuso
-             panel.style.position = '';
-             panel.style.inset = '';
-             panel.style.width = '';
-             panel.style.height = '';
-             panel.style.background = '';
-             panel.style.zIndex = '';
         }
     } else {
-        // Logica desktop: i pannelli sono già gestiti dal CSS
-        videoArea.style.display = 'grid';
+        // Logica desktop: non facciamo nulla sugli stili di posizionamento/dimensione, lo fa il CSS.
     }
 }
 

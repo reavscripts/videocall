@@ -44,18 +44,16 @@ html, body{
 
 /* Stile per il Logo */
 #app-logo {
-    /* Larghezza impostata a 90% del contenitore e limitata a 430px, come la card */
     width: 90%; 
     max-width: 430px; 
     height: auto;
-    margin: 0 auto 15px auto; /* Spazio tra logo e card */
+    margin: 0 auto 15px auto; 
 }
 
 .card{
     background: var(--surface-dark);
     padding: 32px;
     border-radius: 12px;
-    /* Mantenute le stesse regole di larghezza del logo per l'allineamento */
     width: 90%; 
     max-width: 430px; 
     text-align: center;
@@ -90,11 +88,7 @@ html, body{
     height: 100vh;
 }
 
-/* * LAYOUT GRID DESKTOP CORRETTO:
- * Colonna 1: Video Principale (330px)
- * Colonna 2: Header + Galleria Miniature (1fr)
- * Colonna 3: Chat Panel (300px) 
-*/
+/* * LAYOUT GRID DESKTOP * */
 #video-area{
     display: grid;
     grid-template-columns: 330px 1fr 300px; 
@@ -209,7 +203,6 @@ html, body{
 
 /* Pannello partecipanti (Desktop) */
 #participants-panel{
-    /* Posiziona a sinistra della Chat (che è 300px) */
     position: absolute;
     right: 300px; 
     top: 0;
@@ -220,6 +213,8 @@ html, body{
     border-left: 1px solid var(--border-color);
     overflow-y: auto;
     z-index: 50;
+    display: flex; /* Necessario per il layout chat/partecipanti anche se è la stessa struttura */
+    flex-direction: column; 
 }
 
 #participants-list li{
@@ -240,7 +235,6 @@ html, body{
 
 /* Stili Chat Panel (Desktop) */
 #chat-panel{
-    /* Fissa all'estrema destra */
     position: absolute;
     right: 0; 
     top: 0;
@@ -251,11 +245,11 @@ html, body{
     border-left: 1px solid var(--border-color);
     z-index: 50;
     display: flex; 
-    flex-direction: column; /* Messaggi sopra, input sotto */
+    flex-direction: column; 
 }
 
 #messages-container {
-    flex-grow: 1; /* Il contenitore dei messaggi occupa lo spazio principale */
+    flex-grow: 1; 
     overflow-y: auto;
     padding: 5px;
     margin-bottom: 10px;
@@ -285,7 +279,6 @@ html, body{
 }
 
 #chat-input-area {
-    /* Mantenuto flessibile per input e bottone */
     display: flex;
     gap: 5px;
     padding-top: 5px;
@@ -314,7 +307,6 @@ html, body{
 
 /* Media Controls */
 #media-controls{
-    /* Mantiene la posizione assoluta per il desktop */
     position: absolute; 
     bottom: 16px;
     left: 50%;
@@ -382,25 +374,33 @@ html, body{
     #video-area{
         display: flex;
         flex-direction: column;
-        grid-template-columns: none; /* Rimuove la griglia desktop */
-        padding-right: 12px; /* Rimuove lo spazio extra per la chat desktop */
+        grid-template-columns: none; 
+        padding-right: 12px; 
     }
 
-    /* Nasconde i pannelli laterali di default su mobile */
-    /* Importante: il display è 'none' per default, il JS gestisce 'fixed' e 'inset: 0' all'apertura */
-    #participants-panel{ 
-        display: none; 
+    /* Stili di base per i pannelli mobile (nascosti di default) */
+    #participants-panel, #chat-panel {
+        /* Questo è importante per il layout flex column e lo sfondo solido */
+        position: absolute; 
         right: 0; 
+        top: 0;
         width: 100%; 
+        height: 100%; /* Altezza 100% rispetto al genitore (#conference-container) */
+        background: var(--background-dark); /* SFONDO SOLIDO per coprire l'immagine del body */
+        padding: 10px;
+        z-index: 140; 
     }
-    #chat-panel{
-        display: none; /* Nascosto di default */
-        right: 0; 
-        width: 100%; 
-        /* Aggiungo esplicitamente height: 100vh qui. 
-           Il JS imposta 'position: fixed' e 'inset: 0' che è necessario per
-           il corretto dimensionamento a schermo intero su mobile. */
+
+    /* Stili attivati SOLO quando il pannello è visibile (senza la classe 'hidden') */
+    #chat-panel:not(.hidden), #participants-panel:not(.hidden) {
+        /* Forza a schermo intero fisso per la corretta visualizzazione mobile */
+        position: fixed; 
+        inset: 0;
+        width: 100vw;
         height: 100vh;
+        z-index: 150;
+        display: flex; /* Il JS deve impostare il display: flex; invece di block per questo punto */
+        flex-direction: column;
     } 
 
     /* Mostra i pulsanti specifici per mobile */
