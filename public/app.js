@@ -12,7 +12,6 @@ const participantCountSpan = document.getElementById('participant-count');
 const joinButton = document.getElementById('join-button');
 const nicknameInput = document.getElementById('nickname-input');
 const roomIdInput = document.getElementById('room-id-input'); 
-
 const mainVideoFeed = document.getElementById('main-video-feed');
 const mainMuteBtn = document.getElementById("main-mute-btn");
 const remoteVideoPlaceholder = document.getElementById('remote-video-placeholder');
@@ -21,6 +20,7 @@ const toggleVideoButton = document.getElementById('toggle-video-button');
 const disconnectButton = document.getElementById('disconnect-button');
 const roomNameDisplay = document.getElementById('room-name-display'); 
 const shareRoomLinkInput = document.getElementById('share-room-link'); 
+const copyNotification = document.getElementById('copy-notification');
 
 // Pannelli e pulsanti mobile
 const participantsPanel = document.getElementById('participants-panel'); 
@@ -39,9 +39,7 @@ mainMuteBtn.addEventListener("click", () => {
     mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
 });
 
-// ==============================================================================
-// VARIABILI DI STATO
-// ==============================================================================
+// --- VARIABILI DI STATO ---
 let socket = null;
 let localStream = null;
 let userNickname = 'Ospite';
@@ -58,17 +56,9 @@ const iceConfiguration = {
 };
 
 // ==============================================================================
-// POPOLAMENTO AUTOMATICO CAMPO STANZA DA URL
-// ==============================================================================
-const urlParams = new URLSearchParams(window.location.search);
-const roomFromUrl = urlParams.get('room');
-if (roomFromUrl) {
-    roomIdInput.value = roomFromUrl;
-}
-
-// ==============================================================================
 // FUNZIONI UI
 // ==============================================================================
+
 function updateParticipantCount() {
     if (participantCountSpan) {
         participantCountSpan.textContent = 1 + Object.keys(remoteNicknames).length;
@@ -104,6 +94,7 @@ function updateParticipantList(id, nickname, isLocal = false) {
 // ==============================================================================
 // GESTIONE FOCUS VIDEO
 // ==============================================================================
+
 function setMainVideo(peerId) {
     let stream, nickname, isLocal = false;
     if (peerId === 'local') {
@@ -147,6 +138,12 @@ function setMainVideo(peerId) {
 // ==============================================================================
 // GESTIONE INGRESSO UTENTE
 // ==============================================================================
+
+// Popola stanza da URL se presente
+const urlParams = new URLSearchParams(window.location.search);
+const roomFromUrl = urlParams.get('room');
+if (roomFromUrl) roomIdInput.value = roomFromUrl;
+
 joinButton.addEventListener('click', () => {
     const nickname = nicknameInput.value.trim();
     const roomId = roomIdInput.value.trim(); 
@@ -188,19 +185,26 @@ async function startLocalMedia() {
     }
 }
 
+// ==============================================================================
+// GESTIONE LINK STANZA
+// ==============================================================================
+
 function setupRoomLink() {
     const roomUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
     shareRoomLinkInput.value = roomUrl;
+
     shareRoomLinkInput.addEventListener('click', () => {
         shareRoomLinkInput.select();
         document.execCommand('copy');
-        alert('Link della stanza copiato negli appunti!');
+        copyNotification.style.opacity = '1';
+        setTimeout(() => { copyNotification.style.opacity = '0'; }, 1500);
     });
 }
 
 // ==============================================================================
 // CHAT
 // ==============================================================================
+
 function appendMessage(nickname, message, isLocal = false) {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message');
@@ -212,7 +216,7 @@ function appendMessage(nickname, message, isLocal = false) {
     
     const timeSpan = document.createElement('span');
     timeSpan.classList.add('timestamp');
-    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
+    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })})`;
 
     messageDiv.appendChild(senderSpan);
     messageDiv.appendChild(timeSpan);
@@ -237,6 +241,7 @@ chatMessageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') se
 // ==============================================================================
 // CONTROLLI MOBILE
 // ==============================================================================
+
 function toggleMobilePanel(panel, otherPanel) {
     const videoArea = document.getElementById('video-area');
     otherPanel.classList.add('hidden');
@@ -297,15 +302,16 @@ disconnectButton.addEventListener('click', () => {
 // ==============================================================================
 // ADATTAMENTO CHAT MOBILE CON TASTIERA
 // ==============================================================================
+
 if (window.matchMedia("(max-width: 900px)").matches) {
     function adjustChatPanel() {
-        const vh = window.innerHeight;
-        const inputHeight = chatMessageInput.offsetHeight + 16;
-        const panelPadding = 20;
+        const vh = window.innerHeight; 
+        const inputHeight = chatMessageInput.offsetHeight + 16; 
+        const panelPadding = 20; 
         const availableHeight = vh - inputHeight - panelPadding;
 
         messagesContainer.style.height = availableHeight + 'px';
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        messagesContainer.scrollTop = messagesContainer.scrollHeight; 
     }
 
     window.addEventListener('resize', adjustChatPanel);
@@ -320,6 +326,7 @@ if (window.matchMedia("(max-width: 900px)").matches) {
 // ==============================================================================
 // SOCKET.IO E WEBRTC
 // ==============================================================================
+
 function initializeSocket() {
     socket = io(RENDER_SERVER_URL, { query: { nickname: userNickname } });
 
@@ -359,6 +366,7 @@ function initializeSocket() {
 // ==============================================================================
 // WEBRTC FUNCTIONS
 // ==============================================================================
+
 function getOrCreatePeerConnection(socketId) {
     if (peerConnections[socketId]) return peerConnections[socketId];
 

@@ -101,6 +101,8 @@ html, body{
     background: rgba(30, 30, 30, 0.8);
     padding: 10px;
     border-radius: 10px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .room-title{
@@ -116,6 +118,22 @@ html, body{
     border: 1px solid var(--border-color);
     border-radius: 6px;
     color: var(--text-light);
+    cursor: pointer;
+}
+
+#copy-notification {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary-color);
+    color: #000;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 300;
 }
 
 #main-video-feed{
@@ -267,7 +285,7 @@ html, body{
     gap: 5px;
     padding-top: 5px;
     border-top: 1px solid var(--border-color);
-    flex-shrink: 0; /* rimane visibile */
+    flex-shrink: 0; 
 }
 
 #chat-message-input {
@@ -342,7 +360,6 @@ html, body{
 /* ========================= */
 /* RESPONSIVE MOBILE */
 /* ========================= */
-
 @media(max-width: 900px){
     html, body{
         background-image: url('images/BGMOBILE.jpg');
@@ -393,9 +410,15 @@ html, body{
 
     #room-header{
         text-align: center;
+        width: 100%;
     }
 
     .room-title{
+        font-size: 1rem;
+    }
+
+    #share-room-link {
+        width: 100%;
         font-size: 1rem;
     }
 }
