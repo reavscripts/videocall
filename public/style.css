@@ -1,10 +1,7 @@
 /* ============================================================================== */
 /* STILI GENERALI (CORRETTO) */
 /* ============================================================================== */
-/* Usa il box model standard per prevenire problemi di dimensionamento */
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
     margin: 0;
@@ -14,10 +11,7 @@ body {
     overflow: hidden;
 }
 
-#app {
-    display: flex;
-    height: 100vh;
-}
+#app { display: flex; height: 100vh; }
 
 /* ============================================================================== */
 /* VIDEO AREA */
@@ -30,16 +24,8 @@ body {
     background: black;
 }
 
-#main-video-feed {
-    flex: 1;
-    position: relative;
-}
-
-#main-video-feed video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+#main-video-feed { flex: 1; position: relative; }
+#main-video-feed video { width: 100%; height: 100%; object-fit: cover; }
 
 #main-mute-btn {
     position: absolute;
@@ -59,95 +45,47 @@ body {
     overflow-x: auto;
 }
 
-.remote-feed {
-    width: 120px;
-    height: 90px;
-    cursor: pointer;
-    position: relative;
-}
-
-.remote-feed video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
+.remote-feed { width: 120px; height: 90px; cursor: pointer; position: relative; }
+.remote-feed video { width: 100%; height: 100%; object-fit: cover; }
 .remote-feed .video-label {
-    position: absolute;
-    bottom: 2px;
-    left: 2px;
-    font-size: 10px;
-    background: rgba(0,0,0,0.5);
-    padding: 2px 4px;
-    border-radius: 2px;
+    position: absolute; bottom: 2px; left: 2px; font-size: 10px;
+    background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 2px;
 }
 
 /* ============================================================================== */
-/* CHAT PANEL (DESKTOP) */
+/* CHAT PANEL (DESKTOP) - DEFAULT VISIBLE */
 /* ============================================================================== */
 #chat-panel {
     width: 300px;
-    min-width: 300px; /* Impedisce il collasso */
-    flex-shrink: 0; /* Impedisce la riduzione */
+    min-width: 300px;
+    flex-shrink: 0;
     background: #1a1a1a;
     border-left: 2px solid #333;
-    display: flex;
+    display: flex;               /* Ensure visible by default on desktop */
     flex-direction: column;
     z-index: 8000;
+    position: relative;
+    transform: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
-#chat-panel h3 {
-    margin: 0;
-    padding: 10px;
-    background: #222;
-    font-size: 16px;
-}
+/* small diagnostic outline so you can see it during debugging (remove later) */
+#chat-panel.debug-outline { outline: 3px solid magenta; }
 
-#messages-container {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-}
-
-.message {
-    margin-bottom: 6px;
-}
-
-.message.self {
-    text-align: right;
-}
-
-.message .sender {
-    font-weight: bold;
-}
-
-.message .timestamp {
-    font-size: 0.7em;
-    color: #ccc;
-}
+#chat-panel h3 { margin: 0; padding: 10px; background: #222; font-size: 16px; }
+#messages-container { flex: 1; overflow-y: auto; padding: 10px; }
+.message { margin-bottom: 6px; }
+.message.self { text-align: right; }
+.message .sender { font-weight: bold; }
+.message .timestamp { font-size: 0.7em; color: #ccc; }
 
 #chat-input-area {
-    display: flex;
-    gap: 8px;
-    padding: 10px;
-    background: #222;
+    display: flex; gap: 8px; padding: 10px; background: #222;
 }
-
-#chat-input-area input {
-    flex: 1;
-    padding: 6px;
-    border: none;
-    border-radius: 4px;
-    outline: none;
-}
-
+#chat-input-area input { flex: 1; padding: 6px; border: none; border-radius: 4px; outline: none; }
 #chat-input-area button {
-    padding: 6px 10px;
-    border: none;
-    border-radius: 4px;
-    background: #555;
-    color: white;
-    cursor: pointer;
+    padding: 6px 10px; border: none; border-radius: 4px; background: #555; color: white; cursor: pointer;
 }
 
 /* ============================================================================== */
@@ -155,116 +93,64 @@ body {
 /* ============================================================================== */
 #participants-panel {
     width: 250px;
-    min-width: 250px; /* Impedisce il collasso */
-    flex-shrink: 0; /* Impedisce la riduzione */
+    min-width: 250px;
+    flex-shrink: 0;
     background: #1a1a1a;
     border-left: 2px solid #333;
     display: flex;
     flex-direction: column;
 }
 
-#participants-panel h3 {
-    margin: 0;
-    padding: 10px;
-    background: #222;
-    font-size: 16px;
-}
-
-#participants-list {
-    list-style: none;
-    padding: 10px;
-    margin: 0;
-    flex: 1;
-    overflow-y: auto;
-}
-
-.participant-item {
-    padding: 5px 0;
-    border-bottom: 1px solid #333;
-}
+#participants-panel h3 { margin: 0; padding: 10px; background: #222; font-size: 16px; }
+#participants-list { list-style: none; padding: 10px; margin: 0; flex: 1; overflow-y: auto; }
+.participant-item { padding: 5px 0; border-bottom: 1px solid #333; }
 
 /* ============================================================================== */
 /* MOBILE CONTROLS */
 /* ============================================================================== */
 #mobile-controls {
     display: none;
-    position: fixed;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    gap: 10px;
-    z-index: 9999;
+    position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); gap: 10px; z-index: 9999;
 }
-
 #mobile-controls button {
-    padding: 8px 12px;
-    border: none;
-    border-radius: 6px;
-    background: #333;
-    color: white;
-    cursor: pointer;
+    padding: 8px 12px; border: none; border-radius: 6px; background: #333; color: white; cursor: pointer;
 }
 
 /* ============================================================================== */
 /* MOBILE RESPONSIVE (<900px) */
 /* ============================================================================== */
 @media (max-width: 900px) {
-    #app {
-        flex-direction: column;
-    }
+    #app { flex-direction: column; }
 
-    /* CHAT: hidden by default on mobile, but shown when .show is present */
+    /* Chat hidden by default on mobile, shown with .show */
     #chat-panel {
         display: none;
         position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        width: 100%;
-        height: 60vh;
-        min-width: unset;
-        flex-shrink: unset;
-        z-index: 9000;
-        flex-direction: column;
-        background: #1a1a1a;
-        border-left: none;
+        bottom: 0; left: 0; right: 0;
+        width: 100%; height: 60vh;
+        min-width: unset; flex-shrink: unset;
+        z-index: 9000; flex-direction: column;
+        background: #1a1a1a; border-left: none;
     }
 
-    /* Show when JS adds .show */
-    #chat-panel.show {
-        display: flex !important;
-    }
+    #chat-panel.show { display: flex !important; }
 
-    /* PARTECIPANTI: logica nascosta/mostrata */
+    /* Participants panel mobile behaviour */
     #participants-panel {
         display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        width: 100%;
-        height: 100%;
-        min-width: unset;
-        flex-shrink: unset;
-        z-index: 9000;
-        flex-direction: column;
+        position: fixed; top: 0; left: 0; right: 0;
+        width: 100%; height: 100%;
+        min-width: unset; flex-shrink: unset;
+        z-index: 9000; flex-direction: column;
     }
 
-    /* Reso visibile dal JS con la classe .show */
-    #participants-panel.show {
-        display: flex !important;
-    }
+    #participants-panel.show { display: flex !important; }
 
-    /* Nasconde l’area video quando pannello partecipanti o chat aperto */
-    #video-area.hidden {
-        display: none;
-    }
+    /* Hide video area when a panel is open */
+    #video-area.hidden { display: none; }
 
-    #mobile-controls {
-        display: flex;
-    }
+    #mobile-controls { display: flex; }
 
-    /* Pulsante per tornare ai video (simulato tramite pseudo-elemento) */
     #participants-panel::before {
         content: '← Torna ai video';
         display: block;
@@ -275,15 +161,28 @@ body {
         text-align: center;
     }
 
-    /* On mobile we need the chat button visible */
-    #show-chat-btn {
-        display: inline-block !important;
+    #show-chat-btn { display: inline-block !important; }
+
+    #participants-panel, #chat-panel { padding-top: 8px; }
+}
+
+/* ============================================================================== */
+/* FORCE RULES FOR DESKTOP (sovrascrivono eventuali regole "display:none") */
+/* ============================================================================== */
+@media (min-width: 901px) {
+    /* Force chat visible on desktop. This overrides accidental display:none from other sources. */
+    #chat-panel {
+        display: flex !important;
+        position: relative !important;
+        transform: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        z-index: 8000 !important;
     }
 
-    /* Keep participants and chat layout full width on mobile */
-    #participants-panel, #chat-panel {
-        padding-top: 8px;
-    }
+    /* hide mobile-only controls on desktop */
+    #mobile-controls { display: none !important; }
+    #show-chat-btn { display: none !important; }
 }
 
 /* ============================================================================== */
