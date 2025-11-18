@@ -95,8 +95,8 @@ html, body{
     grid-template-columns: 330px 1fr;
     gap: 12px;
     height: 100%;
-    padding: 12px 12px 0 12px; /* Rimuove il padding in basso, gestito da #conference-container */
-    overflow-y: auto; /* Permette lo scroll per vedere tutte le miniature */
+    padding: 12px 12px 0 12px; 
+    overflow-y: auto; 
 }
 
 /* Header stanza */
@@ -109,7 +109,6 @@ html, body{
     background: rgba(30, 30, 30, 0.8);
     padding: 10px;
     border-radius: 10px;
-    /* ✅ FIX: Allinea al centro per centrare il box link (che ha un max-width) */
     align-items: center; 
 }
 
@@ -163,7 +162,6 @@ html, body{
     grid-auto-rows: 150px;
     gap: 10px;
     padding: 6px;
-    /* Rimosso overflow-y: auto; per far gestire lo scroll a #video-area */
 }
 
 .video-feed{
@@ -200,6 +198,7 @@ html, body{
 }
 
 /* Pannello partecipanti (PC Default) */
+/* ✅ FIX PC: I pannelli sono assoluti e si aprono/chiudono indipendentemente senza sovrapporsi */
 #participants-panel{
     position: absolute;
     right: 0;
@@ -208,7 +207,7 @@ html, body{
     height: 100%;
     background: rgba(30,30,30,0.9);
     padding: 10px;
-    border-left: 1px solid rgba(255,255,255,0.15); /* Bordo più visibile per distinguere */
+    border-left: 1px solid rgba(255,255,255,0.15); 
     overflow-y: auto;
     z-index: 50;
 }
@@ -230,6 +229,7 @@ html, body{
 }
 
 /* Stili Chat Panel (PC Default) */
+/* ✅ FIX PC: I pannelli sono assoluti e si aprono/chiudono indipendentemente senza sovrapporsi */
 #chat-panel{
     position: absolute;
     right: 0;
@@ -238,7 +238,7 @@ html, body{
     height: 100%;
     background: rgba(30,30,30,0.9);
     padding: 10px;
-    border-left: 1px solid rgba(255,255,255,0.15); /* Bordo più visibile per distinguere */
+    border-left: 1px solid rgba(255,255,255,0.15); 
     z-index: 50;
     display: flex; 
     flex-direction: column;
@@ -295,20 +295,20 @@ html, body{
 
 /* Media Controls */
 #media-controls{
-    /* ✅ FIX: Fissa i controlli in basso e centrali per una facile accessibilità su mobile */
+    /* ✅ FIX MOBILE: Fissa i controlli in basso e centrali per una facile accessibilità */
     position: fixed; 
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 100%; /* Occupa l'intera larghezza */
-    max-width: 400px; /* Limita la larghezza effettiva su PC */
+    width: 100%; 
+    max-width: 400px; 
     display: flex;
-    justify-content: center; /* Centra i pulsanti all'interno del contenitore */
+    justify-content: center; 
     gap: 12px;
-    background: rgba(20,20,20,0.8); /* Aumentato l'opacità per renderlo più visibile */
+    background: rgba(20,20,20,0.8); 
     padding: 10px;
-    border-radius: 10px 10px 0 0; /* Rimosso border-radius: 40px; per adattarlo al basso */
-    box-shadow: 0 -4px 10px rgba(0,0,0,0.5); /* Aggiunge un'ombra in alto */
+    border-radius: 10px 10px 0 0; 
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.5); 
     z-index: 100;
 }
 
@@ -320,6 +320,11 @@ html, body{
     background: var(--surface-dark);
     color: var(--text-light);
     font-size: 1.2rem;
+    transition: background 0.2s;
+}
+
+#media-controls button:hover:not(.danger) {
+    background: #333;
 }
 
 #media-controls .danger{
@@ -371,10 +376,10 @@ html, body{
     #video-area{
         display: flex;
         flex-direction: column;
-        padding-bottom: 0; /* Lo scroll è su video-area */
+        padding-bottom: 0; 
     }
 
-    /* ❗✅ FIX MOBILE CHAT & PARTECIPANTI: Usa position: fixed e copre l'intero viewport per una visualizzazione corretta su mobile (incluso gestione tastiera virtuale) */
+    /* ❗✅ FIX MOBILE CHAT & PARTECIPANTI: Usa position: fixed e copre l'intero viewport. */
     #participants-panel, #chat-panel{
         position: fixed; 
         inset: 0;      
@@ -386,10 +391,11 @@ html, body{
         z-index: 150; 
         display: flex; 
         flex-direction: column; 
-        border-left: none; /* Rimuove il bordo su schermo intero */
+        border-left: none; 
     }
 
-    /* Nasconde i pannelli laterali di default su mobile (il display:flex/column è controllato da JS) */
+    /* Nasconde i pannelli laterali di default su mobile */
+    /* Verranno mostrati/nascosti via JS con la classe 'hidden' */
     #participants-panel{ 
         display: none; 
     }
@@ -397,7 +403,7 @@ html, body{
         display: none;
     } 
 
-    /* Mostra i pulsanti specifici per mobile */
+    /* Mostra i pulsanti specifici per mobile nell'area controlli */
     #media-controls .mobile-only {
         display: block !important;
     }
@@ -417,7 +423,8 @@ html, body{
     }
 
     #remote-videos-container{
-        height: 45vh;
+        /* Assicura che le miniature occupino il resto dello spazio disponibile per scrollare */
+        flex-grow: 1;
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         grid-auto-rows: 110px;
     }
