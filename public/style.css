@@ -1,4 +1,8 @@
 /* ============================================================================== */
+/* style.css - VERSIONE NON RESPONSIVE */
+/* ============================================================================== */
+
+/* ============================================================================== */
 /* STILI GENERALI */
 /* ============================================================================== */
 * { box-sizing: border-box; }
@@ -8,7 +12,7 @@ body {
     font-family: Arial, sans-serif;
     background: #111;
     color: white;
-    overflow: hidden;
+    overflow: hidden; /* Previene scroll indesiderati */
 }
 
 #app { display: flex; height: 100vh; }
@@ -53,7 +57,7 @@ body {
 }
 
 /* ============================================================================== */
-/* CHAT PANEL (DESKTOP DEFAULT) */
+/* CHAT PANEL (FISSO E SEMPRE VISIBILE) */
 /* ============================================================================== */
 #chat-panel {
     width: 300px;
@@ -61,15 +65,10 @@ body {
     flex-shrink: 0;
     background: #1a1a1a;
     border-left: 2px solid #333;
-    display: flex; /* La chat è flex su desktop per default */
+    display: flex; /* DEVE essere flex per la visibilità */
     flex-direction: column;
     z-index: 8000;
-    /* AGGIUNTA CHIAVE: Rende la chat visibile anche se una classe .hidden generica viene applicata */
-    visibility: visible !important;
-    opacity: 1 !important;
 }
-
-/* Rimosso: #chat-panel.debug-outline */
 
 #chat-panel h3 { margin: 0; padding: 10px; background: #222; font-size: 16px; }
 #messages-container { flex: 1; overflow-y: auto; padding: 10px; }
@@ -86,71 +85,13 @@ body {
     padding: 6px 10px; border: none; border-radius: 4px; background: #555; color: white; cursor: pointer;
 }
 
-/* ============================================================================== */
-/* MOBILE CONTROLS */
-/* ============================================================================== */
-#mobile-controls {
-    display: none;
-    position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); gap: 10px; z-index: 9999;
-}
-#mobile-controls button {
-    padding: 8px 12px; border: none; border-radius: 6px; background: #333; color: white; cursor: pointer;
+/* Regole per rimuovere ogni elemento mobile non necessario */
+#mobile-controls, 
+#show-chat-btn, 
+#show-video-btn {
+    display: none !important;
 }
 
 /* ============================================================================== */
-/* MOBILE RESPONSIVE (<900px) */
+/* FINE FILE */
 /* ============================================================================== */
-@media (max-width: 900px) {
-    #app { flex-direction: column; }
-
-    /* Chat nascosta per default su mobile, mostrata con .show */
-    #chat-panel {
-        display: none;
-        position: fixed;
-        bottom: 0; left: 0; right: 0;
-        width: 100%; height: 60vh;
-        min-width: unset; flex-shrink: unset;
-        z-index: 9000; flex-direction: column;
-        background: #1a1a1a; border-left: none;
-    }
-
-    #chat-panel.show { display: flex !important; }
-
-    /* Nasconde l'area video quando la chat è aperta */
-    #video-area.hidden { display: none; }
-
-    #mobile-controls { display: flex; }
-
-    #show-chat-btn { display: inline-block !important; }
-
-    #chat-panel { padding-top: 8px; }
-}
-
-/* ============================================================================== */
-/* FORCE RULES FOR DESKTOP (Ripulite all'essenziale) */
-/* ============================================================================== */
-@media (min-width: 901px) {
-    /* La regola .hidden è stata rimossa, quindi basta la regola base in .hidden */
-    #chat-panel {
-        /* Manteniamo la forzatura solo sulla dimensione e sullo stacking per assicurare il layout */
-        position: relative !important;
-        transform: none !important;
-        z-index: 8000 !important;
-    }
-    
-    /* NEW EXTREME SPECIFICITY FIX: Mantenuto per annullare un eventuale display: none !important globale */
-    #chat-panel.hidden {
-        display: flex !important; 
-        opacity: 1 !important;
-        visibility: visible !important;
-    }
-
-    /* Nascondi i controlli mobile su desktop */
-    #mobile-controls { display: none !important; }
-    #show-chat-btn { display: none !important; }
-    
-    /* Nascondi il pulsante "Torna alla webcam" che è solo per mobile */
-    #chat-panel #show-video-btn {
-        display: none !important;
-    }
-}

@@ -1,5 +1,5 @@
 // ==============================================================================
-// public/app.js - VERSIONE FINALE CORRETTA
+// public/app.js - VERSIONE NON RESPONSIVE (Chat sempre visibile)
 // ==============================================================================
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
@@ -21,10 +21,10 @@ const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
 const messagesContainer = document.getElementById('messages-container');
 
-// Mobile
-const videoArea = document.getElementById('video-area');
-const showChatBtn = document.getElementById('show-chat-btn');
-const showVideoBtn = document.getElementById('show-video-btn');
+// I seguenti elementi DOM sono mantenuti solo come commento per promemoria, ma non sono usati
+// const videoArea = document.getElementById('video-area'); 
+// const showChatBtn = document.getElementById('show-chat-btn'); 
+// const showVideoBtn = document.getElementById('show-video-btn'); 
 
 // Join overlay
 const joinButton = document.getElementById('join-button');
@@ -188,95 +188,7 @@ function sendChatMessage() {
 sendChatButton?.addEventListener('click', sendChatMessage);
 chatMessageInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
-// ==============================================================================
-// MOBILE/DESKTOP CHAT (LOGICA UNIFICATA E STATO RESPONSIVO)
-// ==============================================================================
-function ensureChatResponsiveState() {
-    const mobileBreakpoint = 900;
-    
-    // Su desktop (>=901px), il CSS gestisce la visibilità di default.
-    // Usiamo lo stato 'show' per indicare se la chat è 'aperta' (visibile) o 'chiusa' (nascosta)
-    if (window.innerWidth >= mobileBreakpoint) {
-        // Desktop: Chat visibile per default.
-        if (chatPanel) {
-            // Rimuoviamo la forzatura 'display: flex' inline e ci affidiamo al CSS per l'inizializzazione.
-            chatPanel.style.display = ''; 
-            chatPanel.classList.add('show');
-            if (showChatBtn) showChatBtn.textContent = '❌ Chiudi Chat';
-            showChatBtn?.setAttribute('aria-expanded', 'true');
-        }
-        if (videoArea) videoArea.classList.remove('hidden');
-        
-    } else {
-        // Mobile: default chiuso.
-        if (chatPanel) {
-            chatPanel.classList.remove('show');
-            chatPanel.style.display = ''; // Rimuovi lo style inline per far funzionare le media query
-        }
-        if (videoArea) videoArea.classList.remove('hidden');
-        if (showChatBtn) showChatBtn.textContent = '💬 Chat';
-        showChatBtn?.setAttribute('aria-expanded', 'false');
-    }
-}
-
-window.addEventListener('resize', ensureChatResponsiveState);
-window.addEventListener('load', ensureChatResponsiveState);
-document.addEventListener('DOMContentLoaded', ensureChatResponsiveState);
-
-// Funzione unificata per il toggle della chat su tutte le risoluzioni
-function toggleChat() {
-    const mobileBreakpoint = 900;
-    const isVisible = chatPanel?.classList.contains('show');
-
-    if (isVisible) {
-        // NASCONDI CHAT
-        chatPanel?.classList.remove('show');
-        showChatBtn?.setAttribute('aria-expanded', 'false');
-        
-        if (window.innerWidth >= mobileBreakpoint) {
-            // Desktop: nascondi e cambia testo
-            chatPanel.style.display = 'none'; // Setta display: none per permettere il toggle
-            if (showChatBtn) showChatBtn.textContent = '💬 Mostra Chat';
-        } else {
-            // Mobile: lascia che il CSS gestisca la chiusura e mostra la video area
-            videoArea?.classList.remove('hidden');
-            if (showChatBtn) showChatBtn.textContent = '💬 Chat';
-        }
-
-    } else {
-        // MOSTRA CHAT
-        chatPanel?.classList.add('show');
-        showChatBtn?.setAttribute('aria-expanded', 'true');
-        setTimeout(() => chatMessageInput?.focus(), 50);
-
-        if (window.innerWidth >= mobileBreakpoint) {
-            // Desktop: mostra e cambia testo
-            chatPanel.style.display = 'flex'; // Ri-mostra forzando flex (necessario per il toggle, ma non per l'inizializzazione)
-            if (showChatBtn) showChatBtn.textContent = '❌ Chiudi Chat';
-        } else {
-            // Mobile: nascondi la video area e cambia testo
-            videoArea?.classList.add('hidden');
-            if (showChatBtn) showChatBtn.textContent = '🎥 Torna a Video';
-        }
-    }
-}
-showChatBtn?.addEventListener('click', toggleChat);
-
-function hideChatOnBackdropClick(e) {
-    if (chatPanel?.classList.contains('show') && e.target === chatPanel) {
-        toggleChat();
-    }
-}
-
-// Bottone mobile "torna alla webcam"
-showVideoBtn?.addEventListener('click', () => {
-    if (window.innerWidth < 900) {
-        chatPanel?.classList.remove('show');
-        videoArea?.classList.remove('hidden');
-        if (showChatBtn) showChatBtn.textContent = '💬 Chat';
-        showChatBtn?.setAttribute('aria-expanded', 'false');
-    }
-});
+// Rimosse: ensureChatResponsiveState, toggleChat, listener di resize e DOMContentLoaded per il responsive
 
 // ==============================================================================
 // CONTROLLI AUDIO/VIDEO/DISCONNECT
@@ -433,7 +345,4 @@ function removePeer(socketId) {
 // ==============================================================================
 // INIZIALIZZAZIONE FINALE
 // ==============================================================================
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOMContentLoaded: Inizializzazione logica responsive chat.');
-    ensureChatResponsiveState();
-});
+// Non c'è più bisogno di ensureChatResponsiveState. La chat è gestita solo dal CSS.
