@@ -20,7 +20,6 @@ html, body{
     background-size: cover; /* Copre interamente l'area senza deformare l'immagine */
     background-repeat: no-repeat; /* Evita la ripetizione */
     background-attachment: fixed; /* Mantiene l'immagine fissa durante lo scroll */
-    background-color: var(--background-dark); /* Colore di fallback */
     /* FINE AGGIUNTE */
     color: var(--text-light);
     font-family: "Roboto", Arial, sans-serif;
