@@ -124,6 +124,7 @@ chatMessageInput.addEventListener('keypress', e => { if (e.key === 'Enter') send
 function toggleMobileChat() {
     const isHidden = chatPanel.classList.contains('hidden');
     if (isHidden) {
+        // Apri chat
         chatPanel.classList.remove('hidden');
         chatPanel.style.display = 'flex';
         chatPanel.style.position = 'fixed';
@@ -139,33 +140,28 @@ function toggleMobileChat() {
         remoteVideosContainer.style.display = 'none';
 
         setTimeout(() => chatMessageInput.focus(), 50);
+        showVideoBtn.textContent = '❌ Chiudi chat';
     } else {
-        showVideoFromChat();
+        // Chiudi chat e torna alla webcam
+        chatPanel.classList.add('hidden');
+        chatPanel.style.display = '';
+        chatPanel.style.position = '';
+        chatPanel.style.inset = '';
+        chatPanel.style.width = '';
+        chatPanel.style.height = '';
+        chatPanel.style.background = '';
+        chatPanel.style.flexDirection = '';
+        chatPanel.style.zIndex = '';
+
+        mediaControls.style.display = 'flex';
+        mainVideoFeed.style.display = '';
+        remoteVideosContainer.style.display = '';
+        showVideoBtn.textContent = '🎥 Torna alla webcam';
     }
 }
 
 showChatBtn.addEventListener('click', toggleMobileChat);
-
-// ==============================================================================
-// MOSTRA WEBCAM DA CHAT MOBILE
-// ==============================================================================
-function showVideoFromChat() {
-    chatPanel.classList.add('hidden');
-    chatPanel.style.display = '';
-    chatPanel.style.position = '';
-    chatPanel.style.inset = '';
-    chatPanel.style.width = '';
-    chatPanel.style.height = '';
-    chatPanel.style.background = '';
-    chatPanel.style.flexDirection = '';
-    chatPanel.style.zIndex = '';
-
-    mediaControls.style.display = 'flex';
-    mainVideoFeed.style.display = '';
-    remoteVideosContainer.style.display = '';
-}
-
-showVideoBtn.addEventListener('click', showVideoFromChat);
+showVideoBtn.addEventListener('click', toggleMobileChat); // stesso toggle
 
 // ==============================================================================
 // JOIN STANZA
