@@ -11,9 +11,7 @@
 
 <div id="app">
 
-    <!-- ======================= AREA VIDEO ======================= -->
     <div id="video-area">
-
         <div id="main-video-feed">
             <video autoplay playsinline></video>
             <button id="main-mute-btn">🔊</button>
@@ -21,30 +19,27 @@
         </div>
 
         <div id="remote-videos-container"></div>
-
     </div>
 
-    <!-- ======================= CHAT DESKTOP ======================= -->
-    <aside id="chat-panel" class="sidebar">
+    <!-- CHAT -->
+    <aside id="chat-panel">
         <h3>Chat</h3>
-
         <div id="messages-container"></div>
-
         <div id="chat-input-area">
             <input id="chat-message-input" type="text" placeholder="Messaggio...">
             <button id="send-chat-button">Invia</button>
         </div>
     </aside>
 
-    <!-- ======================= PARTECIPANTI DESKTOP ======================= -->
-    <aside id="participants-panel" class="sidebar">
+    <!-- PARTECIPANTI -->
+    <aside id="participants-panel">
         <h3>Partecipanti <span id="participant-count">0</span></h3>
         <ul id="participants-list"></ul>
     </aside>
 
 </div>
 
-<!-- ======================= CONTROLLI MOBILE ======================= -->
+<!-- MOBILE CONTROLS -->
 <div id="mobile-controls">
     <button id="show-chat-btn">💬 Chat</button>
     <button id="show-participants-btn">👥 Utenti</button>
