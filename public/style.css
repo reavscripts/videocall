@@ -15,21 +15,17 @@ html, body{
     margin: 0;
     padding: 0;
     height: 100%;
-    
-    /* === 1. BACKGROUND PC (DEFAULT) === */
     background-image: url('images/BGPC.jpg'); 
     background-size: cover; 
     background-repeat: no-repeat; 
     background-attachment: fixed;
     background-color: var(--background-dark); 
-    
     color: var(--text-light);
     font-family: "Roboto", Arial, sans-serif;
 }
 
 .hidden{ display:none !important; }
 
-/* Overlay ingresso */
 #nickname-overlay{
     position: fixed;
     inset: 0;
@@ -38,24 +34,20 @@ html, body{
     justify-content: center;
     align-items: center;
     z-index: 200;
-    backdrop-filter: none;
     flex-direction: column; 
 }
 
-/* Stile per il Logo */
 #app-logo {
-    /* Larghezza impostata a 90% del contenitore e limitata a 430px, come la card */
     width: 90%; 
     max-width: 430px; 
     height: auto;
-    margin: 0 auto 15px auto; /* Spazio tra logo e card */
+    margin: 0 auto 15px auto;
 }
 
 .card{
     background: var(--surface-dark);
     padding: 32px;
     border-radius: 12px;
-    /* Mantenute le stesse regole di larghezza del logo per l'allineamento */
     width: 90%; 
     max-width: 430px; 
     text-align: center;
@@ -84,17 +76,11 @@ html, body{
     cursor: pointer;
 }
 
-/* Layout principale */
 #conference-container{
     position: relative;
     height: 100vh;
 }
 
-/* * LAYOUT GRID DESKTOP CORRETTO:
- * Colonna 1: Video Principale (330px)
- * Colonna 2: Header + Galleria Miniature (1fr)
- * Colonna 3: Chat Panel (300px) 
-*/
 #video-area{
     display: grid;
     grid-template-columns: 330px 1fr 300px; 
@@ -105,11 +91,9 @@ html, body{
     padding-left: 12px;
 }
 
-/* Header stanza */
 #room-header{
     grid-column: 2 / 3; 
     grid-row: 1 / 2; 
-    
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -134,7 +118,6 @@ html, body{
     color: var(--text-light);
 }
 
-/* Main video */
 #main-video-feed{
     background: #000; 
     border-radius: 10px;
@@ -161,7 +144,6 @@ html, body{
     font-size: 0.8rem;
 }
 
-/* Miniature */
 #remote-videos-container{
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -207,9 +189,7 @@ html, body{
     border-color: var(--primary-color);
 }
 
-/* Pannello partecipanti (Desktop) */
 #participants-panel{
-    /* Posiziona a sinistra della Chat (che è 300px) */
     position: absolute;
     right: 300px; 
     top: 0;
@@ -238,9 +218,7 @@ html, body{
     font-weight: bold;
 }
 
-/* Stili Chat Panel (Desktop) */
 #chat-panel{
-    /* Fissa all'estrema destra */
     position: absolute;
     right: 0; 
     top: 0;
@@ -251,11 +229,11 @@ html, body{
     border-left: 1px solid var(--border-color);
     z-index: 50;
     display: flex; 
-    flex-direction: column; /* Messaggi sopra, input sotto */
+    flex-direction: column;
 }
 
 #messages-container {
-    flex-grow: 1; /* Il contenitore dei messaggi occupa lo spazio principale */
+    flex-grow: 1;
     overflow-y: auto;
     padding: 5px;
     margin-bottom: 10px;
@@ -285,11 +263,11 @@ html, body{
 }
 
 #chat-input-area {
-    /* Mantenuto flessibile per input e bottone */
     display: flex;
     gap: 5px;
     padding-top: 5px;
     border-top: 1px solid var(--border-color);
+    flex-shrink: 0; /* rimane visibile */
 }
 
 #chat-message-input {
@@ -311,10 +289,7 @@ html, body{
     cursor: pointer;
 }
 
-
-/* Media Controls */
 #media-controls{
-    /* Mantiene la posizione assoluta per il desktop */
     position: absolute; 
     bottom: 16px;
     left: 50%;
@@ -341,7 +316,6 @@ html, body{
     background: var(--red-danger);
 }
 
-/* Mute remoto principale */
 .main-mute-btn{
     position: absolute;
     top: 10px;
@@ -361,7 +335,6 @@ html, body{
     background: rgba(0,0,0,0.8); 
 }
 
-/* Nascondi i pulsanti mobile per PC (default) */
 .mobile-only {
     display: none !important;
 }
@@ -371,79 +344,55 @@ html, body{
 /* ========================= */
 
 @media(max-width: 900px){
-    /* === 2. BACKGROUND MOBILE === */
     html, body{
         background-image: url('images/BGMOBILE.jpg');
         background-size: cover; 
         background-repeat: no-repeat;
     }
-    
-    /* Layout video mobile: colonna singola */
+
     #video-area{
         display: flex;
         flex-direction: column;
-        grid-template-columns: none; /* Rimuove la griglia desktop */
-        padding-right: 12px; /* Rimuove lo spazio extra per la chat desktop */
+        padding-right: 12px;
     }
 
-    /* Nasconde i pannelli laterali di default su mobile */
-    /* Importante: il display è 'none' per default, il JS gestisce 'fixed' e 'inset: 0' all'apertura */
     #participants-panel{ 
         display: none; 
         right: 0; 
         width: 100%; 
     }
     #chat-panel{
-        display: none; /* Nascosto di default */
+        display: none;
         right: 0; 
         width: 100%; 
-        /* Aggiungo esplicitamente height: 100vh qui. 
-           Il JS imposta 'position: fixed' e 'inset: 0' che è necessario per
-           il corretto dimensionamento a schermo intero su mobile. */
         height: 100vh;
-    } 
+        max-height: 100vh;
+        flex-direction: column;
+        overflow-y: auto;
+    }
 
-    /* Mostra i pulsanti specifici per mobile */
     #media-controls .mobile-only {
         display: block !important;
     }
-    
-    #media-controls button.mobile-only {
-        width: 46px; 
-        height: 46px;
-        border-radius: 50%;
-        border: none;
-        background: var(--surface-dark);
-        color: var(--text-light);
-        font-size: 1.2rem;
-    }
-    
-    /* I controlli sono fissi su mobile */
+
     #media-controls{
         position: fixed; 
         bottom: 16px;
         z-index: 100; 
     }
 
-    /* Ribilancia l'altezza su mobile */
     #main-video-feed{
         height: 40vh; 
-        grid-column: auto;
-        grid-row: auto;
     }
 
     #remote-videos-container{
         height: 40vh; 
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         grid-auto-rows: 110px;
-        grid-column: auto;
-        grid-row: auto;
     }
 
     #room-header{
         text-align: center;
-        grid-column: auto;
-        grid-row: auto;
     }
 
     .room-title{

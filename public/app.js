@@ -288,6 +288,26 @@ disconnectButton.addEventListener('click', () => {
     window.location.reload(); 
 });
 
+// ============================================
+// ADATTAMENTO CHAT MOBILE CON TASTIERA
+// ============================================
+
+if (window.matchMedia("(max-width: 900px)").matches) {
+    let originalChatHeight = chatPanel.offsetHeight;
+
+    window.addEventListener('resize', () => {
+        // Solo quando l'input chat è attivo
+        if (document.activeElement === chatMessageInput) {
+            const vh = window.innerHeight;
+            chatPanel.style.height = vh + 'px';
+            // Scroll input in vista
+            chatMessageInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        } else {
+            chatPanel.style.height = '';
+        }
+    });
+}
+
 // ==============================================================================
 // SOCKET.IO E WEBRTC
 // ==============================================================================
