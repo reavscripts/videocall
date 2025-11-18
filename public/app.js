@@ -112,7 +112,7 @@ function sendChatMessage() {
         socket.emit('chat-message', msg);
         chatMessageInput.value = '';
         chatMessageInput.focus();
-    }
+    } 
 }
 
 sendChatButton.addEventListener('click', sendChatMessage);
