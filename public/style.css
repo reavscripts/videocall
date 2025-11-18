@@ -149,8 +149,20 @@ body {
         visibility: visible !important;
     }
 
-    #mobile-controls { display: none !important; }
-    #show-chat-btn { display: none !important; }
+    /* Rendi visibile e riposiziona i controlli mobili per il desktop (es. in alto a destra) */
+    #mobile-controls { 
+        display: flex !important;
+        position: fixed !important; 
+        bottom: unset !important;
+        top: 10px !important;
+        left: unset !important;
+        right: 10px !important;
+        transform: none !important;
+        z-index: 9999 !important;
+    }
+    
+    /* Assicura che il pulsante Chat sia visibile */
+    #show-chat-btn { display: inline-block !important; }
 }
 
 /* ============================================================================== */

@@ -233,25 +233,36 @@ sendChatButton?.addEventListener('click', sendChatMessage);
 chatMessageInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
 // ==============================================================================
-// MOBILE CHAT (fix e stato responsivo)
+// MOBILE/DESKTOP CHAT (LOGICA UNIFICATA E STATO RESPONSIVO)
 // ==============================================================================
 function ensureChatResponsiveState() {
     const mobileBreakpoint = 900;
-    // forziamo rimozione 'hidden' (non dovremmo mai usare 'hidden' per desktop)
+    
+    // Forziamo rimozione 'hidden' (la usiamo solo per il toggle)
     if (chatPanel) chatPanel.classList.remove('hidden');
 
     if (window.innerWidth >= mobileBreakpoint) {
-        // Desktop: chat sempre visibile
+        // Desktop: Chat visibile per default (il CSS lo fa), inizializziamo lo stato a 'aperto'
         if (chatPanel) {
-            chatPanel.classList.remove('show');
-            chatPanel.style.display = '';
+            // Se non ha la classe 'show' (che usiamo come indicatore di stato), la aggiungiamo e assicuriamo 'flex'
+            if (!chatPanel.classList.contains('show')) {
+                 chatPanel.style.display = 'flex';
+                 chatPanel.classList.add('show');
+            }
+            showChatBtn.textContent = '❌ Chiudi Chat';
+            showChatBtn?.setAttribute('aria-expanded', 'true');
         }
         if (videoArea) videoArea.classList.remove('hidden');
-        showChatBtn?.setAttribute('aria-expanded', 'false');
+        
     } else {
         // Mobile: default chiuso (aperto solo con .show)
-        if (chatPanel) chatPanel.classList.remove('show');
+        if (chatPanel) {
+            // Su mobile, la classe 'show' è usata per aprirla
+            chatPanel.classList.remove('show');
+            chatPanel.style.display = ''; // Rimuovi lo style inline per far funzionare le media query
+        }
         if (videoArea) videoArea.classList.remove('hidden');
+        showChatBtn.textContent = '💬 Chat';
         showChatBtn?.setAttribute('aria-expanded', 'false');
     }
 }
@@ -260,36 +271,56 @@ window.addEventListener('resize', ensureChatResponsiveState);
 window.addEventListener('load', ensureChatResponsiveState);
 document.addEventListener('DOMContentLoaded', ensureChatResponsiveState);
 
-function toggleChatOnMobile() {
+// Funzione unificata per il toggle della chat su tutte le risoluzioni
+function toggleChat() {
     const mobileBreakpoint = 900;
-    if (window.innerWidth >= mobileBreakpoint) return;
-
     const isVisible = chatPanel?.classList.contains('show');
+
     if (isVisible) {
+        // NASCONDI CHAT
         chatPanel?.classList.remove('show');
-        videoArea?.classList.remove('hidden');
+        showChatBtn.textContent = '💬 Chat';
         showChatBtn?.setAttribute('aria-expanded', 'false');
+        
+        if (window.innerWidth >= mobileBreakpoint) {
+            // Desktop: nascondi usando l'inline style (sovrascrive style.css: #chat-panel)
+            chatPanel.style.display = 'none';
+        } else {
+            // Mobile: lascia che il CSS gestisca la chiusura e mostra la video area
+            videoArea?.classList.remove('hidden');
+        }
+
     } else {
+        // MOSTRA CHAT
         chatPanel?.classList.add('show');
-        videoArea?.classList.add('hidden');
         showChatBtn?.setAttribute('aria-expanded', 'true');
         setTimeout(() => chatMessageInput?.focus(), 50);
+
+        if (window.innerWidth >= mobileBreakpoint) {
+            // Desktop: mostra la chat
+            chatPanel.style.display = 'flex';
+            showChatBtn.textContent = '❌ Chiudi Chat';
+        } else {
+            // Mobile: nascondi la video area
+            videoArea?.classList.add('hidden');
+            showChatBtn.textContent = '🎥 Torna a Video'; // Testo specifico per mobile
+        }
     }
 }
-showChatBtn?.addEventListener('click', toggleChatOnMobile);
+showChatBtn?.addEventListener('click', toggleChat);
 
 function hideChatOnBackdropClick(e) {
     if (chatPanel?.classList.contains('show') && e.target === chatPanel) {
-        toggleChatOnMobile();
+        toggleChat();
     }
 }
-chatPanel?.addEventListener('click', hideChatOnBackdropClick);
 
 // Bottone mobile "torna alla webcam" (se presente)
 showVideoBtn?.addEventListener('click', () => {
     if (window.innerWidth < 900) {
         chatPanel?.classList.remove('show');
         videoArea?.classList.remove('hidden');
+        showChatBtn.textContent = '💬 Chat';
         showChatBtn?.setAttribute('aria-expanded', 'false');
     }
 });
