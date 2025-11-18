@@ -110,7 +110,7 @@ html, body{
     margin: 0;
 }
 
-#share-room-link{
+#share-room-link {
     width: 100%;
     padding: 8px;
     font-size: 0.9rem;
@@ -118,7 +118,7 @@ html, body{
     border: 1px solid var(--border-color);
     border-radius: 6px;
     color: var(--text-light);
-    cursor: pointer;
+    text-align: left;  /* <-- aggiunto per partire da sinistra */
 }
 
 #copy-notification {
