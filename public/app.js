@@ -43,6 +43,19 @@ mainMuteBtn.addEventListener("click", () => {
 });
 
 
+// ==============================================================================
+// GESTIONE PARAMETRI URL (deep linking) ✅ FIX INSERITO
+// ==============================================================================
+(function checkUrlForRoomId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomFromUrl = urlParams.get('room');
+    
+    if (roomFromUrl && roomIdInput) {
+        roomIdInput.value = decodeURIComponent(roomFromUrl);
+    }
+})();
+
+
 // --- VARIABILI DI STATO ---
 let socket = null;
 let localStream = null;
@@ -70,7 +83,6 @@ const iceConfiguration = {
  */
 function updateParticipantCount() {
     if (participantCountSpan) {
-        // ✅ Correzione del ReferenceError: la variabile è 'participantCountSpan'
         participantCountSpan.textContent = 1 + Object.keys(remoteNicknames).length;
     }
 }
@@ -196,6 +208,7 @@ joinButton.addEventListener('click', () => {
                 
                 // === INIZIALIZZAZIONE MOBILE PER NASCONDERE I PANNELLI ALL'INGRESSO ===
                 if (window.matchMedia("(max-width: 900px)").matches) {
+                    // I pannelli vengono nascosti di default tramite CSS e JS
                     participantsPanel.classList.add('hidden');
                     chatPanel.classList.add('hidden');
                     document.getElementById('video-area').style.display = 'flex'; 
@@ -437,7 +450,7 @@ function initializeSocket() {
         handleCandidate(id, candidate);
     });
     
-    // ✅ Ricezione messaggi di chat (logica corretta)
+    // ✅ Ricezione messaggi di chat 
     socket.on('chat-message', (senderId, nickname, message) => {
         appendMessage(nickname, message, false);
     });
