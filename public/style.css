@@ -106,6 +106,8 @@ html, body{
     background: rgba(30, 30, 30, 0.8);
     padding: 10px;
     border-radius: 10px;
+    /* ✅ FIX: Allinea al centro per centrare il campo link su schermi grandi */
+    align-items: center; 
 }
 
 .room-title{
@@ -115,6 +117,8 @@ html, body{
 
 #share-room-link{
     width: 100%;
+    /* ✅ FIX: Limita la larghezza massima del campo link su schermi grandi */
+    max-width: 400px; 
     padding: 8px;
     font-size: 0.9rem;
     background: #222;
@@ -191,7 +195,7 @@ html, body{
     border-color: var(--primary-color);
 }
 
-/* Pannello partecipanti (Versione PC) */
+/* Pannello partecipanti (PC Default) */
 #participants-panel{
     position: absolute;
     right: 0;
@@ -221,7 +225,7 @@ html, body{
     font-weight: bold;
 }
 
-/* Stili Chat Panel (Versione PC) */
+/* Stili Chat Panel (PC Default) */
 #chat-panel{
     position: absolute;
     right: 0;
@@ -354,7 +358,7 @@ html, body{
         flex-direction: column;
     }
 
-    /* ✅ FIX MOBILE CHAT & PARTECIPANTI: Usa position: fixed e copre l'intero viewport per prevenire problemi con la tastiera virtuale */
+    /* ❗✅ FIX MOBILE CHAT & PARTECIPANTI: Usa position: fixed e copre l'intero viewport per una visualizzazione corretta su mobile */
     #participants-panel, #chat-panel{
         position: fixed; 
         inset: 0;      
@@ -363,9 +367,11 @@ html, body{
         padding: 10px; 
         background: var(--background-dark); 
         z-index: 150; 
+        display: flex; /* Forza flex per ripristinare il layout interno della chat */
+        flex-direction: column; /* Necessario per la chat */
     }
 
-    /* Regola predefinita per nasconderli (viene sovrascritta da JS se aperti) */
+    /* Nasconde i pannelli laterali di default su mobile (il display:flex/column è controllato da JS) */
     #participants-panel{ 
         display: none; 
     }
@@ -374,7 +380,6 @@ html, body{
     } 
 
     /* Mostra i pulsanti specifici per mobile */
-    /* Usiamo 'block' per i pulsanti nell'area media-controls */
     #media-controls .mobile-only {
         display: block !important;
     }
