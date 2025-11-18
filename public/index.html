@@ -3,33 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebRTC Video & Chat</title>
+    <title>VideoRoom</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-    <div class="container">
-        <h1>Conferenza WebRTC + Socket.IO</h1>
+<div id="nickname-overlay" class="hidden">
+    <div class="join-form">
+        <h2>Entra nella Stanza</h2>
+        <input id="nickname-input" type="text" placeholder="Il tuo nickname" required>
+        <input id="room-id-input" type="text" placeholder="Nome della stanza" required>
+        <button id="join-button">Accedi</button>
+    </div>
+</div>
 
-        <div id="video-grid">
-            <div class="video-container">
-                <h2>Il mio Video</h2>
-                <video id="localVideo" autoplay muted></video>
-            </div>
-            
+<div id="conference-container" class="hidden">
+    
+    <header id="header">
+        <h1 id="room-name-display">Room</h1>
+        <div id="room-link-container">
+            <input id="share-room-link" type="text" readonly placeholder="Link stanza">
+        </div>
+        <div id="controls-panel">
+            <button id="toggle-audio-button">🔊</button>
+            <button id="toggle-video-button">📹</button>
+            <button id="disconnect-button">❌ Esci</button>
+        </div>
+    </header>
+
+    <div id="app">
+
+        <div id="video-area">
+            <div id="main-video-feed">
+                <video autoplay playsinline></video>
+                <button id="main-mute-btn">🔊</button>
+                <div class="video-label"></div>
             </div>
 
-        <div id="chat-box">
-            <h2>Chat Integrata</h2>
-            <div id="messages">
-                </div>
-            <input type="text" id="chatInput" placeholder="Scrivi un messaggio...">
-            <button id="sendBtn">Invia</button>
+            <div id="remote-videos-container">
+                <template id="remote-video-template">
+                    <div class="remote-feed">
+                        <video autoplay playsinline></video>
+                        <div class="video-label"></div>
+                    </div>
+                </template>
+            </div>
         </div>
 
+        <aside id="chat-panel" role="complementary" aria-labelledby="chat-title">
+            <h3 id="chat-title">Chat</h3>
+            <div id="messages-container" role="log" aria-live="polite" aria-atomic="false"></div>
+            <div id="chat-input-area">
+                <input id="chat-message-input" type="text" placeholder="Messaggio..." aria-label="Scrivi un messaggio">
+                <button id="send-chat-button">Invia</button>
+            </div>
+            </aside>
+
+    </div>
+    
     </div>
 
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
+<script src="app.js"></script>
+
 </body>
 </html>

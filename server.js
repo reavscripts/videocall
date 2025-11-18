@@ -1,66 +1,116 @@
-// Esempio server.js (Node.js + Socket.IO)
+// Server di Segnalazione WebRTC con Node.js, Express e Socket.IO
+
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-
 const app = express();
-const server = http.createServer(app);
-// Configura CORS per permettere al tuo frontend di connettersi
-const io = new Server(server, {
-    cors: {
-        origin: "*", // Permetti tutte le origini (o specifica il dominio del tuo frontend)
-        methods: ["GET", "POST"]
-    }
-});
+const http = require('http').Server(app);
 
-io.on('connection', (socket) => {
-    console.log(`Utente connesso: ${socket.id}`);
+// Prepara la variabile CLIENT_URL rimuovendo la barra finale se presente
+let allowedOrigin = process.env.CLIENT_URL;
+if (allowedOrigin && allowedOrigin.endsWith('/')) {
+  allowedOrigin = allowedOrigin.slice(0, -1);
+}
 
-    // --- LOGICA DI SEGNALAZIONE (WEBRTC) ---
+// Configura l'opzione CORS per Socket.IO
+const corsOptions = {
+  origin: allowedOrigin || "*",
+  methods: ["GET", "POST"]
+};
 
-    // Un utente si unisce a una stanza
-    socket.on('join-room', (roomId) => {
-        socket.join(roomId);
-        console.log(`Utente ${socket.id} si è unito alla stanza ${roomId}`);
-        // Invia notifica a tutti gli altri nella stanza
-        socket.to(roomId).emit('user-connected', socket.id);
-    });
+if (allowedOrigin && allowedOrigin !== '*') {
+  corsOptions.origin = [
+    allowedOrigin, 
+    `${allowedOrigin}/`
+  ];
+}
 
-    // Inoltro delle Offerte SDP
-    socket.on('sdp-offer', (data) => {
-        // Inoltra l'offerta all'utente target nella stanza
-        socket.to(data.targetId).emit('sdp-offer', { senderId: socket.id, offer: data.offer });
-    });
 
-    // Inoltro delle Risposte SDP
-    socket.on('sdp-answer', (data) => {
-        // Inoltra la risposta all'utente target
-        socket.to(data.targetId).emit('sdp-answer', { senderId: socket.id, answer: data.answer });
-    });
-
-    // Inoltro dei Candidati ICE
-    socket.on('ice-candidate', (data) => {
-        // Inoltra il candidato all'utente target
-        socket.to(data.targetId).emit('ice-candidate', { senderId: socket.id, candidate: data.candidate });
-    });
-
-    // --- LOGICA CHAT INTEGRATA ---
-    socket.on('chatMessage', (msg) => {
-        // Aggiungi l'ID del mittente per differenziare i messaggi
-        const messageWithSender = { ...msg, user: socket.id.substring(0, 4) }; 
-        // Inoltra il messaggio a tutti nella stanza (incluso il mittente per visualizzazione locale)
-        io.to(msg.room).emit('chatMessage', messageWithSender); 
-    });
-
-    // --- DISCONNESSIONE ---
-    socket.on('disconnect', () => {
-        console.log(`Utente disconnesso: ${socket.id}`);
-        // Logica per notificare gli altri peer che questo utente ha lasciato
-        // (es: io.emit('user-disconnected', socket.id);)
-    });
+const io = require('socket.io')(http, {
+  cors: corsOptions
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server Socket.IO in ascolto sulla porta ${PORT}`);
+
+const rooms = {};
+
+// Endpoint di controllo dello stato
+app.get('/', (req, res) => {
+  res.send('Server di segnalazione Socket.IO attivo e pronto per WebRTC!');
+});
+
+
+// --- LOGICA SOCKET.IO ---
+io.on('connection', (socket) => {
+  console.log('Nuovo utente connesso:', socket.id);
+
+  // Gestione della richiesta di unione a una stanza
+  socket.on('join-room', (roomId, nickname) => {
+    socket.join(roomId);
+   
+    rooms[roomId] = rooms[roomId] || [];
+   
+    const existingUsers = rooms[roomId].map(u => ({ socketId: u.id, nickname: u.nickname }));
+   
+    rooms[roomId].push({ id: socket.id, nickname: nickname });
+
+    socket.emit('users-in-room', existingUsers, socket.id);
+
+    socket.to(roomId).emit('user-joined', socket.id, nickname);
+   
+    console.log(`Utente ${nickname} (${socket.id}) si è unito alla stanza ${roomId}`);
+  });
+  
+  // ✅ NUOVA LOGICA: Gestione e Broadcast dei Messaggi di Chat
+  socket.on('chat-message', (message) => {
+    // Trova la stanza a cui è unito l'utente (è l'unica oltre al suo socket.id)
+    const roomId = Array.from(socket.rooms).find(room => room !== socket.id);
+    // Ottieni il nickname dall'handshake, come fatto durante il join
+    const nickname = socket.handshake.query.nickname || 'Ospite';
+
+    if (roomId) {
+      // Usa socket.to(roomId).emit() per inviare a tutti nella stanza ESCLUSO il mittente.
+      socket.to(roomId).emit('chat-message', socket.id, nickname, message);
+    }
+  });
+  // -----------------------------------------------------------------
+
+  // Inoltra l'Offer SDP
+  socket.on('offer', (id, message) => {
+    socket.to(id).emit('offer', socket.id, message);
+  });
+
+  // Inoltra l'Answer SDP
+  socket.on('answer', (id, message) => {
+    socket.to(id).emit('answer', socket.id, message);
+  });
+
+  // Inoltra i candidati ICE
+  socket.on('candidate', (id, message) => {
+    socket.to(id).emit('candidate', socket.id, message);
+  });
+
+  // Gestione della disconnessione di un utente
+  socket.on('disconnect', () => {
+    console.log('Utente disconnesso:', socket.id);
+   
+    for (const roomId in rooms) {
+      let userLeft = false;
+      rooms[roomId] = rooms[roomId].filter(user => {
+        if (user.id === socket.id) {
+          userLeft = true;
+          return false;
+        }
+        return true;
+      });
+
+      if (userLeft) {
+        socket.to(roomId).emit('user-left', socket.id);
+      }
+    }
+  });
+});
+// --- FINE LOGICA SOCKET.IO ---
+
+
+http.listen(PORT, () => {
+  console.log(`Server di segnalazione in ascolto sulla porta ${PORT}`);
 });
