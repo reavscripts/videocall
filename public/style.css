@@ -299,6 +299,18 @@ html, body{
     display: none !important;
 }
 
+#show-video-btn {
+    margin: 8px;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary-color);
+    color: #000;
+    font-weight: 600;
+    cursor: pointer;
+    width: calc(100% - 16px);
+}
+
 /* RESPONSIVE MOBILE */
 @media(max-width: 900px){
     html, body{

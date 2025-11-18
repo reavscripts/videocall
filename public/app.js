@@ -18,6 +18,7 @@ const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
 const messagesContainer = document.getElementById('messages-container');
 const showChatBtn = document.getElementById('show-chat-btn');
+const showVideoBtn = document.getElementById('show-video-btn');
 const joinButton = document.getElementById('join-button');
 const nicknameInput = document.getElementById('nickname-input');
 const roomIdInput = document.getElementById('room-id-input'); 
@@ -72,7 +73,6 @@ function setupRoomLink() {
     const roomUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
     shareRoomLinkInput.value = roomUrl;
     shareRoomLinkInput.addEventListener('click', () => {
-        shareRoomLinkInput.select();
         navigator.clipboard.writeText(roomUrl).then(() => {
             const original = shareRoomLinkInput.value;
             shareRoomLinkInput.value = original + ' (Link copiato)';
@@ -119,7 +119,7 @@ sendChatButton.addEventListener('click', sendChatMessage);
 chatMessageInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendChatMessage(); });
 
 // ==============================================================================
-// MOBILE CHAT
+// MOBILE CHAT TOGGLE
 // ==============================================================================
 function toggleMobileChat() {
     const isHidden = chatPanel.classList.contains('hidden');
@@ -140,22 +140,32 @@ function toggleMobileChat() {
 
         setTimeout(() => chatMessageInput.focus(), 50);
     } else {
-        chatPanel.classList.add('hidden');
-        chatPanel.style.display = '';
-        chatPanel.style.position = '';
-        chatPanel.style.inset = '';
-        chatPanel.style.width = '';
-        chatPanel.style.height = '';
-        chatPanel.style.background = '';
-        chatPanel.style.flexDirection = '';
-        chatPanel.style.zIndex = '';
-
-        mediaControls.style.display = 'flex';
-        mainVideoFeed.style.display = '';
-        remoteVideosContainer.style.display = '';
+        showVideoFromChat();
     }
 }
+
 showChatBtn.addEventListener('click', toggleMobileChat);
+
+// ==============================================================================
+// MOSTRA WEBCAM DA CHAT MOBILE
+// ==============================================================================
+function showVideoFromChat() {
+    chatPanel.classList.add('hidden');
+    chatPanel.style.display = '';
+    chatPanel.style.position = '';
+    chatPanel.style.inset = '';
+    chatPanel.style.width = '';
+    chatPanel.style.height = '';
+    chatPanel.style.background = '';
+    chatPanel.style.flexDirection = '';
+    chatPanel.style.zIndex = '';
+
+    mediaControls.style.display = 'flex';
+    mainVideoFeed.style.display = '';
+    remoteVideosContainer.style.display = '';
+}
+
+showVideoBtn.addEventListener('click', showVideoFromChat);
 
 // ==============================================================================
 // JOIN STANZA
