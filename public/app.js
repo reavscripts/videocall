@@ -126,10 +126,14 @@ function toggleMobileChat() {
     if (isHidden) {
         chatPanel.classList.remove('hidden');
         mediaControls.style.display = 'none';
+        mainVideoFeed.style.display = 'none';
+        remoteVideosContainer.style.display = 'none';
         setTimeout(() => chatMessageInput.focus(), 50);
     } else {
         chatPanel.classList.add('hidden');
         mediaControls.style.display = 'flex';
+        mainVideoFeed.style.display = '';
+        remoteVideosContainer.style.display = '';
     }
 }
 showChatBtn.addEventListener('click', toggleMobileChat);
