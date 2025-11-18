@@ -1,5 +1,5 @@
 // ==============================================================================
-// public/app.js - versione robusta per garantire visibilità chat su desktop (FIXED TIMING)
+// public/app.js - VERSIONE DEFINITIVA
 // ==============================================================================
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
@@ -47,6 +47,16 @@ const iceConfiguration = {
         { urls: 'stun:stun1.l.google.com:19302' },
     ]
 };
+
+// ==============================================================================
+// UTILITY: RIMUOVE ESPLICITAMENTE LA CLASSE HIDDEN DALLA CHAT
+// ==============================================================================
+function ensureChatPanelIsNotHidden() {
+    if (chatPanel && chatPanel.classList.contains('hidden')) {
+        chatPanel.classList.remove('hidden');
+        // console.log("FIX: Classe 'hidden' rimossa da #chat-panel.");
+    }
+}
 
 // ==============================================================================
 // FUNZIONI UI E HELPERS
@@ -196,7 +206,8 @@ function ensureChatResponsiveState() {
     const mobileBreakpoint = 900;
     const mobileControls = document.getElementById('mobile-controls'); 
     
-    // RIMOSSA: chatPanel.classList.remove('hidden'); 
+    // RIMUOVE LA CLASSE HIDDEN ANCHE QUI, PER ESTREMA SICUREZZA
+    ensureChatPanelIsNotHidden();
 
     if (window.innerWidth >= mobileBreakpoint) {
         // Desktop: Chat visibile per default (il CSS lo fa), inizializziamo lo stato a 'aperto'
@@ -417,7 +428,7 @@ async function handleOffer(socketId, description) {
 }
 
 async function handleAnswer(socketId, description) {
-    const pc = getOrCreatePeerConnection(socketId);
+    const pc = peerConnections[socketId];
     try { await pc.setRemoteDescription(new RTCSessionDescription(description)); }
     catch (error) { console.error('Errore nella gestione dell\'Answer:', error); }
 }
@@ -448,6 +459,9 @@ function removePeer(socketId) {
 // INIZIALIZZAZIONE FINALE
 // ==============================================================================
 document.addEventListener('DOMContentLoaded', () => {
+    // Rimuove immediatamente la classe 'hidden' al caricamento
+    ensureChatPanelIsNotHidden();
+    
     console.log('DOMContentLoaded: Inizializzazione logica responsive chat.');
     ensureChatResponsiveState();
 });
