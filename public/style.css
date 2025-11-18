@@ -190,6 +190,13 @@ html, body{
 }
 
 /* Chat */
+#chat-title {
+    margin: 0 0 5px 0;
+    font-size: 1rem;
+    font-weight: bold;
+    text-align: left;
+}
+
 #chat-panel{
     position: absolute;
     right: 0; 
@@ -332,10 +339,8 @@ html, body{
         overflow-y: auto;
     }
 
-    #media-controls{
-        position: fixed; 
-        bottom: 16px;
-        z-index: 100; 
+    #media-controls .mobile-only {
+        display: block !important;
     }
 
     #main-video-feed{
