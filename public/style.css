@@ -86,22 +86,24 @@ html, body{
 #conference-container{
     position: relative;
     height: 100vh;
-    /* Aggiunge spazio extra in basso per i controlli fissi, in modo che l'ultima miniatura non sia coperta */
-    padding-bottom: 70px; 
 }
 
+/* * LAYOUT GRID DESKTOP * */
 #video-area{
     display: grid;
-    grid-template-columns: 330px 1fr;
+    grid-template-columns: 330px 1fr 300px; 
+    grid-template-rows: auto 1fr; 
     gap: 12px;
     height: 100%;
-    padding: 12px 12px 0 12px; 
-    overflow-y: auto; 
+    padding-right: 312px; 
+    padding-left: 12px;
 }
 
 /* Header stanza */
 #room-header{
-    grid-column: 1 / -1;
+    grid-column: 2 / 3; 
+    grid-row: 1 / 2; 
+    
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -109,7 +111,6 @@ html, body{
     background: rgba(30, 30, 30, 0.8);
     padding: 10px;
     border-radius: 10px;
-    align-items: center; 
 }
 
 .room-title{
@@ -119,15 +120,12 @@ html, body{
 
 #share-room-link{
     width: 100%;
-    /* ✅ FIX: Limita la larghezza massima del campo link su schermi grandi */
-    max-width: 400px; 
     padding: 8px;
     font-size: 0.9rem;
     background: #222;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     color: var(--text-light);
-    text-align: center;
 }
 
 /* Main video */
@@ -137,6 +135,8 @@ html, body{
     position: relative;
     overflow: hidden;
     height: 320px;
+    grid-column: 1 / 2; 
+    grid-row: 2 / 3; 
 }
 
 #main-video-feed video{
@@ -161,7 +161,10 @@ html, body{
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     grid-auto-rows: 150px;
     gap: 10px;
+    overflow-y: auto;
     padding: 6px;
+    grid-column: 2 / 3; 
+    grid-row: 2 / 3; 
 }
 
 .video-feed{
@@ -172,6 +175,7 @@ html, body{
     display: flex;
     flex-direction: column;
     border: 2px solid transparent;
+    cursor: pointer;
 }
 
 .video-feed video{
@@ -197,19 +201,20 @@ html, body{
     border-color: var(--primary-color);
 }
 
-/* Pannello partecipanti (PC Default) */
-/* ✅ FIX PC: I pannelli sono assoluti e si aprono/chiudono indipendentemente senza sovrapporsi */
+/* Pannello partecipanti (Desktop) */
 #participants-panel{
     position: absolute;
-    right: 0;
+    right: 300px; 
     top: 0;
     width: 240px;
     height: 100%;
     background: rgba(30,30,30,0.9);
     padding: 10px;
-    border-left: 1px solid rgba(255,255,255,0.15); 
+    border-left: 1px solid var(--border-color);
     overflow-y: auto;
     z-index: 50;
+    display: flex; /* Necessario per il layout chat/partecipanti anche se è la stessa struttura */
+    flex-direction: column; 
 }
 
 #participants-list li{
@@ -228,24 +233,23 @@ html, body{
     font-weight: bold;
 }
 
-/* Stili Chat Panel (PC Default) */
-/* ✅ FIX PC: I pannelli sono assoluti e si aprono/chiudono indipendentemente senza sovrapporsi */
+/* Stili Chat Panel (Desktop) */
 #chat-panel{
     position: absolute;
-    right: 0;
+    right: 0; 
     top: 0;
-    width: 240px;
+    width: 300px; 
     height: 100%;
     background: rgba(30,30,30,0.9);
     padding: 10px;
-    border-left: 1px solid rgba(255,255,255,0.15); 
+    border-left: 1px solid var(--border-color);
     z-index: 50;
     display: flex; 
-    flex-direction: column;
+    flex-direction: column; 
 }
 
 #messages-container {
-    flex-grow: 1;
+    flex-grow: 1; 
     overflow-y: auto;
     padding: 5px;
     margin-bottom: 10px;
@@ -264,6 +268,12 @@ html, body{
     color: var(--primary-color);
 }
 
+.message .timestamp {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: normal;
+}
+
 .message.self .sender {
     color: var(--accent-color);
 }
@@ -271,6 +281,8 @@ html, body{
 #chat-input-area {
     display: flex;
     gap: 5px;
+    padding-top: 5px;
+    border-top: 1px solid var(--border-color);
 }
 
 #chat-message-input {
@@ -295,20 +307,15 @@ html, body{
 
 /* Media Controls */
 #media-controls{
-    /* ✅ FIX MOBILE: Fissa i controlli in basso e centrali per una facile accessibilità */
-    position: fixed; 
-    bottom: 0;
+    position: absolute; 
+    bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
-    width: 100%; 
-    max-width: 400px; 
     display: flex;
-    justify-content: center; 
     gap: 12px;
-    background: rgba(20,20,20,0.8); 
+    background: rgba(20,20,20,0.4); 
     padding: 10px;
-    border-radius: 10px 10px 0 0; 
-    box-shadow: 0 -4px 10px rgba(0,0,0,0.5); 
+    border-radius: 40px;
     z-index: 100;
 }
 
@@ -320,11 +327,6 @@ html, body{
     background: var(--surface-dark);
     color: var(--text-light);
     font-size: 1.2rem;
-    transition: background 0.2s;
-}
-
-#media-controls button:hover:not(.danger) {
-    background: #333;
 }
 
 #media-controls .danger{
@@ -368,42 +370,40 @@ html, body{
         background-repeat: no-repeat;
     }
     
-    /* Riduce il padding-bottom solo per i controlli fissi */
-    #conference-container{
-         padding-bottom: 66px; 
-    }
-
+    /* Layout video mobile: colonna singola */
     #video-area{
         display: flex;
         flex-direction: column;
-        padding-bottom: 0; 
+        grid-template-columns: none; 
+        padding-right: 12px; 
     }
 
-    /* ❗✅ FIX MOBILE CHAT & PARTECIPANTI: Usa position: fixed e copre l'intero viewport. */
-    #participants-panel, #chat-panel{
+    /* Stili di base per i pannelli mobile (nascosti di default) */
+    #participants-panel, #chat-panel {
+        /* Questo è importante per il layout flex column e lo sfondo solido */
+        position: absolute; 
+        right: 0; 
+        top: 0;
+        width: 100%; 
+        height: 100%; /* Altezza 100% rispetto al genitore (#conference-container) */
+        background: var(--background-dark); /* SFONDO SOLIDO per coprire l'immagine del body */
+        padding: 10px;
+        z-index: 140; 
+    }
+
+    /* Stili attivati SOLO quando il pannello è visibile (senza la classe 'hidden') */
+    #chat-panel:not(.hidden), #participants-panel:not(.hidden) {
+        /* Forza a schermo intero fisso per la corretta visualizzazione mobile */
         position: fixed; 
-        inset: 0;      
-        width: 100%;    
-        height: 100%;   
-        padding: 10px; 
-        padding-bottom: 76px; /* Aggiunge spazio in basso per non coprire i media controls */
-        background: var(--background-dark); 
-        z-index: 150; 
-        display: flex; 
-        flex-direction: column; 
-        border-left: none; 
-    }
-
-    /* Nasconde i pannelli laterali di default su mobile */
-    /* Verranno mostrati/nascosti via JS con la classe 'hidden' */
-    #participants-panel{ 
-        display: none; 
-    }
-    #chat-panel{
-        display: none;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 150;
+        display: flex; /* Il JS deve impostare il display: flex; invece di block per questo punto */
+        flex-direction: column;
     } 
 
-    /* Mostra i pulsanti specifici per mobile nell'area controlli */
+    /* Mostra i pulsanti specifici per mobile */
     #media-controls .mobile-only {
         display: block !important;
     }
@@ -418,19 +418,32 @@ html, body{
         font-size: 1.2rem;
     }
     
+    /* I controlli sono fissi su mobile */
+    #media-controls{
+        position: fixed; 
+        bottom: 16px;
+        z-index: 100; 
+    }
+
+    /* Ribilancia l'altezza su mobile */
     #main-video-feed{
-        height: 45vh;
+        height: 40vh; 
+        grid-column: auto;
+        grid-row: auto;
     }
 
     #remote-videos-container{
-        /* Assicura che le miniature occupino il resto dello spazio disponibile per scrollare */
-        flex-grow: 1;
+        height: 40vh; 
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         grid-auto-rows: 110px;
+        grid-column: auto;
+        grid-row: auto;
     }
 
     #room-header{
         text-align: center;
+        grid-column: auto;
+        grid-row: auto;
     }
 
     .room-title{
