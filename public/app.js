@@ -1,5 +1,5 @@
 // ==============================================================================
-// public/app.js - versione con fix per la chat (rimuove la logica partecipanti)
+// public/app.js - versione con fix per la chat (rimozione automatica di 'hidden')
 // ==============================================================================
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
@@ -107,20 +107,20 @@ joinButton?.addEventListener('click', () => {
     if (nickname && roomId) {
         userNickname = nickname;
         currentRoomId = roomId;
-        roomNameDisplay.textContent = currentRoomId;
+        if (roomNameDisplay) roomNameDisplay.textContent = currentRoomId;
 
         startLocalMedia()
             .then(() => {
-                nicknameOverlay.classList.add('hidden');
-                conferenceContainer.classList.remove('hidden');
+                nicknameOverlay?.classList.add('hidden');
+                conferenceContainer?.classList.remove('hidden');
                 createLocalVideoElement();
                 setMainVideo('local');
                 initializeSocket();
                 setupRoomLink();
             })
             .catch(error => {
-                console.error("Non è stato possibile avviare la webcam:", error.name, error);
-                alert(`Impossibile avviare la webcam. Controlla i permessi. Errore: ${error.name}`);
+                console.error("Non è stato possibile avviare la webcam:", error?.name ?? error, error);
+                alert(`Impossibile avviare la webcam. Controlla i permessi. Errore: ${error?.name ?? error}`);
             });
     } else {
         alert('Per favore, inserisci un nickname e il nome della stanza.');
@@ -194,9 +194,11 @@ chatMessageInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') s
 // ==============================================================================
 function ensureChatResponsiveState() {
     const mobileBreakpoint = 900;
+    // Rimuovo sempre 'hidden' da chatPanel: non usare "hidden" per nascondere il pannello chat in desktop
     if (chatPanel) chatPanel.classList.remove('hidden');
 
     if (window.innerWidth >= mobileBreakpoint) {
+        // Desktop: chat sempre visibile
         if (chatPanel) {
             chatPanel.classList.remove('show');
             chatPanel.style.display = '';
@@ -204,6 +206,7 @@ function ensureChatResponsiveState() {
         if (videoArea) videoArea.classList.remove('hidden');
         showChatBtn?.setAttribute('aria-expanded', 'false');
     } else {
+        // Mobile: default chiuso (aperto solo con .show)
         if (chatPanel) chatPanel.classList.remove('show');
         if (videoArea) videoArea.classList.remove('hidden');
         showChatBtn?.setAttribute('aria-expanded', 'false');
@@ -214,6 +217,22 @@ function ensureChatResponsiveState() {
 if (chatPanel) {
     chatPanel.classList.remove('hidden');
     if (chatPanel.style.display === 'none') chatPanel.style.display = '';
+    // Protezione: osserva la class attribute e rimuove 'hidden' se viene ri-aggiunta accidentalmente
+    try {
+        const observer = new MutationObserver((mutationsList) => {
+            for (const m of mutationsList) {
+                if (m.type === 'attributes' && m.attributeName === 'class') {
+                    if (chatPanel.classList.contains('hidden')) {
+                        chatPanel.classList.remove('hidden');
+                    }
+                }
+            }
+        });
+        observer.observe(chatPanel, { attributes: true, attributeFilter: ['class'] });
+    } catch (e) {
+        // in ambienti molto vecchi MutationObserver potrebbe non essere disponibile; non bloccare comunque
+        console.warn('MutationObserver non disponibile:', e);
+    }
 }
 
 window.addEventListener('resize', ensureChatResponsiveState);
@@ -223,13 +242,13 @@ function toggleChatOnMobile() {
     const mobileBreakpoint = 900;
     if (window.innerWidth >= mobileBreakpoint) return;
 
-    const isVisible = chatPanel.classList.contains('show');
+    const isVisible = chatPanel?.classList.contains('show');
     if (isVisible) {
-        chatPanel.classList.remove('show');
+        chatPanel?.classList.remove('show');
         videoArea?.classList.remove('hidden');
         showChatBtn?.setAttribute('aria-expanded', 'false');
     } else {
-        chatPanel.classList.add('show');
+        chatPanel?.classList.add('show');
         videoArea?.classList.add('hidden');
         showChatBtn?.setAttribute('aria-expanded', 'true');
         setTimeout(() => chatMessageInput?.focus(), 50);
@@ -274,7 +293,7 @@ toggleVideoButton?.addEventListener('click', () => {
 
 disconnectButton?.addEventListener('click', () => {
     localStream?.getTracks().forEach(track => track.stop());
-    Object.values(peerConnections).forEach(pc => { if (pc && pc.close) pc.close(); });
+    Object.values(peerConnections).forEach(pc => { try { if (pc && pc.close) pc.close(); } catch(e) {} });
     socket?.disconnect();
     window.location.reload();
 });
