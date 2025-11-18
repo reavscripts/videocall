@@ -301,12 +301,12 @@ html, body{
 
 /* Pulsante chiudi chat mobile */
 #show-video-btn {
-    display: none;
-    position: fixed;
-    top: 12px;
-    right: 12px;
-    z-index: 220;
-    padding: 10px 14px;
+    display: none; /* di default nascosto */
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 300;
+    padding: 6px 12px;
     border-radius: 8px;
     background: var(--primary-color);
     color: #000;

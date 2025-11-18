@@ -123,27 +123,20 @@ chatMessageInput.addEventListener('keypress', e => { if (e.key === 'Enter') send
 // ==============================================================================
 function toggleMobileChat(show = null) {
     const isShown = chatPanel.classList.contains('show');
-
-    // Se show è true/false, forza lo stato
     const shouldShow = show !== null ? show : !isShown;
 
     if (shouldShow) {
-        // Apri chat mobile
         chatPanel.classList.add('show');
         mainVideoFeed.style.display = 'none';
         remoteVideosContainer.style.display = 'none';
         mediaControls.style.display = 'none';
 
-        // Mostra pulsante chiudi sopra la chat
-        showVideoBtn.style.display = 'block';
-        showVideoBtn.textContent = '🎥 Torna alla webcam';
+        chatMessageInput.focus();
     } else {
-        // Chiudi chat e torna alla webcam
         chatPanel.classList.remove('show');
         mainVideoFeed.style.display = '';
         remoteVideosContainer.style.display = '';
         mediaControls.style.display = 'flex';
-        showVideoBtn.style.display = 'none';
     }
 }
 
