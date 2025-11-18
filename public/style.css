@@ -64,6 +64,9 @@ body {
     display: flex; /* La chat è flex su desktop per default */
     flex-direction: column;
     z-index: 8000;
+    /* AGGIUNTA CHIAVE: Rende la chat visibile anche se una classe .hidden generica viene applicata */
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* Rimosso: #chat-panel.debug-outline */

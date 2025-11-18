@@ -1,5 +1,5 @@
 // ==============================================================================
-// public/app.js - VERSIONE PULITA
+// public/app.js - VERSIONE FINALE CORRETTA
 // ==============================================================================
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
@@ -199,8 +199,8 @@ function ensureChatResponsiveState() {
     if (window.innerWidth >= mobileBreakpoint) {
         // Desktop: Chat visibile per default.
         if (chatPanel) {
-            // Inizializza forzando 'show' e 'flex' per lo stato iniziale di default aperto
-            chatPanel.style.display = 'flex';
+            // Rimuoviamo la forzatura 'display: flex' inline e ci affidiamo al CSS per l'inizializzazione.
+            chatPanel.style.display = ''; 
             chatPanel.classList.add('show');
             if (showChatBtn) showChatBtn.textContent = '❌ Chiudi Chat';
             showChatBtn?.setAttribute('aria-expanded', 'true');
@@ -251,7 +251,7 @@ function toggleChat() {
 
         if (window.innerWidth >= mobileBreakpoint) {
             // Desktop: mostra e cambia testo
-            chatPanel.style.display = 'flex'; // Ri-mostra forzando flex
+            chatPanel.style.display = 'flex'; // Ri-mostra forzando flex (necessario per il toggle, ma non per l'inizializzazione)
             if (showChatBtn) showChatBtn.textContent = '❌ Chiudi Chat';
         } else {
             // Mobile: nascondi la video area e cambia testo
