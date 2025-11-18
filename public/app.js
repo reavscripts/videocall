@@ -17,7 +17,6 @@ const roomIdInput = document.getElementById('room-id-input');
 // Elementi DOM per il focus e i controlli
 const mainVideoFeed = document.getElementById('main-video-feed');
 const mainMuteBtn = document.getElementById("main-mute-btn");
-// CORREZIONE: Questo listener funziona ora che setMainVideo gestisce la visibilità
 mainMuteBtn.addEventListener("click", () => {
     const videoEl = mainVideoFeed.querySelector("video");
     videoEl.muted = !videoEl.muted;
@@ -164,25 +163,25 @@ function setMainVideo(peerId) {
     // 2. Aggiorna il video principale
     const videoEl = mainVideoFeed.querySelector('video'); 
     const labelEl = mainVideoFeed.querySelector('.video-label'); 
-    const muteBtn = document.getElementById("main-mute-btn"); // Recupera il pulsante
 
-    if (!videoEl || !labelEl || !muteBtn) {
-        console.error("Elementi video, label o muteBtn non trovati in #main-video-feed.");
+    if (!videoEl || !labelEl) {
+        console.error("Elementi video o label non trovati in #main-video-feed.");
         return; 
     }
 
 	if (stream) {
 		videoEl.srcObject = stream;
-		videoEl.muted = isLocal; // Muta se è il video locale (per evitare feedback)
+		videoEl.muted = isLocal; // muta solo se è il video locale
 		labelEl.textContent = nickname;
 
-		// **LOGICA AGGIORNATA PER IL MUTE REMOTO**
+		// aggiorna lo stato del pulsante mute per remoti
+		const muteBtn = document.getElementById("main-mute-btn");
+
 		if (isLocal) {
-			muteBtn.style.display = "none";      // Nasconde il pulsante per il video locale
+			muteBtn.style.display = "none";      // non mostrare mute per te stesso
 		} else {
-			muteBtn.style.display = "block";     // Mostra il pulsante per il video remoto
-			// Assicurati che l'icona rifletta lo stato attuale del video remoto
-			muteBtn.textContent = videoEl.muted ? "🔇" : "🔊"; 
+			muteBtn.style.display = "block";     // mostra mute per remoto
+			muteBtn.textContent = videoEl.muted ? "🔇" : "🔊"; // Emojis audio
 		}
 	}
 
