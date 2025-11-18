@@ -1,5 +1,5 @@
 // ==============================================================================
-// public/app.js - versione con fix per la chat (rimozione automatica di 'hidden')
+// public/app.js - versione robusta per garantire visibilità chat su desktop
 // ==============================================================================
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
@@ -49,6 +49,50 @@ const iceConfiguration = {
 };
 
 // ==============================================================================
+// UTILITY: Forza la rimozione della classe 'hidden' sul pannello chat
+// ==============================================================================
+function forceShowChatPanelOnce() {
+    if (!chatPanel) return;
+    chatPanel.classList.remove('hidden');
+    // rimuove eventuale display inline che nasconde
+    if (chatPanel.style && chatPanel.style.display === 'none') chatPanel.style.display = '';
+}
+
+// Esegui subito e ripeti per i primi istanti per coprire inizializzazioni asincrone
+(function ensureChatVisibleImmediately() {
+    // immediato
+    forceShowChatPanelOnce();
+    // ripeti un paio di volte nei successivi 2 secondi (protezione contro script che settano 'hidden' dopo)
+    let tries = 0;
+    const maxTries = 8;
+    const intervalId = setInterval(() => {
+        tries++;
+        forceShowChatPanelOnce();
+        if (tries >= maxTries) clearInterval(intervalId);
+    }, 250);
+    // anche una rimozione ritardata più lunga (ultimo tentativo)
+    setTimeout(() => forceShowChatPanelOnce(), 2500);
+})();
+
+// MutationObserver: se qualche script ri-aggiunge 'hidden', lo rimuoviamo immediatamente
+if (chatPanel && typeof MutationObserver !== 'undefined') {
+    try {
+        const mo = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                if (m.type === 'attributes' && m.attributeName === 'class') {
+                    if (chatPanel.classList.contains('hidden')) {
+                        chatPanel.classList.remove('hidden');
+                    }
+                }
+            }
+        });
+        mo.observe(chatPanel, { attributes: true, attributeFilter: ['class'] });
+    } catch (e) {
+        console.warn('MutationObserver non disponibile o fallita la registrazione:', e);
+    }
+}
+
+// ==============================================================================
 // FUNZIONI UI E HELPERS
 // ==============================================================================
 mainMuteBtn?.addEventListener("click", () => {
@@ -78,7 +122,6 @@ function setMainVideo(peerId) {
 
     const videoEl = mainVideoFeed.querySelector('video');
     const labelEl = mainVideoFeed.querySelector('.video-label');
-
     if (!videoEl || !labelEl) return;
 
     document.querySelectorAll('.remote-feed.is-focused').forEach(el => el.classList.remove('is-focused'));
@@ -194,7 +237,7 @@ chatMessageInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') s
 // ==============================================================================
 function ensureChatResponsiveState() {
     const mobileBreakpoint = 900;
-    // Rimuovo sempre 'hidden' da chatPanel: non usare "hidden" per nascondere il pannello chat in desktop
+    // forziamo rimozione 'hidden' (non dovremmo mai usare 'hidden' per desktop)
     if (chatPanel) chatPanel.classList.remove('hidden');
 
     if (window.innerWidth >= mobileBreakpoint) {
@@ -213,30 +256,9 @@ function ensureChatResponsiveState() {
     }
 }
 
-// esegui subito la pulizia iniziale
-if (chatPanel) {
-    chatPanel.classList.remove('hidden');
-    if (chatPanel.style.display === 'none') chatPanel.style.display = '';
-    // Protezione: osserva la class attribute e rimuove 'hidden' se viene ri-aggiunta accidentalmente
-    try {
-        const observer = new MutationObserver((mutationsList) => {
-            for (const m of mutationsList) {
-                if (m.type === 'attributes' && m.attributeName === 'class') {
-                    if (chatPanel.classList.contains('hidden')) {
-                        chatPanel.classList.remove('hidden');
-                    }
-                }
-            }
-        });
-        observer.observe(chatPanel, { attributes: true, attributeFilter: ['class'] });
-    } catch (e) {
-        // in ambienti molto vecchi MutationObserver potrebbe non essere disponibile; non bloccare comunque
-        console.warn('MutationObserver non disponibile:', e);
-    }
-}
-
 window.addEventListener('resize', ensureChatResponsiveState);
 window.addEventListener('load', ensureChatResponsiveState);
+document.addEventListener('DOMContentLoaded', ensureChatResponsiveState);
 
 function toggleChatOnMobile() {
     const mobileBreakpoint = 900;
@@ -299,7 +321,7 @@ disconnectButton?.addEventListener('click', () => {
 });
 
 // ==============================================================================
-// WEBRTC FUNZIONI
+// WEBRTC / SOCKET.IO (mantieni il resto del tuo codice esistente)
 // ==============================================================================
 function getOrCreatePeerConnection(socketId) {
     if (peerConnections[socketId]) return peerConnections[socketId];
@@ -344,9 +366,6 @@ function createRemoteVideoElement(socketId, stream) {
     if (Object.keys(peerConnections).length === 1 && focusedPeerId === 'local') setMainVideo(socketId);
 }
 
-// ==============================================================================
-// SOCKET.IO
-// ==============================================================================
 function initializeSocket() {
     socket = io(RENDER_SERVER_URL, { query: { nickname: userNickname } });
 
@@ -385,7 +404,7 @@ async function callUser(socketId, isCaller) {
             const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
             await pc.setLocalDescription(offer);
             socket.emit('offer', socketId, pc.localDescription);
-        } catch (error) { console.error('Errore nella creazione dell\'Offer:', error); }
+        } catch (error) { console.error('Errore nella creazione dell\\'Offer:', error); }
     }
 }
 
@@ -396,13 +415,13 @@ async function handleOffer(socketId, description) {
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         socket.emit('answer', socketId, pc.localDescription);
-    } catch (error) { console.error('Errore nella gestione dell\'Offer:', error); }
+    } catch (error) { console.error('Errore nella gestione dell\\'Offer:', error); }
 }
 
 async function handleAnswer(socketId, description) {
     const pc = getOrCreatePeerConnection(socketId);
     try { await pc.setRemoteDescription(new RTCSessionDescription(description)); }
-    catch (error) { console.error('Errore nella gestione dell\'Answer:', error); }
+    catch (error) { console.error('Errore nella gestione dell\\'Answer:', error); }
 }
 
 async function handleCandidate(socketId, candidate) {
@@ -427,11 +446,6 @@ function removePeer(socketId) {
     }
 }
 
-// ==============================================================================
-// Inizializzazione iniziale: assicurati che la chat non sia forzatamente nascosta
-// ==============================================================================
-if (chatPanel) {
-    chatPanel.classList.remove('hidden');
-    if (chatPanel.style.display === 'none') chatPanel.style.display = '';
-}
+// inizializzazione finale: assicurati che la chat non sia forzatamente nascosta
+forceShowChatPanelOnce();
 ensureChatResponsiveState();
