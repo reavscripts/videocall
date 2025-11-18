@@ -121,16 +121,24 @@ chatMessageInput.addEventListener('keypress', e => { if (e.key === 'Enter') send
 // ==============================================================================
 // MOBILE CHAT TOGGLE
 // ==============================================================================
-function toggleMobileChat() {
+function toggleMobileChat(show = null) {
     const isShown = chatPanel.classList.contains('show');
 
-    if (!isShown) {
+    // Se show è true/false, forza lo stato
+    const shouldShow = show !== null ? show : !isShown;
+
+    if (shouldShow) {
+        // Apri chat mobile
         chatPanel.classList.add('show');
         mainVideoFeed.style.display = 'none';
         remoteVideosContainer.style.display = 'none';
         mediaControls.style.display = 'none';
+
+        // Mostra pulsante chiudi sopra la chat
         showVideoBtn.style.display = 'block';
+        showVideoBtn.textContent = '🎥 Torna alla webcam';
     } else {
+        // Chiudi chat e torna alla webcam
         chatPanel.classList.remove('show');
         mainVideoFeed.style.display = '';
         remoteVideosContainer.style.display = '';
@@ -139,8 +147,9 @@ function toggleMobileChat() {
     }
 }
 
-showChatBtn.addEventListener('click', toggleMobileChat);
-showVideoBtn.addEventListener('click', toggleMobileChat);
+// Eventi
+showChatBtn.addEventListener('click', () => toggleMobileChat(true));
+showVideoBtn.addEventListener('click', () => toggleMobileChat(false));
 
 // ==============================================================================
 // JOIN STANZA
