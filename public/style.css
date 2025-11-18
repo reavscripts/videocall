@@ -53,7 +53,7 @@ body {
 }
 
 /* ============================================================================== */
-/* CHAT PANEL (DESKTOP) - DEFAULT VISIBLE */
+/* CHAT PANEL (DESKTOP DEFAULT) */
 /* ============================================================================== */
 #chat-panel {
     width: 300px;
@@ -61,17 +61,12 @@ body {
     flex-shrink: 0;
     background: #1a1a1a;
     border-left: 2px solid #333;
-    display: flex !important;                /* Ensure visible by default on desktop */
+    display: flex; /* La chat è flex su desktop per default */
     flex-direction: column;
     z-index: 8000;
-    position: relative;
-    transform: none !important;
-    opacity: 1 !important;
-    visibility: visible !important;
 }
 
-/* Diagnostic outline helper (remove in production) */
-#chat-panel.debug-outline { outline: 3px solid magenta; }
+/* Rimosso: #chat-panel.debug-outline */
 
 #chat-panel h3 { margin: 0; padding: 10px; background: #222; font-size: 16px; }
 #messages-container { flex: 1; overflow-y: auto; padding: 10px; }
@@ -105,7 +100,7 @@ body {
 @media (max-width: 900px) {
     #app { flex-direction: column; }
 
-    /* Chat hidden by default on mobile, shown with .show */
+    /* Chat nascosta per default su mobile, mostrata con .show */
     #chat-panel {
         display: none;
         position: fixed;
@@ -118,7 +113,7 @@ body {
 
     #chat-panel.show { display: flex !important; }
 
-    /* Hide video area when chat is open */
+    /* Nasconde l'area video quando la chat è aperta */
     #video-area.hidden { display: none; }
 
     #mobile-controls { display: flex; }
@@ -129,22 +124,20 @@ body {
 }
 
 /* ============================================================================== */
-/* FORCE RULES FOR DESKTOP */
+/* FORCE RULES FOR DESKTOP (Ripulite all'essenziale) */
 /* ============================================================================== */
 @media (min-width: 901px) {
+    /* La regola .hidden è stata rimossa, quindi basta la regola base in .hidden */
     #chat-panel {
-        display: flex !important;
+        /* Manteniamo la forzatura solo sulla dimensione e sullo stacking per assicurare il layout */
         position: relative !important;
         transform: none !important;
-        opacity: 1 !important;
-        visibility: visible !important;
         z-index: 8000 !important;
     }
     
-    /* NEW EXTREME SPECIFICITY FIX */
-    /* Forces chat to be visible even if a script adds the 'hidden' class */
+    /* NEW EXTREME SPECIFICITY FIX: Mantenuto per annullare un eventuale display: none !important globale */
     #chat-panel.hidden {
-        display: flex !important; /* Questo vincerà sul display: none !important della classe .hidden generale */
+        display: flex !important; 
         opacity: 1 !important;
         visibility: visible !important;
     }
@@ -158,7 +151,3 @@ body {
         display: none !important;
     }
 }
-
-/* ============================================================================== */
-/* FINE FILE */
-/* ============================================================================== */
