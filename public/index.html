@@ -7,11 +7,12 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-	
+
     <div id="nickname-overlay">
-		<img id="app-logo" src="images/logo.png" alt="Logo della Video Conferenza">
+        
+        <img id="app-logo" src="images/logo.png" alt="Logo della Video Conferenza">
+
         <div class="card">
-			
             <h2>Entra nella Conferenza</h2>
 
             <input type="text" id="room-id-input" placeholder="Nome della Stanza" required>
@@ -25,8 +26,18 @@
     <div id="conference-container" class="hidden">
 
         <aside id="participants-panel">
-            <h3>👥 Partecipanti (<span id="participant-count">0</span>)</h3>
+            <h3>Partecipanti (<span id="participant-count">0</span>)</h3>
             <ul id="participants-list"></ul>
+        </aside>
+
+        <aside id="chat-panel" class="hidden">
+            <h3>💬 Chat di Stanza</h3>
+            <div id="messages-container">
+                </div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-message-input" placeholder="Scrivi un messaggio...">
+                <button id="send-chat-button">Invia</button>
+            </div>
         </aside>
 
 
@@ -34,7 +45,7 @@
 
             <div id="room-header">
                 <h1 class="room-title">Stanza: <span id="room-name-display"></span></h1>
-                <input type="text" id="share-room-link" placeholder="Clicca per copiare il link" readonly>
+                <input type="text" id="share-room-link" readonly>
             </div>
 
             <div id="main-video-feed" class="video-feed">
@@ -48,8 +59,12 @@
             </section>
 
             <div id="media-controls">
-                <button id="toggle-audio-button">🎤</button>
+                <button id="toggle-audio-button">🔊</button>
                 <button id="toggle-video-button">📹</button>
+                
+                <button id="show-participants-btn" class="mobile-only">👥</button>
+                <button id="show-chat-btn" class="mobile-only">💬</button>
+                
                 <button id="disconnect-button" class="danger">📞</button>
             </div>
         </main>
@@ -70,8 +85,7 @@
         </li>
     </template>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <script src="app.js"></script>
-
 </body>
 </html>
