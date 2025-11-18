@@ -121,28 +121,30 @@ chatMessageInput.addEventListener('keypress', e => { if (e.key === 'Enter') send
 // ==============================================================================
 // MOBILE CHAT TOGGLE
 // ==============================================================================
-function toggleMobileChat(show = null) {
-    const isShown = chatPanel.classList.contains('show');
-    const shouldShow = show !== null ? show : !isShown;
+function toggleMobileChat() {
+    const isMobile = window.matchMedia("(max-width: 900px)").matches;
+    if (!isMobile) return; // desktop: non fare toggle
 
-    if (shouldShow) {
+    const isHidden = !chatPanel.classList.contains('show');
+
+    if (isHidden) {
         chatPanel.classList.add('show');
+        showVideoBtn.style.display = 'block';
         mainVideoFeed.style.display = 'none';
         remoteVideosContainer.style.display = 'none';
         mediaControls.style.display = 'none';
-
-        chatMessageInput.focus();
+        setTimeout(() => chatMessageInput.focus(), 50);
     } else {
         chatPanel.classList.remove('show');
+        showVideoBtn.style.display = 'none';
         mainVideoFeed.style.display = '';
         remoteVideosContainer.style.display = '';
         mediaControls.style.display = 'flex';
     }
 }
 
-// Eventi
-showChatBtn.addEventListener('click', () => toggleMobileChat(true));
-showVideoBtn.addEventListener('click', () => toggleMobileChat(false));
+showChatBtn.addEventListener('click', toggleMobileChat);
+showVideoBtn.addEventListener('click', toggleMobileChat);
 
 // ==============================================================================
 // JOIN STANZA
