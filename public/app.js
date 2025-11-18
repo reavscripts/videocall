@@ -145,6 +145,9 @@ async function getLocalStream() {
         toggleAudioButton.textContent = audioTrackEnabled ? '🔊' : '🔇';
         toggleVideoButton.textContent = videoTrackEnabled ? '📹' : '⬛';
 
+        // Dopo aver acquisito lo stream, impostalo come video principale
+        setMainVideo('local'); 
+
     } catch (error) {
         console.error("Errore nell'ottenere il flusso locale:", error);
         alert("Non è stato possibile accedere alla fotocamera o al microfono. Assicurati che i permessi siano concessi.");
@@ -226,6 +229,7 @@ async function startCall() {
 // ==============================================================================
 
 toggleAudioButton.addEventListener('click', () => {
+    if (!localStream) return;
     audioTrackEnabled = !audioTrackEnabled;
     localStream.getAudioTracks().forEach(track => track.enabled = audioTrackEnabled);
     toggleAudioButton.textContent = audioTrackEnabled ? '🔊' : '🔇';
@@ -235,6 +239,7 @@ toggleAudioButton.addEventListener('click', () => {
 });
 
 toggleVideoButton.addEventListener('click', () => {
+    if (!localStream) return;
     videoTrackEnabled = !videoTrackEnabled;
     localStream.getVideoTracks().forEach(track => track.enabled = videoTrackEnabled);
     toggleVideoButton.textContent = videoTrackEnabled ? '📹' : '⬛';
@@ -300,7 +305,7 @@ function createPeerConnection(socketId, isInitiator) {
         if (remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"]`)) {
             // Se l'elemento esiste già, imposta solo lo stream
             const videoEl = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${socketId}"] video`);
-            videoEl.srcObject = event.streams[0];
+            if (videoEl) videoEl.srcObject = event.streams[0];
         } else {
             // Altrimenti, crea un nuovo elemento video feed
             addRemoteVideo(socketId, event.streams[0]);
@@ -450,9 +455,15 @@ function setMainVideo(socketId) {
     const mainVideoEl = mainVideoFeed.querySelector('video');
     const mainLabelEl = mainVideoFeed.querySelector('.video-label');
     
+    // SAFETY CHECK: Se l'elemento video non è trovato, esci
+    if (!mainVideoEl) {
+        console.error("Main video element not found.");
+        return;
+    }
+
     // Gestione video locale
     if (socketId === 'local') {
-        // CORREZIONE: Usa la variabile globale localStream
+        // Usa la variabile globale localStream
         if (localStream) {
             mainVideoEl.srcObject = localStream; 
         }
@@ -563,9 +574,4 @@ const urlRoomId = urlParams.get('room');
 if (urlRoomId) {
     roomIdInput.value = urlRoomId;
 }
-
-// Inizializza il focus al video principale come locale all'avvio
-document.addEventListener('DOMContentLoaded', () => {
-    // La chiamata a setMainVideo('local') è garantita solo dopo che lo stream locale è disponibile
-    // Non la chiamiamo qui per evitare che fallisca prima di startCall
-});
+// Rimosso il blocco document.addEventListener('DOMContentLoaded', ...) che causava l'errore
