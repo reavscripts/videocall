@@ -210,7 +210,7 @@ function appendMessage(nickname, message, isLocal = false) {
 
     const timeSpan = document.createElement('span');
     timeSpan.classList.add('timestamp');
-    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })})`;
+    timeSpan.textContent = ` (${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
 
     messageDiv.appendChild(senderSpan);
     messageDiv.appendChild(timeSpan);
@@ -237,12 +237,21 @@ chatMessageInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') s
 // ==============================================================================
 function ensureChatResponsiveState() {
     const mobileBreakpoint = 900;
+    const mobileControls = document.getElementById('mobile-controls'); // Riferimento al contenitore dei pulsanti
     
     // Forziamo rimozione 'hidden' (la usiamo solo per il toggle)
     if (chatPanel) chatPanel.classList.remove('hidden');
 
     if (window.innerWidth >= mobileBreakpoint) {
         // Desktop: Chat visibile per default (il CSS lo fa), inizializziamo lo stato a 'aperto'
+        
+        // ******* FIX AGGIUNTO QUI: FORZA LA VISIBILITÀ DI #mobile-controls TRAMITE JS *******
+        if (mobileControls) {
+            mobileControls.style.display = 'flex'; 
+            mobileControls.classList.remove('hidden'); 
+        }
+        // *********************************************************************************
+
         if (chatPanel) {
             // Se non ha la classe 'show' (che usiamo come indicatore di stato), la aggiungiamo e assicuriamo 'flex'
             if (!chatPanel.classList.contains('show')) {
@@ -483,12 +492,6 @@ function removePeer(socketId) {
 // ==============================================================================
 // INIZIALIZZAZIONE FINALE - **FIXED TIMING**
 // ==============================================================================
-
-// Rimuovi le chiamate dirette alla fine del file per prevenire l'esecuzione troppo anticipata
-// forceShowChatPanelOnce();
-// ensureChatResponsiveState();
-
-// Esegui la logica di visibilità solo dopo che tutti gli elementi DOM sono caricati.
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOMContentLoaded: Assicurazione finale visibilità chat.');
     forceShowChatPanelOnce();
