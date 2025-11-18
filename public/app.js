@@ -249,7 +249,8 @@ function ensureChatResponsiveState() {
                  chatPanel.style.display = 'flex';
                  chatPanel.classList.add('show');
             }
-            showChatBtn.textContent = '❌ Chiudi Chat';
+            // Aggiorna il pulsante per lo stato "chiudi"
+            if (showChatBtn) showChatBtn.textContent = '❌ Chiudi Chat';
             showChatBtn?.setAttribute('aria-expanded', 'true');
         }
         if (videoArea) videoArea.classList.remove('hidden');
@@ -262,7 +263,8 @@ function ensureChatResponsiveState() {
             chatPanel.style.display = ''; // Rimuovi lo style inline per far funzionare le media query
         }
         if (videoArea) videoArea.classList.remove('hidden');
-        showChatBtn.textContent = '💬 Chat';
+        // Aggiorna il pulsante per lo stato "apri"
+        if (showChatBtn) showChatBtn.textContent = '💬 Chat';
         showChatBtn?.setAttribute('aria-expanded', 'false');
     }
 }
@@ -279,15 +281,16 @@ function toggleChat() {
     if (isVisible) {
         // NASCONDI CHAT
         chatPanel?.classList.remove('show');
-        showChatBtn.textContent = '💬 Chat';
         showChatBtn?.setAttribute('aria-expanded', 'false');
         
         if (window.innerWidth >= mobileBreakpoint) {
-            // Desktop: nascondi usando l'inline style (sovrascrive style.css: #chat-panel)
+            // Desktop: nascondi e cambia testo
             chatPanel.style.display = 'none';
+            if (showChatBtn) showChatBtn.textContent = '💬 Mostra Chat';
         } else {
             // Mobile: lascia che il CSS gestisca la chiusura e mostra la video area
             videoArea?.classList.remove('hidden');
+            if (showChatBtn) showChatBtn.textContent = '💬 Chat';
         }
 
     } else {
@@ -297,13 +300,13 @@ function toggleChat() {
         setTimeout(() => chatMessageInput?.focus(), 50);
 
         if (window.innerWidth >= mobileBreakpoint) {
-            // Desktop: mostra la chat
+            // Desktop: mostra e cambia testo
             chatPanel.style.display = 'flex';
-            showChatBtn.textContent = '❌ Chiudi Chat';
+            if (showChatBtn) showChatBtn.textContent = '❌ Chiudi Chat';
         } else {
-            // Mobile: nascondi la video area
+            // Mobile: nascondi la video area e cambia testo
             videoArea?.classList.add('hidden');
-            showChatBtn.textContent = '🎥 Torna a Video'; // Testo specifico per mobile
+            if (showChatBtn) showChatBtn.textContent = '🎥 Torna a Video';
         }
     }
 }
@@ -320,7 +323,7 @@ showVideoBtn?.addEventListener('click', () => {
     if (window.innerWidth < 900) {
         chatPanel?.classList.remove('show');
         videoArea?.classList.remove('hidden');
-        showChatBtn.textContent = '💬 Chat';
+        if (showChatBtn) showChatBtn.textContent = '💬 Chat';
         showChatBtn?.setAttribute('aria-expanded', 'false');
     }
 });
