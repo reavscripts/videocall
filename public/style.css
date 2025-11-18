@@ -15,15 +15,17 @@ html, body{
     margin: 0;
     padding: 0;
     height: 100%;
+    /* AGGIUNTE PER BACKGROUND */
     background-image: url('images/background.jpg'); 
-    /* MODIFICA: La larghezza è del 100%, l'altezza è automatica per mantenere le proporzioni */
-    background-size: 100% auto; 
-    background-repeat: repeat-x; /* Ripete orizzontalmente */
-    background-attachment: fixed;
-    background-color: var(--background-dark); 
+    background-size: cover; /* Copre interamente l'area senza deformare l'immagine */
+    background-repeat: no-repeat; /* Evita la ripetizione */
+    background-attachment: fixed; /* Mantiene l'immagine fissa durante lo scroll */
+    background-color: var(--background-dark); /* Colore di fallback */
+    /* FINE AGGIUNTE */
     color: var(--text-light);
     font-family: "Roboto", Arial, sans-serif;
 }
+
 .hidden{ display:none !important; }
 
 /* Overlay ingresso */
@@ -78,24 +80,23 @@ html, body{
 
 #video-area{
     display: grid;
-    grid-template-columns: 330px 1fr;
+    /* Layout desktop: Video Main a sinistra, Miniature a destra */
+    grid-template-columns: 1fr 330px; 
+    grid-template-rows: auto 1fr; /* RIGA 1: Header (auto), RIGA 2: Contenuto Video (1fr) */
     gap: 12px;
     height: 100%;
     padding: 12px;
-    /* Rimosso background nero qui, in modo che sia visibile lo sfondo del body */
+    background: #000;
 }
 
-/* Header stanza */
+/* Header stanza: Ora occupa entrambe le colonne in RIGA 1 */
 #room-header{
-    grid-column: 1 / -1;
+    grid-column: 1 / 3; 
+    grid-row: 1 / 2;
     display: flex;
     flex-direction: column;
     gap: 6px;
     margin-bottom: 4px;
-    /* Aggiunto sfondo per una migliore leggibilità */
-    background: var(--background-dark);
-    padding: 10px;
-    border-radius: 10px;
 }
 
 .room-title{
@@ -111,15 +112,20 @@ html, body{
     border: 1px solid var(--border-color);
     border-radius: 6px;
     color: var(--text-light);
+    cursor: pointer;
 }
 
-/* Main video */
+/* Main video: RIGA 2, COLONNA 1 */
 #main-video-feed{
+    grid-row: 2 / 3;
+    grid-column: 1 / 2;
     background: #000;
     border-radius: 10px;
     position: relative;
     overflow: hidden;
-    height: 320px;
+    /* MODIFICA: Ridotto l'altezza per rendere la webcam principale leggermente più piccola su PC */
+    height: 90%; 
+    min-height: 340px; /* Ridotto da 380px per un aspetto più compatto */
 }
 
 #main-video-feed video{
@@ -138,11 +144,12 @@ html, body{
     font-size: 0.8rem;
 }
 
-/* Miniature */
+/* Miniature: RIGA 2, COLONNA 2 */
 #remote-videos-container{
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    grid-auto-rows: 150px;
+    grid-row: 2 / 3;
+    grid-column: 2 / 3;
+    display: flex; 
+    flex-direction: column;
     gap: 10px;
     overflow-y: auto;
     padding: 6px;
@@ -156,6 +163,9 @@ html, body{
     display: flex;
     flex-direction: column;
     border: 2px solid transparent;
+    flex-shrink: 0; 
+    /* MODIFICA: Altezza per formato 4:3 rispetto alla larghezza di 330px */
+    height: 250px; 
 }
 
 .video-feed video{
@@ -181,19 +191,11 @@ html, body{
     border-color: var(--primary-color);
 }
 
-/* Pannello partecipanti */
+/* Pannello partecipanti - Nascondiamo l'aside per il nuovo layout */
 #participants-panel{
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 240px;
-    height: 100%;
-    background: rgba(30,30,30,0.96);
-    padding: 10px;
-    border-left: 1px solid var(--border-color);
-    overflow-y: auto;
-    z-index: 50;
+    display: none !important;
 }
+
 
 #participants-list li{
     background: #242424;
@@ -211,7 +213,7 @@ html, body{
     font-weight: bold;
 }
 
-/* Media Controls */
+/* Media Controls - Generale (desktop) */
 #media-controls{
     position: absolute;
     bottom: 16px;
@@ -222,6 +224,7 @@ html, body{
     background: rgba(20,20,20,0.75);
     padding: 10px;
     border-radius: 40px;
+    z-index: 10;
 }
 
 #media-controls button{
@@ -249,13 +252,6 @@ html, body{
     background: rgba(0,0,0,0.6);
     border: none;
     color: white;
-    cursor: pointer; 
-    z-index: 10; 
-    transition: background 0.2s;
-}
-
-.main-mute-btn:hover {
-    background: rgba(0,0,0,0.8); 
 }
 
 /* ========================= */
@@ -266,26 +262,55 @@ html, body{
     #video-area{
         display: flex;
         flex-direction: column;
+        grid-template-columns: 1fr; 
+        grid-template-rows: unset;
+        height: auto;
+        /* Aggiungo padding in fondo per evitare che i controlli fissi coprano il contenuto */
+        padding-bottom: 80px; 
     }
 
-    #participants-panel{ display: none; }
+    #participants-panel{ display: none !important; }
 
     #main-video-feed{
         height: 45vh;
+        min-height: unset;
     }
 
     #remote-videos-container{
         height: 45vh;
+        /* Ritorna a griglia per le miniature su mobile */
+        display: grid; 
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         grid-auto-rows: 110px;
+        overflow-y: auto;
+    }
+
+    .video-feed {
+         /* Su mobile, l'altezza è gestita da grid-auto-rows */
+         height: 100%;
     }
 
     #room-header{
         text-align: center;
+        grid-column: unset;
+        grid-row: unset;
     }
 
     .room-title{
         font-size: 1rem;
+    }
+
+    /* Controlli fissi su mobile */
+    #media-controls{
+        position: fixed; 
+        bottom: 0; 
+        width: 100%; 
+        border-radius: 0;
+        background: var(--background-dark); 
+        left: 0;
+        transform: translateX(0); 
+        justify-content: center; 
+        padding: 12px 10px;
     }
 }
 
