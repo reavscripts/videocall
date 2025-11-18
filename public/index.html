@@ -21,25 +21,19 @@
         <div id="remote-videos-container"></div>
     </div>
 
-    <aside id="chat-panel">
-        <h3>Chat</h3>
-        <div id="messages-container"></div>
+    <aside id="chat-panel" role="complementary" aria-labelledby="chat-title">
+        <h3 id="chat-title">Chat</h3>
+        <div id="messages-container" role="log" aria-live="polite" aria-atomic="false"></div>
         <div id="chat-input-area">
-            <input id="chat-message-input" type="text" placeholder="Messaggio...">
+            <input id="chat-message-input" type="text" placeholder="Messaggio..." aria-label="Scrivi un messaggio">
             <button id="send-chat-button">Invia</button>
         </div>
     </aside>
 
-    <aside id="participants-panel">
-        <h3>Partecipanti <span id="participant-count">0</span></h3>
-        <ul id="participants-list"></ul>
-    </aside>
-
 </div>
 
-<div id="mobile-controls">
-    <button id="show-chat-btn">💬 Chat</button>
-    <button id="show-participants-btn">👥 Utenti</button>
+<div id="mobile-controls" aria-hidden="false">
+    <button id="show-chat-btn" aria-controls="chat-panel" aria-expanded="false">💬 Chat</button>
 </div>
 
 <template id="remote-video-template">
@@ -47,12 +41,6 @@
         <video autoplay playsinline></video>
         <div class="video-label"></div>
     </div>
-</template>
-
-<template id="participant-item-template">
-    <li class="participant-item">
-        <span class="participant-name"></span>
-    </li>
 </template>
 
 <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>

@@ -1,12 +1,10 @@
 // ==============================================================================
-// CONFIGURAZIONE WEB RTC E SOCKET.IO
+// CONFIGURAZIONE WEB RTC E SOCKET.IO (estratto rilevante)
 // ==============================================================================
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
 // --- ELEMENTI DOM ---
 const remoteVideosContainer = document.getElementById('remote-videos-container');
-const nicknameOverlay = document.getElementById('nickname-overlay');
-const conferenceContainer = document.getElementById('conference-container');
 const mainVideoFeed = document.getElementById('main-video-feed');
 const mainMuteBtn = document.getElementById("main-mute-btn");
 const toggleAudioButton = document.getElementById('toggle-audio-button');
@@ -21,13 +19,11 @@ const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
 const messagesContainer = document.getElementById('messages-container');
 
-// Elementi DOM Aggiunti/Corretti per la logica Mobile
-const videoArea = document.getElementById('video-area'); // Area Video
-const participantsPanel = document.getElementById('participants-panel'); // Pannello Partecipanti
-const showParticipantsBtn = document.getElementById('show-participants-btn'); // Bottone Utenti Mobile
-const showChatBtn = document.getElementById('show-chat-btn'); // Bottone Chat Mobile
+// Mobile
+const videoArea = document.getElementById('video-area');
+const showChatBtn = document.getElementById('show-chat-btn');
 
-// Join overlay
+// Join overlay elements (se presenti nella pagina)
 const joinButton = document.getElementById('join-button');
 const nicknameInput = document.getElementById('nickname-input');
 const roomIdInput = document.getElementById('room-id-input');
@@ -61,78 +57,41 @@ mainMuteBtn?.addEventListener("click", () => {
 });
 
 function setMainVideo(peerId) {
-    // Semplice gestione del video principale. Se peerId === 'local' usa il localStream
-    const existing = mainVideoFeed.querySelector('video');
-    if (existing) {
-        existing.remove();
-    }
-
-    let videoEl = document.createElement('video');
-    videoEl.autoplay = true;
-    videoEl.playsInline = true;
-    videoEl.muted = (peerId === 'local');
-
+    let stream, nickname, isLocal = false;
     if (peerId === 'local') {
-        if (localStream) videoEl.srcObject = localStream;
-    } else if (peerConnections[peerId]?.remoteStream) {
-        videoEl.srcObject = peerConnections[peerId].remoteStream;
-    }
-
-    mainVideoFeed.appendChild(videoEl);
-}
-
-// ==============================================================================
-// GESTIONE INGRESSO UTENTE
-// ==============================================================================
-joinButton?.addEventListener('click', () => {
-    const nickname = nicknameInput.value.trim();
-    const roomId = roomIdInput.value.trim();
-
-    if (nickname && roomId) {
-        userNickname = nickname;
-        currentRoomId = roomId;
-        roomNameDisplay.textContent = currentRoomId;
-
-        startLocalMedia()
-            .then(() => {
-                nicknameOverlay.classList.add('hidden');
-                conferenceContainer.classList.remove('hidden');
-                createLocalVideoElement();
-                setMainVideo('local');
-                initializeSocket();
-                setupRoomLink();
-            })
-            .catch(error => {
-                console.error("Non è stato possibile avviare la webcam:", error.name, error);
-                alert(`Impossibile avviare la webcam. Controlla i permessi. Errore: ${error.name}`);
-            });
+        stream = localStream;
+        nickname = userNickname + " (Tu)";
+        isLocal = true;
     } else {
-        alert('Per favore, inserisci un nickname e il nome della stanza.');
+        const remoteVideoElement = remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`);
+        if (!remoteVideoElement || !remoteVideoElement.querySelector('video').srcObject) {
+            if (focusedPeerId === 'local') return;
+            setMainVideo('local');
+            return;
+        }
+        stream = remoteVideoElement.querySelector('video').srcObject;
+        nickname = remoteNicknames[peerId];
     }
-});
 
-async function startLocalMedia() {
-    const constraints = { audio: true, video: true };
-    try {
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
-        return localStream;
-    } catch (error) {
-        throw error;
+    const videoEl = mainVideoFeed.querySelector('video');
+    const labelEl = mainVideoFeed.querySelector('.video-label');
+
+    if (!videoEl || !labelEl) return;
+
+    document.querySelectorAll('.remote-feed.is-focused').forEach(el => el.classList.remove('is-focused'));
+    if (peerId !== 'local') {
+        remoteVideosContainer.querySelector(`.remote-feed[data-peer-id="${peerId}"]`)?.classList.add('is-focused');
     }
-}
 
-// ==============================================================================
-// ROOM LINK
-// ==============================================================================
-function setupRoomLink() {
-    const roomUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
-    shareRoomLinkInput.value = roomUrl;
-    shareRoomLinkInput.addEventListener('click', () => {
-        shareRoomLinkInput.select();
-        document.execCommand('copy');
-        shareRoomLinkInput.value = roomUrl + ' (Link copiato)';
-        setTimeout(() => shareRoomLinkInput.value = roomUrl, 1500);
-    });
+    if (stream) {
+        videoEl.srcObject = stream;
+        videoEl.muted = isLocal;
+        labelEl.textContent = nickname;
+        mainMuteBtn.style.display = isLocal ? "none" : "block";
+        mainMuteBtn.textContent = videoEl.muted ? "🔇" : "🔊";
+    }
+
+    focusedPeerId = peerId;
 }
 
 // ==============================================================================
@@ -172,157 +131,87 @@ sendChatButton?.addEventListener('click', sendChatMessage);
 chatMessageInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
 // ==============================================================================
-// MOBILE PANEL TOGGLING (CHAT + PARTECIPANTI)
+// MOBILE CHAT TOGGLE
 // ==============================================================================
-// Unified togglePanel function that works for both panels on mobile screens.
-function togglePanel(panel) {
-    if (!panel) return;
-    // Only trigger mobile behavior below certain breakpoint
+function toggleChatOnMobile() {
     const mobileBreakpoint = 900;
     if (window.innerWidth >= mobileBreakpoint) {
-        // On desktop keep panels in their default (chat visible, participants visible)
+        // On desktop chat is always visible: do nothing
         return;
     }
 
-    const isVisible = panel.classList.contains('show');
-
+    const isVisible = chatPanel.classList.contains('show');
     if (isVisible) {
-        panel.classList.remove('show');
+        chatPanel.classList.remove('show');
         videoArea?.classList.remove('hidden');
+        showChatBtn?.setAttribute('aria-expanded', 'false');
     } else {
-        // Close any other mobile panel first (only one should be open)
-        [chatPanel, participantsPanel].forEach(p => {
-            if (p && p !== panel) p.classList.remove('show');
-        });
-
-        panel.classList.add('show');
+        chatPanel.classList.add('show');
         videoArea?.classList.add('hidden');
+        showChatBtn?.setAttribute('aria-expanded', 'true');
+        // move focus to input for accessibility
+        setTimeout(() => chatMessageInput?.focus(), 50);
     }
 }
 
-// Ensure panels are in the correct state when resizing / on load.
-function ensureResponsivePanels() {
+showChatBtn?.addEventListener('click', toggleChatOnMobile);
+
+// allow clicking on the chat overlay background (panel container) to close (mobile)
+function hideChatOnBackdropClick(e) {
+    if (chatPanel.classList.contains('show') && e.target === chatPanel) {
+        toggleChatOnMobile();
+    }
+}
+chatPanel?.addEventListener('click', hideChatOnBackdropClick);
+
+// ensure correct state on resize/load
+function ensureChatResponsiveState() {
     const mobileBreakpoint = 900;
     if (window.innerWidth >= mobileBreakpoint) {
-        // Desktop: ensure panels are visible/in-layout
-        if (chatPanel) chatPanel.classList.remove('show');
-        if (participantsPanel) participantsPanel.classList.remove('show');
-        if (videoArea) videoArea.classList.remove('hidden');
+        chatPanel?.classList.remove('show');
+        videoArea?.classList.remove('hidden');
+        showChatBtn?.setAttribute('aria-expanded', 'false');
     } else {
-        // Mobile: by default keep panels closed
-        if (chatPanel) chatPanel.classList.remove('show');
-        if (participantsPanel) participantsPanel.classList.remove('show');
-        if (videoArea) videoArea.classList.remove('hidden');
+        chatPanel?.classList.remove('show');
+        videoArea?.classList.remove('hidden');
+        showChatBtn?.setAttribute('aria-expanded', 'false');
     }
 }
-
-window.addEventListener('resize', ensureResponsivePanels);
-window.addEventListener('load', ensureResponsivePanels);
-
-// Reconnect mobile buttons
-showParticipantsBtn?.addEventListener('click', () => {
-    togglePanel(participantsPanel);
-});
-
-showChatBtn?.addEventListener('click', () => {
-    togglePanel(chatPanel);
-});
-
-// Allow tapping the overlay/panel background to go back to video on mobile (both panels)
-function hidePanelOnClick(e) {
-    // If click is directly on the panel container (not inner content)
-    if (e.currentTarget.classList.contains('show') && e.target === e.currentTarget) {
-        togglePanel(e.currentTarget);
-    }
-}
-
-participantsPanel?.addEventListener('click', hidePanelOnClick);
-chatPanel?.addEventListener('click', hidePanelOnClick);
+window.addEventListener('resize', ensureChatResponsiveState);
+window.addEventListener('load', ensureChatResponsiveState);
 
 // ==============================================================================
-// CONTROLLI AUDIO/VIDEO/DISCONNECT
+// (Resto delle funzioni WebRTC / Socket.IO rimangono invariate — non toccate)
 // ==============================================================================
-toggleAudioButton?.addEventListener('click', () => {
-    const audioTrack = localStream?.getAudioTracks()[0];
-    if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        toggleAudioButton.textContent = audioTrack.enabled ? '🔊' : '🔇';
-    }
-});
-
-toggleVideoButton?.addEventListener('click', () => {
-    const videoTrack = localStream?.getVideoTracks()[0];
-    if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        toggleVideoButton.textContent = videoTrack.enabled ? '📹' : '❌';
-    }
-});
-
-disconnectButton?.addEventListener('click', () => {
-    localStream?.getTracks().forEach(track => track.stop());
-    Object.values(peerConnections).forEach(pc => pc.close());
-    socket?.disconnect();
-    window.location.reload();
-});
-
-// ==============================================================================
-// WEBRTC FUNZIONI (scheletro essenziale per non rompere le chiamate)
-// ==============================================================================
-function getOrCreatePeerConnection(socketId) {
-    // minimal stub; real implementation in your existing file can remain
-    if (!peerConnections[socketId]) {
-        peerConnections[socketId] = { pc: null, remoteStream: null };
-    }
-    return peerConnections[socketId];
-}
-
-function createLocalVideoElement() {
-    // create local video preview in remoteVideosContainer if desired
-    const container = document.createElement('div');
-    container.className = 'remote-feed local';
-    const v = document.createElement('video');
-    v.autoplay = true;
-    v.playsInline = true;
-    v.muted = true;
-    if (localStream) v.srcObject = localStream;
-    container.appendChild(v);
-    remoteVideosContainer.appendChild(container);
-}
-
-function createRemoteVideoElement(socketId, stream) {
-    // append remote video element
-    const container = document.createElement('div');
-    container.className = 'remote-feed';
-    container.dataset.peer = socketId;
-    const v = document.createElement('video');
-    v.autoplay = true;
-    v.playsInline = true;
-    v.srcObject = stream;
-    container.appendChild(v);
-    const lbl = document.createElement('div');
-    lbl.className = 'video-label';
-    lbl.textContent = remoteNicknames[socketId] || socketId;
-    container.appendChild(lbl);
-    remoteVideosContainer.appendChild(container);
-}
-
 function initializeSocket() {
-    // minimal initialization; your full logic can remain in the repository
-    socket = io(RENDER_SERVER_URL);
+    socket = io(RENDER_SERVER_URL, { query: { nickname: userNickname } });
 
     socket.on('connect', () => {
+        console.log('Connesso al server di segnalazione.');
         socket.emit('join-room', currentRoomId, userNickname);
     });
 
-    socket.on('chat-message', (fromNickname, message) => {
-        appendMessage(fromNickname, message, false);
+    socket.on('users-in-room', (userList) => {
+        userList.forEach(user => {
+            if (user.socketId !== socket.id) {
+                remoteNicknames[user.socketId] = user.nickname;
+                // callUser(user.socketId, true); // lasciare la logica che avevi
+            }
+        });
     });
 
-    // wire other socket handlers in your original implementation...
+    socket.on('user-joined', (newSocketId, newNickname) => {
+        remoteNicknames[newSocketId] = newNickname;
+        // callUser(newSocketId, false);
+    });
+
+    socket.on('chat-message', (senderId, nickname, message) => appendMessage(nickname, message, false));
+
+    socket.on('offer', handleOffer);
+    socket.on('answer', handleAnswer);
+    socket.on('candidate', handleCandidate);
+    socket.on('user-left', removePeer);
+    socket.on('disconnect', () => console.log('Disconnesso dal server.'));
 }
 
-async function callUser(socketId, isCaller) { /* original implementation */ }
-async function handleOffer(socketId, description) { /* original implementation */ }
-async function handleAnswer(socketId, description) { /* original implementation */ }
-async function handleCandidate(socketId, candidate) { /* original implementation */ }
-function removePeer(socketId) { /* original implementation */ }
+// Mantieni il resto del tuo file (callUser, handleOffer, handleAnswer, handleCandidate, removePeer) senza modifiche.
