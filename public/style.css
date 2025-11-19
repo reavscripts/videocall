@@ -1,97 +1,136 @@
-/* ============================================================================== */
-/* style.css - VERSIONE NON RESPONSIVE */
-/* ============================================================================== */
+:root{
+    --primary-color:#00bcd4;
+    --accent-color:#ff9800;
+    --bg:#0f0f10;
+    --surface:#1e1e1e;
+    --muted:#b0b0b0;
+    --danger:#ef5350;
+}
+*{box-sizing:border-box}
+html,body{
+    height:100%;
+    margin:0;
+    background:var(--bg);
+    color:#fff;
+    font-family:Roboto,Arial,sans-serif;
+}
+.hidden{display:none!important}
 
-/* ============================================================================== */
-/* STILI GENERALI */
-/* ============================================================================== */
-* { box-sizing: border-box; }
-
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #111;
-    color: white;
-    overflow: hidden; /* Previene scroll indesiderati */
+/* Overlay */
+#nickname-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.85);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:20px;
+    z-index:200;
 }
 
-#app { display: flex; height: 100vh; }
-
-/* ============================================================================== */
-/* VIDEO AREA */
-/* ============================================================================== */
-#video-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    background: black;
+#app-logo{
+    width:180px;
+    height:auto;
+    margin-bottom:10px;
+    animation:fadeIn 0.4s ease;
 }
 
-#main-video-feed { flex: 1; position: relative; }
-#main-video-feed video { width: 100%; height: 100%; object-fit: cover; }
-
-#main-mute-btn {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    padding: 6px 10px;
-    border: none;
-    border-radius: 4px;
+.card{
+    background:var(--surface);
+    padding:28px;
+    border-radius:10px;
+    width:360px;
+    text-align:center;
+    animation:slideUp 0.4s ease;
+}
+.card input{
+    width:100%;padding:10px;margin:8px 0;border-radius:6px;
+    background:#2b2b2b;border:1px solid rgba(255,255,255,0.06);color:#fff
+}
+#join-button{
+    width:100%;padding:12px;background:var(--accent-color);
+    border:none;border-radius:6px;cursor:pointer;
 }
 
-/* Remote videos */
-#remote-videos-container {
-    display: flex;
-    gap: 8px;
-    padding: 8px;
-    background: #000;
-    overflow-x: auto;
+/* Animations */
+@keyframes fadeIn{
+    from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}
+}
+@keyframes slideUp{
+    from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}
 }
 
-.remote-feed { width: 120px; height: 90px; cursor: pointer; position: relative; }
-.remote-feed video { width: 100%; height: 100%; object-fit: cover; }
-.remote-feed .video-label {
-    position: absolute; bottom: 2px; left: 2px; font-size: 10px;
-    background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 2px;
+/* Conference Layout */
+#conference-container{height:100vh;display:flex;flex-direction:column}
+#room-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--surface)}
+#main-area{display:flex;flex:1;overflow:hidden}
+
+/* Video grid */
+#video-area{flex:1;display:flex;padding:12px}
+.videos-grid{display:grid;gap:10px;align-content:start;width:100%;height:100%}
+
+/* Desktop grid */
+@media(min-width:901px){
+    .videos-grid{grid-template-columns:2fr 1fr 1fr;grid-auto-rows:200px}
+    .videos-grid .video-feed.local-feed{grid-column:1/2;grid-row:1/3}
+    .videos-grid .video-feed.is-focused{outline:3px solid var(--primary-color)}
 }
 
-/* ============================================================================== */
-/* CHAT PANEL (FISSO E SEMPRE VISIBILE) */
-/* ============================================================================== */
-#chat-panel {
-    width: 300px;
-    min-width: 300px;
-    flex-shrink: 0;
-    background: #1a1a1a;
-    border-left: 2px solid #333;
-    display: flex; /* DEVE essere flex per la visibilità */
-    flex-direction: column;
-    z-index: 8000;
+/* Tablet grid */
+@media(min-width:601px) and (max-width:900px){
+    .videos-grid{grid-template-columns:1fr 1fr;grid-auto-rows:180px}
+    .videos-grid .video-feed.local-feed{grid-column:1/2;grid-row:1/2}
 }
 
-#chat-panel h3 { margin: 0; padding: 10px; background: #222; font-size: 16px; }
-#messages-container { flex: 1; overflow-y: auto; padding: 10px; }
-.message { margin-bottom: 6px; }
-.message.self { text-align: right; }
-.message .sender { font-weight: bold; }
-.message .timestamp { font-size: 0.7em; color: #ccc; }
-
-#chat-input-area {
-    display: flex; gap: 8px; padding: 10px; background: #222;
-}
-#chat-input-area input { flex: 1; padding: 6px; border: none; border-radius: 4px; outline: none; }
-#chat-input-area button {
-    padding: 6px 10px; border: none; border-radius: 4px; background: #555; color: white; cursor: pointer;
+/* Mobile grid */
+@media(max-width:600px){
+    #main-area{flex-direction:column}
+    .videos-grid{grid-template-columns:1fr;grid-auto-rows:220px}
+    #media-controls{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:100}
 }
 
-/* Regole per rimuovere ogni elemento mobile non necessario */
-#mobile-controls, 
-#show-chat-btn, 
-#show-video-btn {
-    display: none !important;
+.video-feed{
+    position:relative;border-radius:8px;overflow:hidden;background:#111;
+    border:1px solid rgba(255,255,255,0.03);
+    display:flex;align-items:center;justify-content:center
+}
+.video-feed video{
+    width:100%;height:100%;object-fit:cover;display:block
+}
+.video-label{
+    position:absolute;left:8px;bottom:8px;padding:4px 8px;
+    background:rgba(0,0,0,0.45);border-radius:6px;font-size:0.9rem
+}
+.video-placeholder{padding:24px;text-align:center;color:var(--muted)}
+
+.overlay-controls{
+    position:absolute;top:8px;left:8px;display:flex;gap:6px;z-index:50
+}
+.overlay-controls button{
+    padding:6px;border-radius:6px;border:none;background:rgba(0,0,0,0.45);
+    color:#fff;cursor:pointer
 }
 
-/* ============================================================================== */
-/* FINE FILE */
-/* ============================================================================== */
+/* Chat */
+.panel-column{width:320px;background:var(--surface);display:flex;flex-direction:column}
+#chat-panel{padding:10px;display:flex;flex-direction:column}
+#messages-container{flex:1;overflow:auto;padding:8px}
+#chat-input-area{display:flex;gap:6px;padding:8px}
+#chat-message-input{
+    flex:1;padding:8px;border-radius:6px;
+    border:1px solid rgba(255,255,255,0.06);
+    background:#2b2b2b;color:#fff
+}
+#send-chat-button{padding:8px 12px;background:var(--primary-color);border:none;border-radius:6px;cursor:pointer}
+
+.status-icons{position:absolute;top:8px;right:8px;display:flex;gap:6px}
+.status-icons .icon{background:rgba(0,0,0,0.45);padding:4px;border-radius:50%}
+
+/* Bottom Controls */
+#media-controls{display:flex;justify-content:center;padding:12px;gap:12px}
+#media-controls button{padding:10px;border-radius:50%;border:none;background:#222;color:#fff;cursor:pointer}
+#media-controls .danger{background:var(--danger)}
+
+/* Remote label adjust */
+.remote-feed .video-label{right:8px;left:auto}

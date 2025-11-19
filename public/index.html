@@ -1,71 +1,87 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VideoRoom</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Conferenza Video - WebRTC</title>
+<link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
 
-<div id="nickname-overlay" class="hidden">
-    <div class="join-form">
-        <h2>Entra nella Stanza</h2>
-        <input id="nickname-input" type="text" placeholder="Il tuo nickname" required>
-        <input id="room-id-input" type="text" placeholder="Nome della stanza" required>
-        <button id="join-button">Accedi</button>
-    </div>
+
+<div id="nickname-overlay">
+<img id="app-logo" src="images/logo.png" alt="Logo" />
+<div class="card">
+<h2>Entra nella Conferenza</h2>
+<input type="text" id="room-id-input" placeholder="Nome della Stanza" required />
+<input type="text" id="nickname-input" placeholder="Il tuo Nickname" required />
+<div class="row">
+<button id="join-button">Entra nella Conferenza</button>
+</div>
+</div>
 </div>
 
+
 <div id="conference-container" class="hidden">
-    
-    <header id="header">
-        <h1 id="room-name-display">Room</h1>
-        <div id="room-link-container">
-            <input id="share-room-link" type="text" readonly placeholder="Link stanza">
-        </div>
-        <div id="controls-panel">
-            <button id="toggle-audio-button">🔊</button>
-            <button id="toggle-video-button">📹</button>
-            <button id="disconnect-button">❌ Esci</button>
-        </div>
-    </header>
+<header id="room-header">
+<h3>Stanza: <span id="room-name-display"></span></h3>
+<div class="header-controls">
+<button id="show-chat-btn" class="panel-toggle-btn">💬</button>
+<button id="show-grid-btn" class="panel-toggle-btn">🔲</button>
+<input type="button" id="share-room-link" readonly value="Ottieni Link" />
+</div>
+</header>
 
-    <div id="app">
 
-        <div id="video-area">
-            <div id="main-video-feed">
-                <video autoplay playsinline></video>
-                <button id="main-mute-btn">🔊</button>
-                <div class="video-label"></div>
-            </div>
+<main id="main-area">
+<section id="video-area">
+<div id="remote-videos-container" class="videos-grid">
+<div id="remote-video-placeholder" class="video-placeholder">In attesa di altri partecipanti...</div>
 
-            <div id="remote-videos-container">
-                <template id="remote-video-template">
-                    <div class="remote-feed">
-                        <video autoplay playsinline></video>
-                        <div class="video-label"></div>
-                    </div>
-                </template>
-            </div>
-        </div>
 
-        <aside id="chat-panel" role="complementary" aria-labelledby="chat-title">
-            <h3 id="chat-title">Chat</h3>
-            <div id="messages-container" role="log" aria-live="polite" aria-atomic="false"></div>
-            <div id="chat-input-area">
-                <input id="chat-message-input" type="text" placeholder="Messaggio..." aria-label="Scrivi un messaggio">
-                <button id="send-chat-button">Invia</button>
-            </div>
-            </aside>
+<div id="main-video-feed" class="video-feed local-feed" data-peer-id="local">
+<button id="main-mute-btn" class="main-mute-btn">🔊</button>
+<video id="local-video" autoplay muted playsinline></video>
+<div class="video-label">Tu</div>
 
-    </div>
-    
-    </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
-<script src="app.js"></script>
+<div class="overlay-controls">
+<button id="toggle-audio-button">🎤</button>
+<button id="toggle-video-button">📹</button>
+<button id="share-screen-button">🖥️</button>
+<button id="blur-toggle">✨</button>
+<button id="raise-hand-btn">✋</button>
+</div>
+</div>
+</div>
+</section>
 
-</body>
+
+<aside id="chat-panel" class="panel-column hidden">
+<h3>💬 Chat</h3>
+<div id="messages-container"></div>
+<div id="chat-input-area">
+<input type="text" id="chat-message-input" placeholder="Scrivi un messaggio..." />
+<button id="send-chat-button">Invia</button>
+</div>
+</aside>
+</main>
+
+
+<div id="media-controls">
+<button id="disconnect-button" class="danger">📞</button>
+</div>
+</div>
+
+
+<template id="remote-video-template">
+<div class="video-feed remote-feed">
+<video autoplay playsinline></video>
+<div class="video-label">Utente</div>
+<div class="status-icons"></div>
+</div>
+</template>
+
+
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
 </html>

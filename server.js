@@ -1,8 +1,28 @@
 // Server di Segnalazione WebRTC con Node.js, Express e Socket.IO
-
 const express = require('express');
 const app = express();
-const http = require('http').Server(app);
+
+// -----------------------------------------------------------
+// 🚀 CONFIGURAZIONE HTTPS (Necessaria per getUserMedia su localhost)
+// IMPORTANTE: Assicurati che i file key.pem e cert.pem siano nella stessa cartella di server.js.
+const https = require('https');
+const http = require('http');
+const fs = require('fs'); 
+
+// 1. Configurazione dei certificati
+const options = {
+  key: fs.readFileSync('key.pem'), 
+  cert: fs.readFileSync('cert.pem')
+};
+
+// 2. Creazione del server HTTPS
+const server = https.createServer(options, app);
+// ------------------FINE LOCAL-----------------------------------------
+
+// server.js (Configurazione standard per ambiente Live/Produzione)
+//const http = require('http'); // Usiamo HTTP standard
+//const server = http.createServer(app); // Crea server HTTP
+// ...
 
 // Prepara la variabile CLIENT_URL rimuovendo la barra finale se presente
 let allowedOrigin = process.env.CLIENT_URL;
@@ -24,7 +44,8 @@ if (allowedOrigin && allowedOrigin !== '*') {
 }
 
 
-const io = require('socket.io')(http, {
+// 3. Socket.IO utilizza ora il server HTTPS
+const io = require('socket.io')(server, {
   cors: corsOptions
 });
 
@@ -32,9 +53,18 @@ const PORT = process.env.PORT || 3000;
 
 const rooms = {};
 
-// Endpoint di controllo dello stato
+// ----------------------------------------------------------------------
+// 4. CONFIGURAZIONE FILE STATICI DA CARTELLA 'public'
+// Ora Express sa che i file come app.js, style.css, e le immagini sono in public/
+app.use(express.static('public')); 
+// ----------------------------------------------------------------------
+
+
+// 5. Endpoint di controllo dello stato e invio di index.html
+// Poiché il browser cerca index.html nella radice, lo inviamo dalla cartella 'public'.
 app.get('/', (req, res) => {
-  res.send('Server di segnalazione Socket.IO attivo e pronto per WebRTC!');
+  // 🎯 res.sendFile cerca il file nella directory 'public', grazie all'argomento 'root'
+  res.sendFile('index.html', { root: __dirname + '/public' }); 
 });
 
 
@@ -45,33 +75,39 @@ io.on('connection', (socket) => {
   // Gestione della richiesta di unione a una stanza
   socket.on('join-room', (roomId, nickname) => {
     socket.join(roomId);
-   
-    rooms[roomId] = rooms[roomId] || [];
-   
-    const existingUsers = rooms[roomId].map(u => ({ socketId: u.id, nickname: u.nickname }));
-   
-    rooms[roomId].push({ id: socket.id, nickname: nickname });
 
-    socket.emit('users-in-room', existingUsers, socket.id);
+    if (!rooms[roomId]) {
+      rooms[roomId] = [];
+    }
+    
+    // Controlla se l'utente è già presente
+    const isPresent = rooms[roomId].some(user => user.id === socket.id);
 
+    if (!isPresent) {
+        rooms[roomId].push({ id: socket.id, nickname: nickname });
+    }
+
+    // Invia al nuovo utente la lista degli utenti già presenti
+    const usersInRoom = rooms[roomId].filter(user => user.id !== socket.id);
+    socket.emit('users-in-room', usersInRoom);
+
+    // Notifica tutti gli altri utenti della stanza del nuovo arrivato
     socket.to(roomId).emit('user-joined', socket.id, nickname);
-   
-    console.log(`Utente ${nickname} (${socket.id}) si è unito alla stanza ${roomId}`);
+    
+    console.log(`Utente ${nickname} (${socket.id}) si è unito alla stanza: ${roomId}`);
   });
-  
-  // ✅ NUOVA LOGICA: Gestione e Broadcast dei Messaggi di Chat
+
+  // Gestione dei messaggi di chat
   socket.on('chat-message', (message) => {
-    // Trova la stanza a cui è unito l'utente (è l'unica oltre al suo socket.id)
+    // Trova la stanza in cui si trova l'utente.
     const roomId = Array.from(socket.rooms).find(room => room !== socket.id);
-    // Ottieni il nickname dall'handshake, come fatto durante il join
     const nickname = socket.handshake.query.nickname || 'Ospite';
 
     if (roomId) {
-      // Usa socket.to(roomId).emit() per inviare a tutti nella stanza ESCLUSO il mittente.
+      // Invia a tutti nella stanza ESCLUSO il mittente.
       socket.to(roomId).emit('chat-message', socket.id, nickname, message);
     }
   });
-  // -----------------------------------------------------------------
 
   // Inoltra l'Offer SDP
   socket.on('offer', (id, message) => {
@@ -97,20 +133,27 @@ io.on('connection', (socket) => {
       rooms[roomId] = rooms[roomId].filter(user => {
         if (user.id === socket.id) {
           userLeft = true;
-          return false;
+          return false; // Rimuovi l'utente dalla lista
         }
         return true;
       });
 
       if (userLeft) {
+        // Notifica la stanza che l'utente ha lasciato
         socket.to(roomId).emit('user-left', socket.id);
+        
+        // Rimuovi la stanza se è vuota
+        if (rooms[roomId].length === 0) {
+          delete rooms[roomId];
+        }
+        break; 
       }
     }
   });
 });
-// --- FINE LOGICA SOCKET.IO ---
 
-
-http.listen(PORT, () => {
-  console.log(`Server di segnalazione in ascolto sulla porta ${PORT}`);
+// Avvia il server HTTPS sulla PORTA
+server.listen(PORT, () => {
+  console.log(`Server di segnalazione Socket.IO attivo su: https://localhost:${PORT}`);
+  console.log('Per testare la webcam, devi accedere con HTTPS e accettare l\'avviso di sicurezza nel browser.');
 });
