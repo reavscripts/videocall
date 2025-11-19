@@ -1,65 +1,79 @@
-// server.js - server WebRTC locale HTTP
+// server.js
 const express = require('express');
-const app = express();
 const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+
+const app = express();
 const server = http.createServer(app);
 
-const io = require('socket.io')(server, {
-  cors: { origin: "*" } // consenti richieste da localhost
+// Configurazione Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: '*', // modifica con il tuo dominio in produzione
+    methods: ['GET', 'POST']
+  }
 });
 
-const PORT = 3000;
+// Serve file statici (HTML/CSS/JS)
+app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(express.static('public'));
+// Rooms e nicknames
+const rooms = {}; // { roomId: { socketId: nickname, ... } }
 
-app.get('/', (req, res) => {
-  res.sendFile('index.html', { root: __dirname + '/public' });
-});
-
-const rooms = {};
-
-io.on('connection', socket => {
-  console.log('Nuovo utente connesso:', socket.id);
+// Gestione connessione Socket.IO
+io.on('connection', (socket) => {
+  console.log('Nuovo client connesso', socket.id);
 
   socket.on('join-room', (roomId, nickname) => {
     socket.join(roomId);
-    if (!rooms[roomId]) rooms[roomId] = [];
-    rooms[roomId].push({ id: socket.id, nickname });
-    
-    // invia la lista degli utenti già presenti
-    const usersInRoom = rooms[roomId].filter(u => u.id !== socket.id);
-    socket.emit('welcome', socket.id, nickname, usersInRoom);
 
-    // notifica gli altri
+    if (!rooms[roomId]) rooms[roomId] = {};
+    rooms[roomId][socket.id] = nickname;
+
+    // Avvisa chi era già nella stanza
+    const peers = Object.entries(rooms[roomId])
+      .filter(([id]) => id !== socket.id)
+      .map(([id, nick]) => ({ id, nickname: nick }));
+
+    socket.emit('welcome', socket.id, nickname, peers);
+
+    // Avvisa gli altri peer
     socket.to(roomId).emit('peer-joined', socket.id, nickname);
-    console.log(`${nickname} si è unito a ${roomId}`);
-  });
 
-  // La logica per 'raise-hand' è stata rimossa qui.
+    // Messaggi chat
+    socket.on('send-message', (room, sender, message) => {
+      io.to(room).emit('new-message', sender, message);
+    });
 
-  socket.on('offer', (id, message) => socket.to(id).emit('offer', socket.id, message));
-  socket.on('answer', (id, message) => socket.to(id).emit('answer', socket.id, message));
-  socket.on('candidate', (id, message) => socket.to(id).emit('candidate', socket.id, message));
+    // Offerte/Answer ICE per WebRTC
+    socket.on('offer', (toId, offer) => {
+      io.to(toId).emit('offer', socket.id, offer);
+    });
 
-  socket.on('send-message', (roomId, senderNickname, message) => {
-    socket.to(roomId).emit('new-message', senderNickname, message);
-  });
+    socket.on('answer', (toId, answer) => {
+      io.to(toId).emit('answer', socket.id, answer);
+    });
 
-  socket.on('disconnect', () => {
-    console.log('Utente disconnesso:', socket.id);
-    // Rimuovi l'utente dalla stanza e notifica gli altri
-    for (const roomId in rooms) {
-      const index = rooms[roomId].findIndex(user => user.id === socket.id);
-      if (index !== -1) {
-        const [user] = rooms[roomId].splice(index, 1);
+    socket.on('candidate', (toId, candidate) => {
+      io.to(toId).emit('candidate', socket.id, candidate);
+    });
+
+    socket.on('stream-type-changed', (room, newRatio) => {
+      socket.to(room).emit('remote-stream-type-changed', socket.id, newRatio);
+    });
+
+    socket.on('disconnect', () => {
+      if (rooms[roomId]) {
+        delete rooms[roomId][socket.id];
         socket.to(roomId).emit('peer-left', socket.id);
-        console.log(`${user.nickname} ha lasciato ${roomId}`);
-        break;
+        if (Object.keys(rooms[roomId]).length === 0) delete rooms[roomId];
       }
-    }
+      console.log(`Client ${socket.id} disconnesso`);
+    });
   });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server in ascolto su http://localhost:${PORT}`);
-});
+// Avvio server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Server in ascolto su porta ${PORT}`));
