@@ -18,8 +18,8 @@
 //       Ho lasciato uno stub e commenti in proposito.
 //
 // Configura RENDER_SERVER_URL con il tuo server di signaling (public link fornito)
-//const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
-const RENDER_SERVER_URL = "https://localhost:3000/";
+const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
+//const RENDER_SERVER_URL = "https://localhost:3000/";
 // ---------- DOM ----------
 const nicknameOverlay = document.getElementById('nickname-overlay');
 const joinButton = document.getElementById('join-button');
