@@ -392,7 +392,6 @@ html,body{
     .video-feed.is-focused {
         order: -1; 
         max-height: 45vh;
-        /* FIX PRECEDENTE: Assicura che il video in focus usi la larghezza massima disponibile */
         width: 95% !important; 
         height: auto !important; 
     }
@@ -411,34 +410,46 @@ html,body{
         position: fixed;
         inset: 0;
         width: 100%;
-        height: 100%;
+        /* FIX CHIAVE: Forzare l'altezza a 100% dell'altezza della viewport */
+        height: 100vh; 
         background: var(--surface);
         transform: translateY(100%);
         transition: transform 0.3s ease-in-out;
         z-index: 300;
         display: flex;
-        flex-direction: column; /* Importante per flex-grow sotto */
+        flex-direction: column; 
         border-radius: 0;
         box-shadow: none;
+        /* Impedisce lo scorrimento del pannello principale */
+        overflow: hidden; 
     }
     #chat-panel.active {transform: translateY(0);}
     
+    /* Intestazione Chat (fisso) */
+    #chat-panel h3 {
+        flex-shrink: 0; /* Impedisce che l'intestazione si rimpicciolisca */
+        padding: 10px 20px; /* Riduco un po' il padding per guadagnare spazio */
+        border-bottom: none; /* Rimuovo il bordo inferiore, dato che il bottone di chiusura è sopra */
+    }
+
     /* FIX: Rende l'area messaggi scrollabile e la fa espandere */
     #messages-container {
         flex-grow: 1; 
         overflow-y: auto;
         padding-bottom: 10px;
+        padding-top: 0; /* Assicura che non ci sia padding in eccesso in alto */
     }
     
     /* FIX: Mantiene l'area input fissa in basso */
     #chat-input-area {
-        position: sticky; /* Sticky o relative + flex funzionano bene */
+        position: sticky; 
         bottom: 0;
         background: var(--surface);
         z-index: 310;
         padding: 8px; 
         border-top: 1px solid #333;
-        min-height: 52px; /* Assicura un'altezza minima per evitare crolli */
+        min-height: 52px; 
+        flex-shrink: 0; /* Impedisce che l'input si rimpicciolisca in altezza */
     }
 
     #chat-message-input {font-size: 0.95rem; min-height: 36px;}
