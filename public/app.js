@@ -159,10 +159,10 @@ function monitorRemoteAudio(stream, peerId) {}
 
 
 // LOGICA FOCUS AGGIORNATA
-function setFocus(peerId, manual=true){ // AGGIUNTO 'manual=true'
+function setFocus(peerId, manual=true){ 
   videosGrid.querySelectorAll('.video-feed').forEach(feed => feed.classList.remove('is-focused'));
   focusedPeerId = peerId;
-  isManualFocus = manual; // Traccia se l'utente ha scelto il focus
+  isManualFocus = manual; 
   
   // Cancella il timer di auto-focus se il focus è manuale
   if (manual && autoFocusTimer) {
@@ -245,18 +245,97 @@ function toggleAudio(){
 
 function toggleVideo(){
 // ... (omesso codice invariato) ...
+  isVideoEnabled = !isVideoEnabled;
+  if (localStream) localStream.getVideoTracks().forEach(track => track.enabled = isVideoEnabled);
+  toggleVideoButton.querySelector('.material-icons').textContent = isVideoEnabled ? 'videocam' : 'videocam_off';
 }
 
 function disconnect(){
-// ... (omesso codice invariato) ...
+  Object.values(peerConnections).forEach(pc => pc.close());
+  localStream?.getTracks().forEach(track => track.stop());
+  localStream = null;
+  screenStream?.getTracks().forEach(track => track.stop()); 
+  screenStream = null;
+  
+  // ***** Cleanup audio context *****
+  if (talkingInterval) clearInterval(talkingInterval);
+  Object.values(remoteAudioProcessors).forEach(p => clearInterval(p.interval));
+
+
+  if(socket) socket.disconnect();
+  location.reload();
 }
 
 async function toggleScreenShare() {
-// ... (omesso codice invariato) ...
+    if (screenStream) {
+        // Stop sharing
+        screenStream.getTracks().forEach(track => track.stop());
+        screenStream = null;
+        updateLocalVideo(); // Switch back to webcam stream
+
+        shareScreenButton.classList.remove('active');
+        shareScreenButton.querySelector('.material-icons').textContent = 'screen_share';
+        localFeedEl.classList.add('ratio-4-3'); 
+        localFeedEl.classList.remove('ratio-16-9'); 
+        
+        socket.emit('stream-type-changed', currentRoomId, '4-3');
+
+        // Replace track for all peers
+        localStream.getVideoTracks().forEach(newTrack => {
+             Object.values(peerConnections).forEach(pc => {
+                const sender = videoSenders[Object.keys(peerConnections).find(key => peerConnections[key] === pc)];
+                if (sender) sender.replaceTrack(newTrack);
+             });
+        });
+
+    } else {
+        // Start sharing
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+            if (stream) {
+                screenStream = stream;
+                updateLocalVideo();
+
+                shareScreenButton.classList.add('active');
+                shareScreenButton.querySelector('.material-icons').textContent = 'stop_screen_share';
+                localFeedEl.classList.add('ratio-16-9'); 
+                localFeedEl.classList.remove('ratio-4-3'); 
+                
+                socket.emit('stream-type-changed', currentRoomId, '16-9');
+
+                // Replace track for all peers
+                stream.getVideoTracks().forEach(newTrack => {
+                    Object.values(peerConnections).forEach(pc => {
+                        const sender = videoSenders[Object.keys(peerConnections).find(key => peerConnections[key] === pc)];
+                        if (sender) sender.replaceTrack(newTrack);
+                    });
+                });
+                
+                // Monitor stop event
+                stream.getVideoTracks()[0].onended = () => toggleScreenShare();
+
+            }
+        } catch (err) {
+            console.error('Errore durante la condivisione schermo:', err);
+        }
+    }
 }
 
-// ---------- Link e URL ----------
-// ... (omesso codice invariato) ...
+// ---------- Link e URL AGGIUNTE ----------
+function getRoomIdFromUrl(){
+    const params = new URLSearchParams(window.location.search);
+    return params.get('room');
+}
+
+function copyRoomLink(){
+    const roomUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}`;
+    navigator.clipboard.writeText(roomUrl).then(() => {
+        alert('Link della stanza copiato negli appunti!');
+    }).catch(err => {
+        console.error('Errore nella copia del link:', err);
+        alert('Impossibile copiare il link. Copia manuale: ' + roomUrl);
+    });
+}
 
 // ---------- Chat Logic ----------
 // ***** Funzione addChatMessage modificata per supportare sender-system *****
@@ -279,7 +358,25 @@ function addChatMessage(sender, message, isLocal=false){
 function clearChatInput(){ chatMessageInput.value = ''; }
 
 function sendMessage(){
-// ... (omesso codice invariato) ...
+    const message = chatMessageInput.value.trim();
+    if (!message) return;
+    if (socket && currentRoomId) {
+        socket.emit('send-message', currentRoomId, userNickname, message);
+        addChatMessage(userNickname, message, true);
+        clearChatInput();
+        
+        // Fix per il focus e lo scroll su mobile
+        chatMessageInput.focus();
+        if(window.innerWidth <= 768) {
+             setTimeout(() => {
+                 window.scrollTo(0, document.body.scrollHeight);
+             }, 50);
+        }
+        
+    } else {
+        log('Errore: Socket non connesso o RoomId mancante. Messaggio non inviato.');
+        alert('Impossibile inviare il messaggio: connessione non stabilita.');
+    }
 }
 
 // ---------- Socket.IO / WebRTC ----------
@@ -289,19 +386,32 @@ function initializeSocket(){
   socket.on('connect', ()=> log('Connesso', socket.id));
 
   socket.on('welcome', (newPeerId, nickname, peers=[])=>{
-// ... (omesso codice invariato) ...
+    remoteNicknames[newPeerId] = nickname;
+    addChatMessage('Sistema', `Benvenuto nella stanza ${currentRoomId}!`);
+    peers.forEach(peer=>{
+      if(peer.id !== socket.id) {
+        remoteNicknames[peer.id] = peer.nickname;
+        createPeerConnection(peer.id); 
+      }
+    });
+    setFocus('local');
   });
 
   socket.on('peer-joined', (peerId,nickname)=>{
-// ... (omesso codice invariato) ...
+    remoteNicknames[peerId] = nickname;
+    createPeerConnection(peerId); 
+    log(`Peer unito: ${nickname} (${peerId})`);
+    addChatMessage('Sistema', `${nickname} è entrato.`);
   });
 
   socket.on('peer-left', (peerId)=>{
-// ... (omesso codice invariato) ...
+    const nickname = remoteNicknames[peerId] || 'Un utente';
+    removeRemoteFeed(peerId);
+    addChatMessage('Sistema', `${nickname} è uscito.`);
   });
 
   socket.on('new-message', (senderNickname, message)=>{
-// ... (omesso codice invariato) ...
+    addChatMessage(senderNickname, message, false);
   });
   
   // ***** Listener AGGIORNATO: stato audio cambiato remoto con Auto-Focus *****
@@ -344,24 +454,69 @@ function initializeSocket(){
 
 
   socket.on('remote-stream-type-changed', (peerId, newRatio) => {
-// ... (omesso codice invariato) ...
+    const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
+    if(feed){
+        feed.classList.remove('ratio-4-3', 'ratio-16-9');
+        feed.classList.add(`ratio-${newRatio}`);
+    }
   });
 
   socket.on('offer', async (fromId, offer)=>{
-// ... (omesso codice invariato) ...
+    const pc = createPeerConnection(fromId);
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit('answer', fromId, pc.localDescription);
+    
+    // Process queued ICE candidates
+    if(iceCandidateQueues[fromId]){
+        iceCandidateQueues[fromId].forEach(candidate => pc.addIceCandidate(candidate));
+        iceCandidateQueues[fromId] = []; // Clear the queue
+    }
   });
 
   socket.on('answer', async (fromId, answer)=>{
-// ... (omesso codice invariato) ...
+    const pc = peerConnections[fromId];
+    if(pc) {
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      // Process queued ICE candidates
+      if(iceCandidateQueues[fromId]){
+          iceCandidateQueues[fromId].forEach(candidate => pc.addIceCandidate(candidate));
+          iceCandidateQueues[fromId] = []; // Clear the queue
+      }
+    }
   });
 
   socket.on('candidate', async (fromId, candidate)=>{
-// ... (omesso codice invariato) ...
+    const pc = peerConnections[fromId];
+    const iceCandidate = new RTCIceCandidate(candidate);
+    
+    if(pc && pc.remoteDescription && pc.remoteDescription.type) {
+      // If remote description is set, add candidate immediately
+      await pc.addIceCandidate(iceCandidate);
+    } else {
+      // If not, queue the candidate
+      iceCandidateQueues[fromId].push(iceCandidate);
+    }
   });
 }
 
 function createPeerConnection(socketId){
-// ... (omesso codice invariato) ...
+  if(peerConnections[socketId]) return peerConnections[socketId];
+
+  const pc = new RTCPeerConnection(iceConfiguration);
+  peerConnections[socketId] = pc;
+  iceCandidateQueues[socketId] = []; 
+
+  if(localStream) {
+      localStream.getTracks().forEach(track => {
+        const sender = pc.addTrack(track, localStream);
+        if(track.kind === 'video') videoSenders[socketId] = sender;
+      });
+  } else log('WARNING: localStream è null.');
+
+  pc.onicecandidate = event=>{ if(event.candidate) socket.emit('candidate', socketId, event.candidate); };
+  
   pc.ontrack = event=>{
     const feed = ensureRemoteFeed(socketId, remoteNicknames[socketId]);
     const video = feed.querySelector('video');
@@ -370,7 +525,21 @@ function createPeerConnection(socketId){
         video.srcObject = event.streams[0];
     } else log(`Impossibile collegare lo stream per ${socketId}.`);
   };
-// ... (omesso codice invariato) ...
+
+  const shouldCreateOffer = (socket.id < socketId); 
+  pc.onnegotiationneeded = async ()=>{
+    if (shouldCreateOffer) {
+        try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('offer', socketId, pc.localDescription);
+        } catch(err) {
+            console.error('Errore durante la creazione dell\'offerta:', err);
+        }
+    }
+  };
+
+  return pc;
 }
 
 // ---------- Inizializzazione Listener e Avvio ----------
@@ -391,7 +560,26 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 joinButton.addEventListener('click', async ()=>{
-// ... (omesso codice invariato) ...
+  userNickname = nicknameInput.value.trim() || 'Ospite';
+  currentRoomId = roomIdInput.value.trim();
+
+  if (!currentRoomId) {
+    alert('Inserisci un nome per la stanza.');
+    return;
+  }
+
+  showOverlay(false); 
+  document.getElementById('room-name-display').textContent = currentRoomId;
+
+  await startLocalMedia();
+  initializeSocket();
+  
+  if(socket) {
+    socket.emit('join-room', currentRoomId, userNickname);
+  } else {
+    log('Errore: Socket non inizializzato.');
+    alert('Impossibile connettersi al server.');
+  }
 });
 
 // Listener Media
