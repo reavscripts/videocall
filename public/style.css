@@ -167,7 +167,7 @@ html,body{
     border:3px solid transparent;
 }
 
-/* Dimensioni predefinite per video NON in focus (restano 4:3) */
+/* Dimensioni predefinite */
 .video-feed.ratio-4-3 {
     width: 240px; 
     height: 180px; 
@@ -175,30 +175,29 @@ html,body{
 
 .video-feed.ratio-16-9 {
     width: 240px;
-    height: 135px; /* 16:9 più piccolo per gli altri video */
+    height: 135px;
 }
 
-/* Video in focus (generico) */
+/* Focus */
 .video-feed.is-focused{
     border-color:var(--primary-color);
-    order: -1; 
+    order: -1;
 }
 
-/* 1. Video in focus 4:3 (Webcam) - Dimensione standard in focus */
+/* Focus desktop */
 .video-feed.is-focused.ratio-4-3 {
     width: 640px; 
     height: 480px; 
 }
 
-/* 2. Video in focus 16:9 (Screen Share) - FIX: Più largo per 16:9 */
 .video-feed.is-focused.ratio-16-9 {
     width: 800px; 
     height: 450px; 
 }
 
-/* NUOVO: Bordo per l'utente che sta parlando */
+/* Parlante */
 .video-feed.is-talking {
-    border-color: #4caf50 !important; /* Verde brillante (importante per sovrascrivere is-focused) */
+    border-color: #4caf50 !important;
     box-shadow: 0 0 10px #4caf50;
 }
 
@@ -209,7 +208,7 @@ html,body{
     display:block;
 }
 
-/* Placeholder per quando non ci sono video remoti */
+/* Placeholder */
 #remote-video-placeholder {
     width: 300px;
     height: 225px;
@@ -254,11 +253,11 @@ html,body{
     font-size:1.2em;
 }
 
-/* NUOVO: Pulsante Visivo per Context Menu */
+/* Context menu button */
 .context-menu-trigger {
     position:absolute;
     top:5px;
-    right:50px; /* MODIFICATO: Aumentato a 50px per evitare sovrapposizioni con il pulsante mute */
+    right:50px;
     background:rgba(0,0,0,0.6);
     color:#fff;
     border:none;
@@ -270,16 +269,15 @@ html,body{
     align-items:center;
     cursor:pointer;
     font-size:1.2em;
-    opacity: 0; /* Nascondi di default */
+    opacity: 0;
     transition: opacity 0.2s ease;
 }
 
-/* Rendi visibile l'icona quando si passa il mouse sul feed (desktop) */
 .video-feed:hover .context-menu-trigger {
     opacity: 1;
 }
 
-/* Chat Panel (Desktop Sidebar) */
+/* Chat Panel */
 #chat-panel{
     width:var(--panel-width-desktop);
     min-width:var(--panel-width-desktop);
@@ -326,17 +324,17 @@ html,body{
     font-weight:bold;
 }
 
-/* NUOVI: Stili per messaggi di sistema e privati */
 .sender-system{
-    color: #FFEB3B; /* Giallo brillante */
+    color: #FFEB3B;
     font-weight: bold;
 }
 
 .sender-private{
-    color: #8BC34A; /* Verde chiaro per i DM */
+    color: #8BC34A;
     font-weight: bold;
 }
 
+/* Input chat */
 #chat-input-area{
     display:flex;
     padding:10px;
@@ -370,9 +368,9 @@ html,body{
     background:var(--accent-color);
 }
 
-/* Main Controls Bar: FIX per renderlo FISSO su mobile */
+/* Controls bar */
 #main-controls-bar{
-    position:fixed; /* MODIFICA: Utilizza fixed per rimanere visibile durante lo scroll */
+    position:fixed;
     bottom:20px;
     left:50%;
     transform:translateX(-50%);
@@ -416,7 +414,7 @@ html,body{
     background:#c62828;
 }
 
-/* --- Menu Contestuale (DM/Mute) --- */
+/* Context Menu */
 #remote-context-menu {
     position: fixed;
     background: var(--surface);
@@ -446,56 +444,55 @@ html,body{
     font-size: 1.2em;
 }
 
-/* Stile per l'opzione "Silenzia" quando l'utente è già mutato */
 .menu-item.active-toggle {
-    background: rgba(0, 188, 212, 0.2); /* Colore primario con opacità */
+    background: rgba(0, 188, 212, 0.2);
     font-weight: bold;
 }
 
-/* --- MEDIA QUERIES/RESPONSIVE ----------------- */
+/* ---------------------------------------------- */
+/* -------- MOBILE PATCH (RICHIAMATO) ----------- */
+/* ---------------------------------------------- */
+
 @media (max-width: 768px) {
-    /* FIX: Nasconde il pulsante Condividi Schermo su mobile */
-    #main-controls-bar #share-screen-button {
-        display: none;
-    }
 
-    /* Layout Mobile: Griglia Video */
+    /* Griglia dinamica — tutte le webcam visibili */
     #videos-grid {
-        flex-direction: column;
-        align-items: center;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         gap: 6px;
-        justify-content: flex-start;
-        /* Aggiungo padding in basso per non coprire i controlli fissi */
-        padding-bottom: 70px; 
-    }
-    
-    .video-feed.ratio-4-3, .video-feed.ratio-16-9 {
-        width: 95%;
+        width: 100%;
         height: auto;
+        overflow-y: hidden !important;
+        padding-bottom: 80px;
     }
-    
+
+    /* Riquadri webcam standard */
+    .video-feed {
+        width: 100% !important;
+        height: auto !important;
+        max-height: 22vh;
+    }
+
+    .video-feed video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Webcam in focus (leggermente più grande) */
     .video-feed.is-focused {
-        order: -1; 
-        max-height: 45vh;
-        width: 95% !important; 
-        height: auto !important; 
+        grid-column: span 2;
+        max-height: 40vh !important;
+        transform: scale(1.02);
+        order: -1;
     }
 
-    /* Regole aggiuntive per assicurare la ratio corretta su mobile in focus */
-    .video-feed.is-focused.ratio-4-3 video {
-        aspect-ratio: 4/3;
-    }
-
-    .video-feed.is-focused.ratio-16-9 video {
-        aspect-ratio: 16/9;
-    }
-
-    /* Su mobile mostra sempre l'icona menu */
+    /* Mostra sempre il pulsante menu */
     .context-menu-trigger {
-        opacity: 1; /* Forzato a 1 */
+        opacity: 1 !important;
     }
 
-    /* Layout Mobile: Chat */
+    /* Chat mobile */
     #chat-panel {
         position: fixed;
         inset: 0;
@@ -512,39 +509,11 @@ html,body{
         overflow: hidden; 
     }
     #chat-panel.active {transform: translateY(0);}
-    
-    /* Intestazione Chat (fissa) */
-    #chat-panel h3 {
-        flex-shrink: 0; 
-        padding: 10px 20px; 
-        border-bottom: 1px solid #333; 
-    }
+}
 
-    /* Area Messaggi (scorre e occupa lo spazio rimanente) */
-    #messages-container {
-        flex-grow: 1; 
-        overflow-y: auto;
-        padding-bottom: 10px;
-        padding-top: 15px;
-    }
-    
-    /* Area Input (fissa in fondo) */
-    #chat-input-area {
-        display: flex; 
-        position: relative; 
-        bottom: 0;
-        background: var(--surface);
-        z-index: 310;
-        padding: 8px; 
-        border-top: 1px solid #333;
-        min-height: 52px; 
-        flex-shrink: 0; 
-    }
-
-    #chat-message-input {font-size: 0.95rem; min-height: 36px;}
-    #send-chat-button {height: 36px; padding: 0 12px;}
-
-    #main-controls-bar {
-        bottom: 10px;
+/* Extra fix per telefoni molto piccoli */
+@media (max-width: 480px) {
+    .video-feed.is-focused {
+        max-height: 35vh !important;
     }
 }
