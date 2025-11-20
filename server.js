@@ -25,10 +25,26 @@ const rooms = {}; // { roomId: { socketId: nickname, ... } }
 io.on('connection', (socket) => {
  console.log('Nuovo client connesso', socket.id);
 
- socket.on('join-room', (roomId, nickname) => {
+ let roomId = null; // Memorizza l'ID della stanza per l'uso in disconnect
+
+ socket.on('join-room', (roomIdReq, nickname) => {
+  
+  if (!rooms[roomIdReq]) rooms[roomIdReq] = {};
+
+  // **************************************************
+  // *** NUOVO CONTROLLO: Verifica Nickname Duplicato ***
+  const nicknamesInRoom = Object.values(rooms[roomIdReq]);
+  if (nicknamesInRoom.includes(nickname)) {
+    // Rifiuta la connessione e invia un errore specifico al client
+    socket.emit('nickname-in-use', `Il nickname '${nickname}' è già in uso nella stanza ${roomIdReq}.`);
+    return; // BLOCCA l'unione alla stanza
+  }
+  // **************************************************
+  
+  // Prosegui con l'unione alla stanza
+  roomId = roomIdReq; 
   socket.join(roomId);
 
-  if (!rooms[roomId]) rooms[roomId] = {};
   rooms[roomId][socket.id] = nickname;
 
   // Avvisa chi era già nella stanza
@@ -41,15 +57,20 @@ io.on('connection', (socket) => {
   // Avvisa gli altri peer
   socket.to(roomId).emit('peer-joined', socket.id, nickname);
 
-  // Messaggi chat (Pubblici)
-  socket.on('send-message', (room, sender, message) => {
-      // MODIFICA: Invia il messaggio a tutti nella stanza, TRANNE il mittente.
-   socket.to(room).emit('new-message', sender, message);
-  });
+  console.log(`Utente ${nickname} (${socket.id}) si è unito alla stanza ${roomId}`);
+ });
+
+ // ******************************************************
+ // ***** Gestione Chat Pubblica *****
+ // ******************************************************
+ socket.on('send-message', (roomId, senderNickname, message) => {
+  // Inoltra il messaggio a tutti i client nella stanza, escluso il mittente
+  socket.to(roomId).emit('new-message', senderNickname, message);
+ });
  
-  // ******************************************************
-  // NUOVA LOGICA: MESSAGGI PRIVATI (DM)
-  // ******************************************************
+ // ******************************************************
+ // ***** Gestione Messaggi Privati (DM) *****
+ // ******************************************************
   socket.on('send-private-message', (roomId, recipientId, senderNickname, message) => {
     // Inoltra il messaggio SOLO al socket ID specifico del destinatario
     // 'io.to(recipientId)' invia l'evento 'new-private-message' solo al client destinatario.
@@ -59,6 +80,7 @@ io.on('connection', (socket) => {
     console.log(`DM inviato da ${senderNickname} (stanza ${roomId}) a socket ${recipientId}`);
   });
   // ******************************************************
+
 
   // Offerte/Answer ICE per WebRTC
   socket.on('offer', (toId, offer) => {
@@ -77,17 +99,37 @@ io.on('connection', (socket) => {
    socket.to(room).emit('remote-stream-type-changed', socket.id, newRatio);
   });
 
-  socket.on('disconnect', () => {
-   if (rooms[roomId]) {
-    delete rooms[roomId][socket.id];
-    socket.to(roomId).emit('peer-left', socket.id);
-    if (Object.keys(rooms[roomId]).length === 0) delete rooms[roomId];
-   }
-   console.log(`Client ${socket.id} disconnesso`);
+  // Gestione Mute/Unmute Remoto
+  socket.on('toggle-remote-mute', (targetId) => {
+    io.to(targetId).emit('remote-mute-toggled', socket.id);
   });
- });
+  
+  // Gestione Microfono/Video Status
+  socket.on('update-status', (roomId, isAudioEnabled, isVideoEnabled) => {
+    socket.to(roomId).emit('peer-status-updated', socket.id, isAudioEnabled, isVideoEnabled);
+  });
+
+  socket.on('disconnect', () => {
+   console.log('Client disconnesso', socket.id);
+   
+   if (rooms[roomId]) {
+    const disconnectedNickname = rooms[roomId][socket.id];
+    delete rooms[roomId][socket.id];
+    
+    // Rimuovi la stanza se non ci sono più peer
+    if (Object.keys(rooms[roomId]).length === 0) {
+     delete rooms[roomId];
+     console.log(`Stanza ${roomId} chiusa.`);
+    } else {
+     // Avvisa gli altri peer della disconnessione
+     socket.to(roomId).emit('peer-disconnected', socket.id, disconnectedNickname);
+    }
+   }
+  });
 });
 
-// Avvio server
+// Avvio del server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server in ascolto su porta ${PORT}`));
+server.listen(PORT, () => {
+ console.log(`Server di segnalazione in ascolto sulla porta ${PORT}`);
+});

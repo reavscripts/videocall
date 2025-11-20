@@ -1,4 +1,6 @@
-const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
+// app.js
+
+/const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
 
 // ---------- DOM & Controlli ----------
 const nicknameOverlay = document.getElementById('nickname-overlay');
@@ -79,6 +81,65 @@ function showOverlay(show){
   }
 }
 
+// ***** NUOVA FUNZIONE: Resetta lo stato completo dell'applicazione *****
+function resetAndShowOverlay() {
+    // 1. Pulizia UI
+    videosGrid.innerHTML = '';
+    localFeedEl.classList.add('hidden');
+    messagesContainer.innerHTML = ''; 
+    document.getElementById('room-name-display').textContent = '';
+
+    // 2. Mostra l'overlay
+    showOverlay(true);
+
+    // 3. Pulisci lo stato media locale
+    userNickname = 'Ospite';
+    currentRoomId = null;
+    
+    // Ferma i track e pulisci gli stream
+    if (localStream) localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+    if (screenStream) screenStream.getTracks().forEach(track => track.stop());
+    screenStream = null;
+    
+    // Resetta stato dei pulsanti (visivi e logici)
+    toggleAudioButton.querySelector('.material-icons').textContent = 'mic';
+    toggleVideoButton.querySelector('.material-icons').textContent = 'videocam';
+    shareScreenButton.classList.remove('active');
+    shareScreenButton.querySelector('.material-icons').textContent = 'screen_share';
+    isAudioEnabled = true;
+    isVideoEnabled = true;
+    
+    // 4. Cleanup WebRTC e stato speaker
+    Object.values(peerConnections).forEach(pc => pc.close());
+    for (const key in peerConnections) delete peerConnections[key];
+    for (const key in remoteNicknames) delete remoteNicknames[key];
+    for (const key in iceCandidateQueues) delete iceCandidateQueues[key];
+    for (const key in videoSenders) delete videoSenders[key];
+    for (const key in manuallyMutedPeers) delete manuallyMutedPeers[key];
+    
+    isManualFocus = false;
+    currentSpeakerId = null;
+    if (autoFocusTimer) clearTimeout(autoFocusTimer);
+    autoFocusTimer = null;
+    monitorLocalAudio(false); 
+
+    // 5. Reset Placeholder Video Grid
+    const placeholder = document.createElement('div');
+    placeholder.id = 'remote-video-placeholder';
+    placeholder.className = 'video-placeholder';
+    placeholder.textContent = 'In attesa di altri partecipanti...';
+    videosGrid.insertBefore(placeholder, localFeedEl);
+    
+    // Assicurati che il local feed non abbia più la classe "is-focused"
+    localFeedEl.classList.remove('is-focused', 'is-talking');
+    
+    // Reset inputs
+    nicknameInput.value = '';
+    roomIdInput.value = '';
+}
+
+
 async function startLocalMedia(){
   try{
     localStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
@@ -106,7 +167,6 @@ function updateLocalVideo(){
   }
 }
 
-// ***** FUNZIONE AGGIORNATA: Monitoraggio Audio Locale *****
 function monitorLocalAudio(start = true) {
     if (!localStream || !isAudioEnabled) {
         if (talkingInterval) {
@@ -162,7 +222,7 @@ function monitorLocalAudio(start = true) {
 }
 
 
-// --- LOGICA MUTE/DM REMOTO (NUOVE FUNZIONI) ---
+// --- LOGICA MUTE/DM REMOTO ---
 
 // Tenta di silenziare/riattivare l'audio di un peer remoto
 function toggleRemoteMute(peerId) {
@@ -257,12 +317,12 @@ function setFocus(peerId, manual=false){
 function addRemoteControlListeners(feed){
     const peerId = feed.dataset.peerId;
     const remoteMuteButton = feed.querySelector('.remote-mute-toggle');
-    const contextMenuTrigger = feed.querySelector('.context-menu-trigger'); // NUOVO UI TRIGGER
+    const contextMenuTrigger = feed.querySelector('.context-menu-trigger'); 
     const remoteVideo = feed.querySelector('video');
 
     // Mute/Unmute dal pulsante visibile
     remoteMuteButton.addEventListener('click', (e) => {
-        e.stopPropagation(); // Evita di attivare il focus
+        e.stopPropagation(); 
         toggleRemoteMute(peerId);
     });
     
@@ -279,8 +339,8 @@ function addRemoteControlListeners(feed){
     if (contextMenuTrigger) {
         contextMenuTrigger.addEventListener('click', (e) => {
             e.preventDefault(); 
-            e.stopPropagation(); // IMPORTANTE: Impedisce il focus del video
-            hideContextMenu(); // Nascondi prima di mostrare
+            e.stopPropagation(); 
+            hideContextMenu(); 
             
             // Mostra il menu in basso a sinistra del pulsante
             const rect = contextMenuTrigger.getBoundingClientRect();
@@ -299,7 +359,7 @@ function addRemoteControlListeners(feed){
     // Mobile: Gestione Tappa a lungo (Touch Hold) - Utile se l'utente non trova l'icona
     let touchTimeout;
     feed.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1 && !e.target.closest('.context-menu-trigger')) { // Ignora se si clicca sul trigger
+        if (e.touches.length === 1 && !e.target.closest('.context-menu-trigger')) { 
             e.preventDefault(); 
             touchTimeout = setTimeout(() => {
                 // Mostra il menu vicino al tocco
@@ -372,7 +432,7 @@ function toggleAudio(){
   toggleAudioButton.querySelector('.material-icons').textContent = isAudioEnabled ? 'mic' : 'mic_off';
   localMicStatusIcon.textContent = isAudioEnabled ? 'mic' : 'mic_off'; 
   
-  // Aggiorna monitor audio locale (funzione delegata a monitorLocalAudio)
+  // Aggiorna monitor audio locale
   monitorLocalAudio(isAudioEnabled); 
 }
 
@@ -474,7 +534,6 @@ function copyRoomLink(){
 }
 
 // ---------- Chat Logic ----------
-// ***** Funzione addChatMessage MODIFICATA per supportare il 'type' *****
 function addChatMessage(sender, message, isLocal=false, type='public'){
     const messageEl = document.createElement('div');
     messageEl.classList.add('chat-message');
@@ -502,7 +561,7 @@ function addChatMessage(sender, message, isLocal=false, type='public'){
 
 function clearChatInput(){ chatMessageInput.value = ''; }
 
-// ***** FUNZIONE sendMessage AGGIORNATA per gestire il comando /dm *****
+// ***** FUNZIONE sendMessage AGGIORNATA: Aggiunto blocco DM a se stessi *****
 function sendMessage(){
     const fullMessage = chatMessageInput.value.trim();
     if (!fullMessage) return;
@@ -514,6 +573,13 @@ function sendMessage(){
         const recipientNickname = parts[1];
         const messageContent = parts.slice(2).join(' ');
 
+        // *** FIX: Blocca DM a se stessi ***
+        if (recipientNickname.toLowerCase() === userNickname.toLowerCase()) {
+            addChatMessage('Sistema', 'Non puoi inviare un Messaggio Privato (DM) a te stesso.', true, 'system');
+            clearChatInput();
+            return;
+        }
+        
         // Trova l'ID del peer dal nickname (ricerca case-insensitive)
         const recipientId = Object.keys(remoteNicknames).find(
             key => remoteNicknames[key] && remoteNicknames[key].toLowerCase() === recipientNickname.toLowerCase()
@@ -575,18 +641,14 @@ function sendPrivateMessage(recipientId, recipientNickname, message) {
 // ***** NUOVA FUNZIONE HELPER: Apertura Forzata Chat Mobile *****
 function openChatPanelMobile(callback) {
     if (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden')) {
-        // La chat è già aperta, esegui il callback immediatamente
         if (callback) callback();
         return;
     }
 
-    // Forza l'apertura della chat (logica mobile)
     chatPanel.classList.remove('hidden');
-    // Aggiungiamo un piccolo timeout per far sì che il browser elabori il remove('hidden')
     setTimeout(() => {
         chatPanel.classList.add('active');
         
-        // Aggiungi il pulsante di chiusura (copia la logica dal listener di showChatBtn)
         let closeBtn = document.getElementById('close-chat-btn');
         if (!closeBtn) {
             closeBtn = document.createElement('button');
@@ -611,7 +673,6 @@ function openChatPanelMobile(callback) {
             });
         }
         
-        // Esegui il callback (per dare il focus) dopo la transizione CSS (350ms)
         setTimeout(callback, 350); 
     }, 10);
 }
@@ -622,6 +683,17 @@ function initializeSocket(){
   socket = io(RENDER_SERVER_URL);
   
   socket.on('connect', ()=> log('Connesso', socket.id));
+
+  // *** FIX: Gestione Nickname Duplicato dal Server ***
+  socket.on('nickname-in-use', (errorMessage) => {
+      console.error("Errore Nickname:", errorMessage);
+      alert(errorMessage);
+      resetAndShowOverlay();
+      if (socket) {
+          socket.disconnect();
+      }
+  });
+  // *** FINE FIX ***
 
   socket.on('welcome', (newPeerId, nickname, peers=[])=>{
     remoteNicknames[newPeerId] = nickname;
@@ -652,7 +724,7 @@ function initializeSocket(){
     addChatMessage(senderNickname, message, false, 'public');
   });
   
-  // ***** NUOVO: Listener per Messaggi Privati (Destinatario) *****
+  // ***** Listener per Messaggi Privati (Destinatario) *****
   socket.on('new-private-message', (senderNickname, message) => {
       // Visualizzazione locale (Destinatario)
       addChatMessage(
@@ -667,7 +739,6 @@ function initializeSocket(){
   socket.on('audio-status-changed', (peerId, isTalking) => {
       const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
       if(feed) {
-          // 1. Applica/Rimuovi la classe is-talking (verde) e aggiorna l'icona mic
           feed.classList.toggle('is-talking', isTalking);
           feed.querySelector('.remote-mic-status').textContent = isTalking ? 'mic' : 'mic_off';
       }
@@ -676,13 +747,11 @@ function initializeSocket(){
       if (isTalking) {
           currentSpeakerId = peerId;
           
-          // Metti in focus chi sta parlando SOLO se non siamo in focus manuale
           if (!isManualFocus) {
               if (autoFocusTimer) clearTimeout(autoFocusTimer);
               setFocus(peerId, false);
           }
       } else {
-          // Gestione del cooldown dopo che l'utente smette di parlare
           if (peerId === currentSpeakerId && !isManualFocus) {
               if (autoFocusTimer) clearTimeout(autoFocusTimer);
               
@@ -903,6 +972,14 @@ menuMuteUser.addEventListener('click', () => {
 
 menuDmUser.addEventListener('click', () => {
     if (contextTargetPeerId) {
+        
+        // *** FIX: Blocco DM a se stessi dal menu contestuale ***
+        if (contextTargetPeerId === socket.id) {
+            hideContextMenu();
+            addChatMessage('Sistema', 'Non puoi inviare un Messaggio Privato (DM) a te stesso.', true, 'system');
+            return;
+        }
+        
         const nickname = remoteNicknames[contextTargetPeerId] || 'Utente';
         
         // 1. Nascondi il menu
