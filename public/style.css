@@ -196,7 +196,7 @@ html,body{
     height: 450px; 
 }
 
-/* NUOVO: Bordo per l'utente che sta parlando */
+/* Bordo per l'utente che sta parlando */
 .video-feed.is-talking {
     border-color: #4caf50 !important; /* Verde brillante (importante per sovrascrivere is-focused) */
     box-shadow: 0 0 10px #4caf50;
@@ -301,7 +301,7 @@ html,body{
     font-weight:bold;
 }
 
-/* MESSAGGIO DI SISTEMA AGGIUNTO */
+/* MESSAGGIO DI SISTEMA */
 .sender-system{
     color: #FFEB3B; /* Giallo brillante */
     font-weight: bold;
@@ -340,9 +340,9 @@ html,body{
     background:var(--accent-color);
 }
 
-/* Main Controls Bar */
+/* Main Controls Bar (Modificato: position: fixed) */
 #main-controls-bar{
-    position:absolute;
+    position:fixed; /* MODIFICA: Utilizza fixed per rimanere visibile durante lo scroll */
     bottom:20px;
     left:50%;
     transform:translateX(-50%);
@@ -394,6 +394,8 @@ html,body{
         align-items: center;
         gap: 6px;
         justify-content: flex-start;
+        /* Aggiungo padding in basso per non coprire i controlli */
+        padding-bottom: 70px; /* Altezza barra controlli + padding (es. 48px + 12px*2 + 20px) */
     }
     
     .video-feed.ratio-4-3, .video-feed.ratio-16-9 {
