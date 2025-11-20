@@ -410,8 +410,8 @@ html,body{
         position: fixed;
         inset: 0;
         width: 100%;
-        /* FIX CHIAVE: Forzare l'altezza a 100% dell'altezza della viewport */
-        height: 100vh; 
+        /* FIX CHIAVE 1: Rimuoviamo 100vh e usiamo 100% per adattarsi dinamicamente */
+        height: 100%; 
         background: var(--surface);
         transform: translateY(100%);
         transition: transform 0.3s ease-in-out;
@@ -425,31 +425,33 @@ html,body{
     }
     #chat-panel.active {transform: translateY(0);}
     
-    /* Intestazione Chat (fisso) */
+    /* Intestazione Chat (fissa) */
     #chat-panel h3 {
-        flex-shrink: 0; /* Impedisce che l'intestazione si rimpicciolisca */
-        padding: 10px 20px; /* Riduco un po' il padding per guadagnare spazio */
-        border-bottom: none; /* Rimuovo il bordo inferiore, dato che il bottone di chiusura è sopra */
+        flex-shrink: 0; 
+        padding: 10px 20px; 
+        border-bottom: none; 
     }
 
-    /* FIX: Rende l'area messaggi scrollabile e la fa espandere */
+    /* Area Messaggi (scorre e occupa lo spazio rimanente) */
     #messages-container {
         flex-grow: 1; 
         overflow-y: auto;
         padding-bottom: 10px;
-        padding-top: 0; /* Assicura che non ci sia padding in eccesso in alto */
+        padding-top: 0;
     }
     
-    /* FIX: Mantiene l'area input fissa in basso */
+    /* Area Input (fissa in fondo) */
     #chat-input-area {
-        position: sticky; 
+        display: flex; 
+        /* FIX CHIAVE 2: Usiamo position: relative invece di sticky per evitare problemi con la tastiera */
+        position: relative; 
         bottom: 0;
         background: var(--surface);
         z-index: 310;
         padding: 8px; 
         border-top: 1px solid #333;
         min-height: 52px; 
-        flex-shrink: 0; /* Impedisce che l'input si rimpicciolisca in altezza */
+        flex-shrink: 0; 
     }
 
     #chat-message-input {font-size: 0.95rem; min-height: 36px;}
