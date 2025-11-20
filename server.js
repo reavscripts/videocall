@@ -45,6 +45,18 @@ io.on('connection', (socket) => {
     socket.on('send-message', (room, sender, message) => {
       io.to(room).emit('new-message', sender, message);
     });
+    
+    // ******************************************************
+    // NUOVA LOGICA: MESSAGGI PRIVATI (DM)
+    // ******************************************************
+    socket.on('send-private-message', (roomId, recipientId, senderNickname, message) => {
+        // Inoltra il messaggio SOLO al socket ID specifico del destinatario
+        // 'io.to(recipientId)' invia l'evento 'new-private-message' solo al client destinatario.
+        io.to(recipientId).emit('new-private-message', senderNickname, message);
+        
+        console.log(`DM inviato da ${senderNickname} (stanza ${roomId}) a socket ${recipientId}`);
+    });
+    // ******************************************************
 
     // Offerte/Answer ICE per WebRTC
     socket.on('offer', (toId, offer) => {
