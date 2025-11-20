@@ -47,12 +47,15 @@ let isManualFocus = false; // True se l'utente ha cliccato su un feed
 let currentSpeakerId = null; 
 const AUTO_FOCUS_COOLDOWN = 3000; // Tempo di attesa prima di togliere il focus automatico
 let autoFocusTimer = null; 
+// **********************************************
+
+// Variabili per Rilevamento Audio
 let audioContext = null;
 let analyser = null;
 let talkingInterval = null;
 const AUDIO_THRESHOLD = -40; // Decibel soglia per considerare l'utente 'parlante'
+const remoteAudioProcessors = {}; 
 let isLocalTalking = false; // Stato di parlato locale
-// **********************************************
 
 // Variabile Mute Remoto (NUOVA)
 const manuallyMutedPeers = {}; // { peerId: true/false }
@@ -114,10 +117,10 @@ function monitorLocalAudio(start = true) {
             talkingInterval = null;
         }
          // Assicurati SEMPRE che lo stato di "parlato" venga resettato (e notificato) se il monitoraggio si ferma
-         if (isLocalTalking && socket) {
+         if (isLocalTalking) {
              isLocalTalking = false;
              localFeedEl.classList.remove('is-talking');
-             socket.emit('audio-status-changed', currentRoomId, isLocalTalking);
+             if (socket) socket.emit('audio-status-changed', currentRoomId, isLocalTalking);
          }
         return;
     }
@@ -161,6 +164,8 @@ function monitorLocalAudio(start = true) {
     }
 }
 
+// Monitoraggio Audio Remoto (lasciato vuoto, usa signaling)
+function monitorRemoteAudio(stream, peerId) {} 
 
 // --- LOGICA MUTE/DM REMOTO (NUOVE FUNZIONI) ---
 
@@ -174,16 +179,13 @@ function toggleRemoteMute(peerId) {
     const remoteVideo = feed ? feed.querySelector('video') : null;
     const muteToggleIcon = feed ? feed.querySelector('.remote-mute-toggle .material-icons') : null;
 
-    // 1. Applica il mute al video
     if (remoteVideo) remoteVideo.muted = isMuted;
 
-    // 2. Aggiorna l'icona sul feed
     if (muteToggleIcon) {
         muteToggleIcon.textContent = isMuted ? 'volume_off' : 'volume_up';
-        muteToggleIcon.closest('button').title = isMuted ? 'Riattiva Audio Locale' : 'Silenzia Audio Locale';
     }
     
-    // 3. Aggiorna lo stato del menu contestuale
+    // Aggiorna lo stato del menu contestuale
     if(contextTargetPeerId === peerId) {
         updateContextMenuState(peerId);
     }
@@ -212,15 +214,13 @@ function showContextMenu(peerId, x, y) {
     let finalX = x;
     let finalY = y;
     
-    // Calcola la posizione per evitare che esca dallo schermo
-    const menuWidth = contextMenuEl.offsetWidth;
-    const menuHeight = contextMenuEl.offsetHeight;
-
-    if (x + menuWidth > window.innerWidth) {
-        finalX = window.innerWidth - menuWidth - 10;
+    // Assicurati che il menu non esca dal bordo destro
+    if (x + contextMenuEl.offsetWidth > window.innerWidth) {
+        finalX = window.innerWidth - contextMenuEl.offsetWidth - 10;
     }
-    if (y + menuHeight > window.innerHeight) {
-        finalY = window.innerHeight - menuHeight - 10;
+    // Assicurati che il menu non esca dal bordo inferiore
+    if (y + contextMenuEl.offsetHeight > window.innerHeight) {
+        finalY = window.innerHeight - contextMenuEl.offsetHeight - 10;
     }
     
     contextMenuEl.style.left = `${finalX}px`;
@@ -235,7 +235,7 @@ function hideContextMenu() {
 
 
 // LOGICA FOCUS AGGIORNATA
-function setFocus(peerId, manual=false){ 
+function setFocus(peerId, manual=true){ 
   videosGrid.querySelectorAll('.video-feed').forEach(feed => feed.classList.remove('is-focused'));
   focusedPeerId = peerId;
   isManualFocus = manual; 
@@ -257,7 +257,6 @@ function setFocus(peerId, manual=false){
 function addRemoteControlListeners(feed){
     const peerId = feed.dataset.peerId;
     const remoteMuteButton = feed.querySelector('.remote-mute-toggle');
-    const contextMenuTrigger = feed.querySelector('.context-menu-trigger'); // NUOVO UI TRIGGER
     const remoteVideo = feed.querySelector('video');
 
     // Mute/Unmute dal pulsante visibile
@@ -266,7 +265,7 @@ function addRemoteControlListeners(feed){
         toggleRemoteMute(peerId);
     });
     
-    // 1. Inizializzazione stato mute (necessaria per i nuovi ingressi)
+    // 1. Inizializzazione stato mute
     if (manuallyMutedPeers[peerId]) {
         remoteVideo.muted = true;
         remoteMuteButton.querySelector('.material-icons').textContent = 'volume_off';
@@ -274,38 +273,26 @@ function addRemoteControlListeners(feed){
         remoteVideo.muted = false;
         remoteMuteButton.querySelector('.material-icons').textContent = 'volume_up';
     }
-    
-    // 2. Listener per il pulsante visivo del Context Menu
-    if (contextMenuTrigger) {
-        contextMenuTrigger.addEventListener('click', (e) => {
-            e.preventDefault(); 
-            e.stopPropagation(); // IMPORTANTE: Impedisce il focus del video
-            hideContextMenu(); // Nascondi prima di mostrare
-            
-            // Mostra il menu in basso a sinistra del pulsante
-            const rect = contextMenuTrigger.getBoundingClientRect();
-            showContextMenu(peerId, rect.left, rect.bottom); 
-        });
-    }
 
-    // 3. Listener per il Context Menu (Clic destro/Tappa a lungo) - LASCIATO COME FALLBACK
+    // 2. Listener per il Context Menu (Clic destro/Tappa a lungo)
     // Desktop: Clic destro
     feed.addEventListener('contextmenu', (e) => {
         e.preventDefault(); 
-        hideContextMenu(); 
+        hideContextMenu(); // Nascondi prima di mostrare
         showContextMenu(peerId, e.clientX, e.clientY);
     });
 
-    // Mobile: Gestione Tappa a lungo (Touch Hold) - Utile se l'utente non trova l'icona
+    // Mobile: Gestione Tappa a lungo (Touch Hold)
     let touchTimeout;
     feed.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1 && !e.target.closest('.context-menu-trigger')) { // Ignora se si clicca sul trigger
-            e.preventDefault(); 
+        if (e.touches.length === 1) {
+            e.preventDefault(); // Impedisce lo scorrimento iniziale
             touchTimeout = setTimeout(() => {
-                // Mostra il menu vicino al tocco
+                const rect = feed.getBoundingClientRect();
+                // Mostra il menu vicino al tocco/centro del feed
                 hideContextMenu();
                 showContextMenu(peerId, e.touches[0].clientX, e.touches[0].clientY);
-            }, 700); 
+            }, 700); // 700ms di pressione per aprire
         }
     });
 
@@ -326,7 +313,6 @@ function ensureRemoteFeed(socketId, nickname='Utente'){
   const div = template.content.cloneNode(true).querySelector('.video-feed');
   div.dataset.peerId = socketId; 
   div.querySelector('.remote-nickname').textContent = nickname;
-  div.querySelector('.remote-mic-status').textContent = 'mic'; // Default: attivo
   addRemoteControlListeners(div); 
   
   // ***** AGGIORNAMENTO LISTENER CLICK *****
@@ -349,6 +335,11 @@ function removeRemoteFeed(socketId){
   delete videoSenders[socketId]; 
   delete manuallyMutedPeers[socketId]; // Rimuovi stato mute
 
+  if (remoteAudioProcessors[socketId]) {
+    clearInterval(remoteAudioProcessors[socketId].interval);
+    delete remoteAudioProcessors[socketId];
+  }
+  
   // ***** Cleanup focus/parlato *****
   if (currentSpeakerId === socketId) currentSpeakerId = null;
   if (autoFocusTimer) { clearTimeout(autoFocusTimer); autoFocusTimer = null; }
@@ -388,21 +379,19 @@ function disconnect(){
   localStream = null;
   screenStream?.getTracks().forEach(track => track.stop()); 
   screenStream = null;
-
+  
+  // ***** Cleanup audio context *****
   if (talkingInterval) clearInterval(talkingInterval);
+  Object.values(remoteAudioProcessors).forEach(p => clearInterval(p.interval));
+
 
   if(socket) socket.disconnect();
   location.reload();
 }
 
 async function toggleScreenShare() {
-    // La condivisione schermo su mobile non è supportata
-    if( /Mobi|Android/i.test(navigator.userAgent) ) {
-        alert("La condivisione dello schermo non è supportata sulla maggior parte dei dispositivi mobili.");
-        return;
-    }
-    
     if (screenStream) {
+        // Stop sharing
         screenStream.getTracks().forEach(track => track.stop());
         screenStream = null;
         updateLocalVideo(); // Switch back to webcam stream
@@ -458,42 +447,36 @@ async function toggleScreenShare() {
 
 // ---------- Link e URL ----------
 function getRoomIdFromUrl(){
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('room');
+    const params = new URLSearchParams(window.location.search);
+    return params.get('room');
 }
 
 function copyRoomLink(){
-    const url = `${window.location.protocol}//${window.location.host}${window.location.pathname}?room=${currentRoomId}`;
-    navigator.clipboard.writeText(url).then(() => {
-        shareRoomLinkButton.value = 'Link Copiato!';
-        setTimeout(() => { shareRoomLinkButton.value = 'Ottieni Link'; }, 3000);
+    const roomUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}`;
+    navigator.clipboard.writeText(roomUrl).then(() => {
+        alert('Link della stanza copiato negli appunti!');
     }).catch(err => {
-        console.error('Errore copia link:', err);
-        alert(`Copia manuale: ${url}`);
+        console.error('Errore nella copia del link:', err);
+        alert('Impossibile copiare il link. Copia manuale: ' + roomUrl);
     });
 }
 
 // ---------- Chat Logic ----------
-// ***** Funzione addChatMessage MODIFICATA per supportare il 'type' *****
+// ***** Funzione addChatMessage MODIFICATA per supportare il 'type' (es. 'private') *****
 function addChatMessage(sender, message, isLocal=false, type='public'){
     const messageEl = document.createElement('div');
     messageEl.classList.add('chat-message');
     
     let cssClass;
-    let senderText = sender;
     if (type === 'system') {
         cssClass = 'sender-system';
-        senderText = 'Sistema';
     } else if (type === 'private') {
         cssClass = 'sender-private'; // Per messaggi privati
     } else {
         cssClass = isLocal ? 'sender-me' : 'sender-remote';
     }
 
-    // Se è locale, usa 'Tu', altrimenti usa il nickname completo
-    const prefix = isLocal ? `Tu${type === 'private' ? ` (DM a ${sender})` : ''}: ` : `${senderText}: `;
-
-    messageEl.innerHTML = `<span class="${cssClass}">${prefix}</span>${message}`;
+    messageEl.innerHTML = `<span class="${cssClass}">${sender}: </span>${message}`;
     
     messagesContainer.appendChild(messageEl);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -520,7 +503,7 @@ function sendMessage(){
         );
 
         if (recipientId) {
-            sendPrivateMessage(recipientId, recipientNickname, messageContent);
+            sendPrivateMessage(recipientId, messageContent);
             clearChatInput();
             
         } else {
@@ -550,7 +533,7 @@ function sendMessage(){
 }
 
 // ***** NUOVA FUNZIONE: Invio Messaggio Privato *****
-function sendPrivateMessage(recipientId, recipientNickname, message) {
+function sendPrivateMessage(recipientId, message) {
     if (!message || !recipientId) {
         log('Errore DM: Messaggio o Destinatario mancante.');
         return;
@@ -561,8 +544,9 @@ function sendPrivateMessage(recipientId, recipientNickname, message) {
         socket.emit('send-private-message', currentRoomId, recipientId, userNickname, message);
         
         // Visualizzazione locale (Mittente)
+        const recipientNickname = remoteNicknames[recipientId] || 'Utente sconosciuto';
         addChatMessage(
-            recipientNickname, // Passiamo il nickname come riferimento per l'output locale
+            `${userNickname} (DM a ${recipientNickname})`, 
             message, 
             true,
             'private' // Usa il tipo 'private' per la visualizzazione
@@ -581,14 +565,14 @@ function initializeSocket(){
 
   socket.on('welcome', (newPeerId, nickname, peers=[])=>{
     remoteNicknames[newPeerId] = nickname;
-    addChatMessage(userNickname, `Benvenuto nella stanza ${currentRoomId}!`, false, 'system');
+    addChatMessage('Sistema', `Benvenuto nella stanza ${currentRoomId}!`, false, 'system');
     peers.forEach(peer=>{
       if(peer.id !== socket.id) {
         remoteNicknames[peer.id] = peer.nickname;
         createPeerConnection(peer.id); 
       }
     });
-    setFocus('local', false);
+    setFocus('local');
   });
 
   socket.on('peer-joined', (peerId,nickname)=>{
@@ -608,14 +592,14 @@ function initializeSocket(){
     addChatMessage(senderNickname, message, false, 'public');
   });
   
-  // ***** NUOVO: Listener per Messaggi Privati (Destinatario) *****
+  // ***** NUOVO: Listener per Messaggi Privati *****
   socket.on('new-private-message', (senderNickname, message) => {
       // Visualizzazione locale (Destinatario)
       addChatMessage(
           `Privato da ${senderNickname}`, 
           message, 
           false,
-          'private' 
+          'private' // Usa il tipo 'private' per la visualizzazione
       );
   });
   
@@ -623,9 +607,8 @@ function initializeSocket(){
   socket.on('audio-status-changed', (peerId, isTalking) => {
       const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
       if(feed) {
-          // 1. Applica/Rimuovi la classe is-talking (verde) e aggiorna l'icona mic
+          // 1. Applica/Rimuovi la classe is-talking (verde)
           feed.classList.toggle('is-talking', isTalking);
-          feed.querySelector('.remote-mic-status').textContent = isTalking ? 'mic' : 'mic_off';
       }
       
       // 2. Logica di Auto-Focus
@@ -634,15 +617,21 @@ function initializeSocket(){
           
           // Metti in focus chi sta parlando SOLO se non siamo in focus manuale
           if (!isManualFocus) {
+              // Cancella il timer di spegnimento se qualcuno inizia a parlare
               if (autoFocusTimer) clearTimeout(autoFocusTimer);
+
+              // Metti in focus il nuovo parlante (manual=false)
               setFocus(peerId, false);
           }
       } else {
-          // Gestione del cooldown dopo che l'utente smette di parlare
+          // Se l'utente che ha appena smesso di parlare era l'ultimo parlante/focus automatico
           if (peerId === currentSpeakerId && !isManualFocus) {
+              // Resetta il timer
               if (autoFocusTimer) clearTimeout(autoFocusTimer);
               
+              // Imposta un timer per togliere il focus dopo COOLDOWN
               autoFocusTimer = setTimeout(() => {
+                  // Torna al focus locale solo se l'attuale focus è ancora lui
                   if (peerId === focusedPeerId) {
                       setFocus('local', false);
                   }
@@ -662,40 +651,41 @@ function initializeSocket(){
   });
 
   socket.on('offer', async (fromId, offer)=>{
-    const pc = createPeerConnection(fromId); 
-    if(pc.signalingState !== 'stable') return; 
+    const pc = createPeerConnection(fromId);
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    if (iceCandidateQueues[fromId]) {
-      iceCandidateQueues[fromId].forEach(candidate => { if(candidate) pc.addIceCandidate(new RTCIceCandidate(candidate)); });
-      iceCandidateQueues[fromId] = [];
-    }
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     socket.emit('answer', fromId, pc.localDescription);
+    
+    // Process queued ICE candidates
+    if(iceCandidateQueues[fromId]){
+        iceCandidateQueues[fromId].forEach(candidate => pc.addIceCandidate(candidate));
+        iceCandidateQueues[fromId] = []; // Clear the queue
+    }
   });
 
   socket.on('answer', async (fromId, answer)=>{
     const pc = peerConnections[fromId];
     if(pc) {
-        if(pc.signalingState !== 'have-local-offer') return;
-        await pc.setRemoteDescription(new RTCSessionDescription(answer));
-        if (iceCandidateQueues[fromId]) {
-          iceCandidateQueues[fromId].forEach(candidate => { if(candidate) pc.addIceCandidate(new RTCIceCandidate(candidate)); });
-          iceCandidateQueues[fromId] = [];
-        }
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      // Process queued ICE candidates
+      if(iceCandidateQueues[fromId]){
+          iceCandidateQueues[fromId].forEach(candidate => pc.addIceCandidate(candidate));
+          iceCandidateQueues[fromId] = []; // Clear the queue
+      }
     }
   });
 
   socket.on('candidate', async (fromId, candidate)=>{
     const pc = peerConnections[fromId];
-    if(pc && candidate) {
-      if (pc.remoteDescription) {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      } else {
-        if (!iceCandidateQueues[fromId]) iceCandidateQueues[fromId] = [];
-        iceCandidateQueues[fromId].push(candidate);
-        log(`Candidato ICE accodato per ${fromId}.`);
-      }
+    const iceCandidate = new RTCIceCandidate(candidate);
+    
+    if(pc && pc.remoteDescription && pc.remoteDescription.type) {
+      // If remote description is set, add candidate immediately
+      await pc.addIceCandidate(iceCandidate);
+    } else {
+      // If not, queue the candidate
+      iceCandidateQueues[fromId].push(iceCandidate);
     }
   });
 }
@@ -730,15 +720,16 @@ function createPeerConnection(socketId){
     } else log(`Impossibile collegare lo stream per ${socketId}.`);
   };
 
-
   const shouldCreateOffer = (socket.id < socketId); 
   pc.onnegotiationneeded = async ()=>{
-    if(shouldCreateOffer && pc.signalingState === 'stable'){
-      try{
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socket.emit('offer', socketId, pc.localDescription);
-      }catch(err){ console.error('Error creating/sending offer', err); }
+    if (shouldCreateOffer) {
+        try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('offer', socketId, pc.localDescription);
+        } catch(err) {
+            console.error('Errore durante la creazione dell\'offerta:', err);
+        }
     }
   };
 
@@ -747,40 +738,42 @@ function createPeerConnection(socketId){
 
 // ---------- Inizializzazione Listener e Avvio ----------
 document.addEventListener('DOMContentLoaded', () => {
-    const urlRoomId = getRoomIdFromUrl();
-    if (urlRoomId) roomIdInput.value = urlRoomId;
+  const urlRoomId = getRoomIdFromUrl();
+  if(urlRoomId) roomIdInput.value = urlRoomId;
 
-    // Aggiungi un placeholder se non ci sono video remoti
-    if (videosGrid.children.length === 1 && videosGrid.querySelector('#local-feed')){
-        const placeholder = document.createElement('div');
-        placeholder.id = 'remote-video-placeholder';
-        placeholder.className = 'video-placeholder';
-        placeholder.textContent = 'In attesa di altri partecipanti...';
-        videosGrid.insertBefore(placeholder, localFeedEl);
-    }
-    
-    // Inizializza il focus su locale
-    localFeedEl.classList.add('is-focused');
-    
-    localFeedEl.addEventListener('click', ()=> setFocus('local', true)); // Focus MANUALE
+  // Rimuovi o rendi più discreto il placeholder iniziale
+  if (videosGrid.children.length === 1 && videosGrid.querySelector('#local-feed')){
+    const placeholder = document.createElement('div');
+    placeholder.id = 'remote-video-placeholder';
+    placeholder.className = 'video-placeholder';
+    placeholder.textContent = 'In attesa di altri partecipanti...';
+    videosGrid.insertBefore(placeholder, localFeedEl);
+  }
+  
+  localFeedEl.addEventListener('click', ()=> setFocus('local', true)); // Focus MANUALE
 });
 
 joinButton.addEventListener('click', async ()=>{
-  const nickname = nicknameInput.value.trim();
-  const roomId = roomIdInput.value.trim();
-  if(!nickname || !roomId){ alert('Inserisci nickname e stanza'); return; }
+  userNickname = nicknameInput.value.trim() || 'Ospite';
+  currentRoomId = roomIdInput.value.trim();
 
-  userNickname = nickname;
-  currentRoomId = roomId;
-  
-  await startLocalMedia(); 
-  
+  if (!currentRoomId) {
+    alert('Inserisci un nome per la stanza.');
+    return;
+  }
+
+  showOverlay(false); 
+  document.getElementById('room-name-display').textContent = currentRoomId;
+
+  await startLocalMedia();
   initializeSocket();
-  socket.emit('join-room', currentRoomId, userNickname); 
-  document.getElementById('room-name-display').textContent = roomId;
-  showOverlay(false);
   
-  setFocus('local', false);
+  if(socket) {
+    socket.emit('join-room', currentRoomId, userNickname);
+  } else {
+    log('Errore: Socket non inizializzato.');
+    alert('Impossibile connettersi al server.');
+  }
 });
 
 // Listener Media
@@ -842,8 +835,8 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('contextmenu', (e) => {
-    // Nascondi il menu se il click destro non è su un video feed né sul menu
-    if (contextMenuEl && !e.target.closest('.video-feed') && !contextMenuEl.contains(e.target)) {
+    // Nascondi il menu se il click destro non è su un video feed
+    if (contextMenuEl && !e.target.closest('.video-feed')) {
         hideContextMenu();
     }
 });

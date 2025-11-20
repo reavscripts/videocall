@@ -196,6 +196,12 @@ html,body{
     height: 450px; 
 }
 
+/* Bordo per l'utente che sta parlando */
+.video-feed.is-talking {
+    border-color: #4caf50 !important; /* Verde brillante (importante per sovrascrivere is-focused) */
+    box-shadow: 0 0 10px #4caf50;
+}
+
 .video-feed video{
     width:100%;
     height:100%;
@@ -295,6 +301,18 @@ html,body{
     font-weight:bold;
 }
 
+/* MESSAGGIO DI SISTEMA */
+.sender-system{
+    color: #FFEB3B; /* Giallo brillante */
+    font-weight: bold;
+}
+
+/* MESSAGGIO PRIVATO (NUOVO) */
+.sender-private{
+    color: #8BC34A; /* Verde chiaro per i DM */
+    font-weight: bold;
+}
+
 #chat-input-area{
     display:flex;
     padding:10px;
@@ -328,9 +346,9 @@ html,body{
     background:var(--accent-color);
 }
 
-/* Main Controls Bar */
+/* Main Controls Bar (Modificato: position: fixed) */
 #main-controls-bar{
-    position:absolute;
+    position:fixed; /* Utilizza fixed per rimanere visibile durante lo scroll */
     bottom:20px;
     left:50%;
     transform:translateX(-50%);
@@ -376,12 +394,19 @@ html,body{
 
 /* --- MEDIA QUERIES/RESPONSIVE ----------------- */
 @media (max-width: 768px) {
+    /* Nasconde il pulsante Condividi Schermo su mobile (funzionalità inaffidabile) */
+    #main-controls-bar #share-screen-button {
+        display: none;
+    }
+
     /* Layout Mobile: Griglia Video */
     #videos-grid {
         flex-direction: column;
         align-items: center;
         gap: 6px;
         justify-content: flex-start;
+        /* Aggiungo padding in basso per non coprire i controlli */
+        padding-bottom: 70px; /* Altezza barra controlli + padding (es. 48px + 12px*2 + 20px) */
     }
     
     .video-feed.ratio-4-3, .video-feed.ratio-16-9 {
@@ -392,6 +417,17 @@ html,body{
     .video-feed.is-focused {
         order: -1; 
         max-height: 45vh;
+        width: 95% !important; 
+        height: auto !important; 
+    }
+
+    /* Regole aggiuntive per assicurare la ratio corretta su mobile in focus */
+    .video-feed.is-focused.ratio-4-3 video {
+        aspect-ratio: 4/3;
+    }
+
+    .video-feed.is-focused.ratio-16-9 video {
+        aspect-ratio: 16/9;
     }
 
     /* Layout Mobile: Chat */
@@ -399,44 +435,54 @@ html,body{
         position: fixed;
         inset: 0;
         width: 100%;
-        height: 100%;
+        /* FIX: Altezza dinamica */
+        height: 100%; 
         background: var(--surface);
         transform: translateY(100%);
         transition: transform 0.3s ease-in-out;
         z-index: 300;
         display: flex;
-        flex-direction: column;
+        flex-direction: column; 
+        border-radius: 0;
+        box-shadow: none;
+        /* Impedisce lo scorrimento del pannello principale */
+        overflow: hidden; 
     }
     #chat-panel.active {transform: translateY(0);}
     
-    #chat-input-area {padding: 8px;}
+    /* Intestazione Chat (fissa) */
+    #chat-panel h3 {
+        flex-shrink: 0; 
+        padding: 10px 20px; 
+        border-bottom: none; 
+    }
+
+    /* Area Messaggi (scorre e occupa lo spazio rimanente) */
+    #messages-container {
+        flex-grow: 1; 
+        overflow-y: auto;
+        padding-bottom: 10px;
+        padding-top: 0;
+    }
+    
+    /* Area Input (fissa in fondo) */
+    #chat-input-area {
+        display: flex; 
+        /* FIX: position: relative */
+        position: relative; 
+        bottom: 0;
+        background: var(--surface);
+        z-index: 310;
+        padding: 8px; 
+        border-top: 1px solid #333;
+        min-height: 52px; 
+        flex-shrink: 0; 
+    }
+
     #chat-message-input {font-size: 0.95rem; min-height: 36px;}
     #send-chat-button {height: 36px; padding: 0 12px;}
 
     #main-controls-bar {
         bottom: 10px;
     }
-
 }
-
-/* ************************************** */
-/* NUOVO STILE: MESSAGGI PRIVATI (DM) */
-/* ************************************** */
-.chat-message.private-message {
-    border-left: 3px solid var(--accent-color);
-    padding-left: 8px;
-    /* Spostato per bilanciare l'aggiunta di padding-left: 17px */
-    margin-left: -20px; 
-    padding-left: 17px;
-    padding-top: 2px;
-    padding-bottom: 2px;
-    background-color: rgba(255, 152, 0, 0.1); 
-    border-radius: 4px;
-}
-
-.chat-message.private-message .sender-me, 
-.chat-message.private-message .sender-remote {
-    color: var(--accent-color);
-    font-style: italic;
-}
-/* ************************************** */
