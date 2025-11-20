@@ -105,13 +105,13 @@ function monitorLocalAudio(start = true) {
         if (talkingInterval) {
             clearInterval(talkingInterval);
             talkingInterval = null;
-             // Se smetti di monitorare, resetta lo stato di parlato locale
-            if (isLocalTalking) {
-                 isLocalTalking = false;
-                 localFeedEl.classList.remove('is-talking');
-                 if (socket) socket.emit('audio-status-changed', currentRoomId, isLocalTalking);
-            }
         }
+         // Assicurati SEMPRE che lo stato di "parlato" venga resettato (e notificato) se il monitoraggio si ferma
+         if (isLocalTalking) {
+             isLocalTalking = false;
+             localFeedEl.classList.remove('is-talking');
+             if (socket) socket.emit('audio-status-changed', currentRoomId, isLocalTalking);
+         }
         return;
     }
 
@@ -239,7 +239,7 @@ function toggleAudio(){
   toggleAudioButton.querySelector('.material-icons').textContent = isAudioEnabled ? 'mic' : 'mic_off';
   localMicStatusIcon.textContent = isAudioEnabled ? 'mic' : 'mic_off'; 
   
-  // Aggiorna monitor audio locale
+  // Aggiorna monitor audio locale (funzione delegata a monitorLocalAudio)
   monitorLocalAudio(isAudioEnabled); 
 }
 
@@ -267,6 +267,7 @@ function disconnect(){
 }
 
 async function toggleScreenShare() {
+// ... (omesso codice invariato) ...
     if (screenStream) {
         // Stop sharing
         screenStream.getTracks().forEach(track => track.stop());
@@ -321,7 +322,8 @@ async function toggleScreenShare() {
     }
 }
 
-// ---------- Link e URL AGGIUNTE ----------
+
+// ---------- Link e URL ----------
 function getRoomIdFromUrl(){
     const params = new URLSearchParams(window.location.search);
     return params.get('room');
