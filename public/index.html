@@ -30,20 +30,24 @@
 <button id="show-chat-btn" title="Apri Chat">
     <span class="material-icons">chat</span>
 </button>
-<button id="share-room-link" title="Condividi Link Stanza">
-    <span class="material-icons">link</span>
+<button id="show-grid-btn" title="Layout Griglia">
+    <span class="material-icons">view_module</span>
 </button>
+<input type="button" id="share-room-link" readonly value="Ottieni Link" />
 </div>
 </header>
 
-
 <main id="main-area">
+
 <section id="videos-grid">
-    <div id="local-feed" class="video-feed ratio-4-3 hidden is-focused" data-peer-id="local">
-        <video id="local-video" autoplay playsinline muted></video>
+
+    <div id="local-feed" class="video-feed ratio-4-3 hidden" data-peer-id="local">
+        <div class="video-content-wrapper">
+            <video id="local-video" autoplay playsinline muted></video>
+        </div>
         <div class="video-label">
             <span id="local-mic-status" class="material-icons">mic</span>
-            Tu
+            <span id="local-nickname">Tu</span>
         </div>
         <button class="local-mute-toggle" title="Disattiva Audio Locale">
             <span class="material-icons">volume_up</span>
@@ -89,15 +93,18 @@
     </div>
     <div class="video-label">
         <span class="remote-mic-status material-icons">mic</span>
-        <span class="remote-nickname"></span>
+        <span class="remote-nickname">Utente Remoto</span>
     </div>
-    <button class="remote-mute-toggle" title="Silenzia Remoto">
+    <button class="remote-mute-toggle" title="Silenzia Audio Locale">
         <span class="material-icons">volume_up</span>
+    </button>
+    <button class="context-menu-trigger" title="Opzioni">
+        <span class="material-icons">more_vert</span>
     </button>
 </div>
 </template>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
