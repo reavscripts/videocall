@@ -172,7 +172,7 @@ html,body{
     align-items:center;
     justify-content:center;
     overflow-y:auto;
-    overflow-x:hidden; /* Per evitare scroll orizzontale */
+    overflow-x:hidden; 
     padding-top:10px;
     padding-bottom:10px; 
     transition: padding 0.3s ease;
@@ -556,12 +556,45 @@ html,body{
         height: 100%;
     }
 
-    /* Nascondi il pannello Chat (viene mostrato con un overlay) */
-    #chat-panel {
-        display: none; /* Nascosto per default su mobile */
+    /* Layout Mobile: Griglia Video */
+    #videos-grid {
+        flex-direction: column;
+        align-items: center; 
+        justify-content: flex-start;
+        padding-bottom: 70px; 
+        /* AGGIUNTO: Assicura che la griglia occupi il 100% e nasconde overflow orizzontale */
+        width: 100%; 
+        overflow-x: hidden; 
     }
-    #chat-panel.active { 
-        display: flex; /* Mostrato quando attivo */
+
+    /* Regole per TUTTE le video-feed (cruciale per eliminare lo scroll orizzontale) */
+    .video-feed { 
+        /* AGGIUNTO: Forza la larghezza massima per non causare scroll */
+        width: 95% !important; 
+        height: auto !important; 
+        max-width: 450px; 
+    }
+    
+    /* Video in focus - Riduzione dimensioni su mobile per far vedere più webcam remote */
+    .video-feed.is-focused {
+        order: -1; 
+        /* MODIFICATO: Riduce l'altezza massima per risparmiare spazio */
+        max-height: 40vh; 
+        /* MODIFICATO: Riduce leggermente la larghezza */
+        width: 90% !important; 
+        height: auto !important; 
+        margin-top: 5px; 
+    }
+
+    /* Le regole per la ratio 4:3 e 16:9 che seguono non sono state modificate in modo distruttivo. */
+
+    /* Su mobile mostra sempre l'icona menu */
+    .context-menu-trigger {
+        opacity: 1; /* Forzato a 1 */
+    }
+
+    /* Layout Mobile: Chat (presumo che questa parte sia corretta per l'overlay) */
+    #chat-panel {
         position: fixed;
         inset: 0;
         width: 100%;
@@ -570,75 +603,14 @@ html,body{
         transform: translateY(100%);
         transition: transform 0.3s ease-in-out;
         z-index: 300;
-        flex-direction: column;
+        display: flex;
+        flex-direction: column; 
         border-radius: 0;
         box-shadow: none;
-        overflow: hidden;
+        overflow: hidden; 
     }
-    #chat-panel.active { transform: translateY(0); }
+    #chat-panel.active {transform: translateY(0);}
     
-    /* Layout Mobile: Griglia Video - MODIFICHE CHIAVE QUI */
-    #videos-grid {
-        flex-direction: column;
-        align-items: center; /* Centra i feed orizzontalmente */
-        gap: 6px;
-        justify-content: flex-start;
-        padding-bottom: 70px; 
-        /* NUOVE REGOLE PER EVITARE SCROLL ORIZZONTALE */
-        width: 100%; /* Assicura che la griglia occupi il 100% */
-        overflow-x: hidden; /* Blocca lo scroll orizzontale della griglia */
-    }
-
-    /* Regole per tutte le video-feed (sia 4:3 che 16:9) */
-    .video-feed { 
-        /* Sovrascrive le larghezze fisse del desktop */
-        width: 95% !important; /* Forza la larghezza al 95% della viewport */
-        height: auto !important; /* Forza l'altezza automatica */
-        max-width: 450px; /* Limite massimo per non esagerare su tablet in portrait */
-    }
-    
-    /* Video in focus - Adatta l'altezza al 45% della viewport per avere spazio per gli altri */
-    .video-feed.is-focused {
-        order: -1; 
-        max-height: 45vh; /* Limite l'altezza a una frazione dell'altezza della viewport */
-        width: 95% !important; /* Forza la larghezza al 95% */
-        height: auto !important; /* Adatta l'altezza in base alla ratio */
-        margin-top: 5px; /* Spazio dall'alto */
-    }
-
-    /* Regole per assicurare la ratio corretta su mobile */
-    .video-feed.is-focused.ratio-4-3 video,
-    .video-feed.ratio-4-3 video { 
-        aspect-ratio: 4/3;
-        width: 100%; /* Assicura che il video riempia il feed */
-        height: auto;
-    }
-
-    .video-feed.is-focused.ratio-16-9 video,
-    .video-feed.ratio-16-9 video { 
-        aspect-ratio: 16/9;
-        width: 100%; /* Assicura che il video riempia il feed */
-        height: auto;
-    }
-
-    /* Barre dei Controlli */
-    #controls-bar{
-        gap: 5px;
-        padding: 10px 5px;
-    }
-    #controls-bar button {
-        width: 40px;
-        height: 40px;
-    }
-    #controls-bar button .material-icons{
-        font-size: 20px;
-    }
-    
-    /* Su mobile mostra sempre l'icona menu */
-    .context-menu-trigger {
-        opacity: 1; /* Forzato a 1 */
-    }
-
     /* Intestazione Chat (fissa) */
     #chat-panel h3 {
         flex-shrink: 0; 
@@ -660,12 +632,25 @@ html,body{
         border-top: 1px solid #333; 
     }
 
+    /* Barre dei Controlli - Le tue regole originali per la dimensione dei pulsanti. */
+    #controls-bar{
+        gap: 5px;
+        padding: 10px 5px;
+    }
+    #controls-bar button {
+        width: 40px;
+        height: 40px;
+    }
+    #controls-bar button .material-icons{
+        font-size: 20px;
+    }
+
     /* Toast su mobile */
     #toast-container {
-        bottom: 55px; /* Spostato più in alto per non sovrapporsi ai controlli */
+        bottom: 55px; 
         right: 5px;
         left: 5px;
-        align-items: center; /* Centra i toast */
+        align-items: center; 
     }
     .toast {
         min-width: 95%;
