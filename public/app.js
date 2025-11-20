@@ -80,24 +80,19 @@ function updateLocalVideo(){
   }
 }
 
-// LOGICA FOCUS - CORREZIONE INTESTAZIONE CHAT DM
+// LOGICA FOCUS 
 function setFocus(peerId){
   videosGrid.querySelectorAll('.video-feed').forEach(feed => feed.classList.remove('is-focused'));
   focusedPeerId = peerId;
   
-  // Aggiorna l'intestazione della chat in base al peer in focus
-  const chatHeader = document.getElementById('chat-panel').querySelector('h3');
-
-  if (peerId === 'local' || !peerConnections[peerId]) {
+  if (peerId === 'local') {
       localFeedEl.classList.add('is-focused');
-      // CORREZIONE: Assicura che l'intestazione sia 'Chat Pubblica' quando il focus è su locale
-      chatHeader.textContent = '💬 Chat Pubblica'; 
+      document.getElementById('chat-panel').querySelector('h3').textContent = '💬 Chat Pubblica';
   } else {
       const newFocused = videosGrid.querySelector(`[data-peer-id="${focusedPeerId}"]`);
       if(newFocused) newFocused.classList.add('is-focused');
       const recipientNickname = remoteNicknames[peerId];
-      // Intestazione DM
-      chatHeader.textContent = `💬 DM a ${recipientNickname}`; 
+      document.getElementById('chat-panel').querySelector('h3').textContent = `💬 Messaggio Privato a ${recipientNickname}`;
   }
 }
 
@@ -117,16 +112,16 @@ function addRemoteControlListeners(feed){
 }
 
 function ensureRemoteFeed(socketId, nickname='Utente'){
-  // CORREZIONE CRITICA: usa 'dataset.peerId' per la selezione, non 'dataset.peer-id'
   let feed = videosGrid.querySelector(`[data-peer-id="${socketId}"]`);
   if(feed) return feed;
 
   const template = document.getElementById('remote-video-template');
   const div = template.content.cloneNode(true).querySelector('.video-feed');
-  // CORREZIONE CRITICA: usa 'dataset.peerId' (camelCase) in JS, mentre l'HTML è corretto
+  // CORREZIONE CRITICA: usa 'dataset.peerId' (camelCase), non 'dataset.peer-id'
   div.dataset.peerId = socketId; 
   div.querySelector('.video-label').textContent = nickname;
   addRemoteControlListeners(div); 
+  // FIX: Ora cliccare su un video imposta il focus per i DM
   div.addEventListener('click', ()=> setFocus(socketId)); 
 
   const placeholder = document.getElementById('remote-video-placeholder');
@@ -181,7 +176,7 @@ function disconnect(){
   location.reload();
 }
 
-// Condivisione Schermo
+// ********* MODIFICA PER CONDIVISIONE SCHERMO (Ratio) *********
 async function toggleScreenShare() {
     // La condivisione schermo su mobile non è supportata
     if( /Mobi|Android/i.test(navigator.userAgent) ) {
@@ -231,6 +226,7 @@ async function toggleScreenShare() {
         }
     }
 }
+// *************************************************************************
 
 // ---------- Link e URL ----------
 function getRoomIdFromUrl(){
@@ -250,7 +246,7 @@ function copyRoomLink(){
 }
 
 // ---------- Chat Logic ----------
-// LOGICA DM: AGGIUNTO SUPPORTO DM
+// ********* MODIFICA: AGGIUNTO SUPPORTO DM *********
 function addChatMessage(sender, message, isLocal=false, dmRecipient=null){
     const messageEl = document.createElement('div');
     messageEl.classList.add('chat-message');
@@ -263,20 +259,16 @@ function addChatMessage(sender, message, isLocal=false, dmRecipient=null){
         if(isLocal) {
             // DM Inviato: Tu -> Destinatario
             senderHtml = `<span class="sender-me">DM a ${dmRecipient}: </span>`;
-            messageEl.classList.add('local'); // Aggiunto per styling locale
         } else {
             // DM Ricevuto: Mittente -> Tu
             senderHtml = `<span class="sender-remote">DM da ${sender}: </span>`;
-            messageEl.classList.add('remote'); // Aggiunto per styling remoto
         }
     } else {
         // Messaggio Pubblico
         if(isLocal) {
             senderHtml = `<span class="sender-me">${sender}: </span>`;
-            messageEl.classList.add('local'); 
         } else {
             senderHtml = `<span class="sender-remote">${sender}: </span>`;
-            messageEl.classList.add('remote'); 
         }
     }
     
@@ -285,10 +277,11 @@ function addChatMessage(sender, message, isLocal=false, dmRecipient=null){
     messagesContainer.appendChild(messageEl);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
+// *************************************************
 
 function clearChatInput(){ chatMessageInput.value = ''; }
 
-// LOGICA DM: INVIA MESSAGGIO PRIVATO se focusedPeerId è settato
+// ********* MODIFICA: AGGIUNTO LOGICA DM *********
 function sendMessage(){
     const message = chatMessageInput.value.trim();
     if (!message) return;
@@ -315,6 +308,7 @@ function sendMessage(){
         alert('Impossibile inviare il messaggio: connessione non stabilita.');
     }
 }
+// *************************************************
 
 // ---------- Socket.IO / WebRTC ----------
 function initializeSocket(){
@@ -352,11 +346,12 @@ function initializeSocket(){
     addChatMessage(senderNickname, message, false);
   });
   
-  // LISTENER: RICEZIONE DM
+  // ********* NUOVO LISTENER: RICEZIONE DM *********
   socket.on('new-private-message', (senderNickname, message)=>{
     // Messaggio Privato ricevuto. dmRecipient = 'Tu'
     addChatMessage(senderNickname, message, false, 'Tu');
   });
+  // *************************************************
 
   socket.on('remote-stream-type-changed', (peerId, newRatio) => {
       const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
