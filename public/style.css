@@ -392,6 +392,18 @@ html,body{
     .video-feed.is-focused {
         order: -1; 
         max-height: 45vh;
+        /* FIX: Assicura che il video in focus usi la larghezza massima disponibile */
+        width: 95% !important; 
+        height: auto !important; 
+    }
+
+    /* Regole aggiuntive per assicurare la ratio corretta su mobile in focus */
+    .video-feed.is-focused.ratio-4-3 video {
+        aspect-ratio: 4/3;
+    }
+
+    .video-feed.is-focused.ratio-16-9 video {
+        aspect-ratio: 16/9;
     }
 
     /* Layout Mobile: Chat */
@@ -416,5 +428,4 @@ html,body{
     #main-controls-bar {
         bottom: 10px;
     }
-
 }
