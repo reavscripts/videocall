@@ -392,8 +392,49 @@ html,body{
     background:#c62828;
 }
 
+/* --- Menu Contestuale (DM/Mute) --- */
+#remote-context-menu {
+    position: fixed;
+    background: var(--surface);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 500;
+    overflow: hidden;
+    padding: 5px 0;
+    min-width: 180px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background-color 0.15s ease;
+}
+
+.menu-item:hover {
+    background: #3a3a3a;
+}
+
+.menu-item .material-icons {
+    font-size: 1.2em;
+}
+
+/* Stile per l'opzione "Silenzia" quando l'utente è già mutato */
+.menu-item.active-toggle {
+    background: rgba(0, 188, 212, 0.2); /* Colore primario con opacità */
+    font-weight: bold;
+}
+
 /* --- MEDIA QUERIES/RESPONSIVE ----------------- */
 @media (max-width: 768px) {
+    /* Nasconde il pulsante Condividi Schermo su mobile (funzionalità inaffidabile) */
+    #main-controls-bar #share-screen-button {
+        display: none;
+    }
+
     /* Layout Mobile: Griglia Video */
     #videos-grid {
         flex-direction: column;

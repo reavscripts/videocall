@@ -24,6 +24,11 @@ const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
 const showChatBtn = document.getElementById('show-chat-btn');
 
+// Controlli Menu Contestuale (NUOVI)
+const contextMenuEl = document.getElementById('remote-context-menu');
+const menuDmUser = document.getElementById('menu-dm-user');
+const menuMuteUser = document.getElementById('menu-mute-user');
+
 let socket = null;
 let localStream = null;
 let userNickname = 'Ospite';
@@ -51,6 +56,11 @@ let talkingInterval = null;
 const AUDIO_THRESHOLD = -40; // Decibel soglia per considerare l'utente 'parlante'
 const remoteAudioProcessors = {}; 
 let isLocalTalking = false; // Stato di parlato locale
+
+// Variabile Mute Remoto (NUOVA)
+const manuallyMutedPeers = {}; // { peerId: true/false }
+let contextTargetPeerId = null; // ID del peer su cui è stato aperto il menu
+
 
 const iceConfiguration = {
   iceServers: [
@@ -157,6 +167,72 @@ function monitorLocalAudio(start = true) {
 // Monitoraggio Audio Remoto (lasciato vuoto, usa signaling)
 function monitorRemoteAudio(stream, peerId) {} 
 
+// --- LOGICA MUTE/DM REMOTO (NUOVE FUNZIONI) ---
+
+// Tenta di silenziare/riattivare l'audio di un peer remoto
+function toggleRemoteMute(peerId) {
+    // Lo stato è invertito perché manualmenteMutedPeers memorizza lo stato Muted
+    const isMuted = !manuallyMutedPeers[peerId];
+    manuallyMutedPeers[peerId] = isMuted;
+
+    const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
+    const remoteVideo = feed ? feed.querySelector('video') : null;
+    const muteToggleIcon = feed ? feed.querySelector('.remote-mute-toggle .material-icons') : null;
+
+    if (remoteVideo) remoteVideo.muted = isMuted;
+
+    if (muteToggleIcon) {
+        muteToggleIcon.textContent = isMuted ? 'volume_off' : 'volume_up';
+    }
+    
+    // Aggiorna lo stato del menu contestuale
+    if(contextTargetPeerId === peerId) {
+        updateContextMenuState(peerId);
+    }
+}
+
+// Aggiorna lo stato dei pulsanti del menu (es. se Mute è attivo)
+function updateContextMenuState(peerId) {
+    const isMuted = !!manuallyMutedPeers[peerId]; // Forziamo a boolean
+    
+    menuMuteUser.classList.toggle('active-toggle', isMuted);
+    menuMuteUser.querySelector('.material-icons').textContent = isMuted ? 'volume_up' : 'volume_off';
+    menuMuteUser.querySelector('span:last-child').textContent = isMuted ? 'Riattiva Audio' : 'Silenzia Audio';
+
+    const nickname = remoteNicknames[peerId] || 'Utente';
+    menuDmUser.querySelector('span:last-child').textContent = `Messaggio Privato a ${nickname}`;
+}
+
+// Mostra il menu contestuale
+function showContextMenu(peerId, x, y) {
+    contextTargetPeerId = peerId;
+    updateContextMenuState(peerId);
+    
+    // Posiziona il menu (con correzione per non uscire dalla viewport)
+    contextMenuEl.classList.remove('hidden');
+    
+    let finalX = x;
+    let finalY = y;
+    
+    // Assicurati che il menu non esca dal bordo destro
+    if (x + contextMenuEl.offsetWidth > window.innerWidth) {
+        finalX = window.innerWidth - contextMenuEl.offsetWidth - 10;
+    }
+    // Assicurati che il menu non esca dal bordo inferiore
+    if (y + contextMenuEl.offsetHeight > window.innerHeight) {
+        finalY = window.innerHeight - contextMenuEl.offsetHeight - 10;
+    }
+    
+    contextMenuEl.style.left = `${finalX}px`;
+    contextMenuEl.style.top = `${finalY}px`;
+}
+
+// Nasconde il menu contestuale
+function hideContextMenu() {
+    contextMenuEl.classList.add('hidden');
+    contextTargetPeerId = null;
+}
+
 
 // LOGICA FOCUS AGGIORNATA
 function setFocus(peerId, manual=true){ 
@@ -179,7 +255,54 @@ function setFocus(peerId, manual=true){
 }
 
 function addRemoteControlListeners(feed){
-// ... (codice omesso) ...
+    const peerId = feed.dataset.peerId;
+    const remoteMuteButton = feed.querySelector('.remote-mute-toggle');
+    const remoteVideo = feed.querySelector('video');
+
+    // Mute/Unmute dal pulsante visibile
+    remoteMuteButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Evita di attivare il focus
+        toggleRemoteMute(peerId);
+    });
+    
+    // 1. Inizializzazione stato mute
+    if (manuallyMutedPeers[peerId]) {
+        remoteVideo.muted = true;
+        remoteMuteButton.querySelector('.material-icons').textContent = 'volume_off';
+    } else {
+        remoteVideo.muted = false;
+        remoteMuteButton.querySelector('.material-icons').textContent = 'volume_up';
+    }
+
+    // 2. Listener per il Context Menu (Clic destro/Tappa a lungo)
+    // Desktop: Clic destro
+    feed.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); 
+        hideContextMenu(); // Nascondi prima di mostrare
+        showContextMenu(peerId, e.clientX, e.clientY);
+    });
+
+    // Mobile: Gestione Tappa a lungo (Touch Hold)
+    let touchTimeout;
+    feed.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            e.preventDefault(); // Impedisce lo scorrimento iniziale
+            touchTimeout = setTimeout(() => {
+                const rect = feed.getBoundingClientRect();
+                // Mostra il menu vicino al tocco/centro del feed
+                hideContextMenu();
+                showContextMenu(peerId, e.touches[0].clientX, e.touches[0].clientY);
+            }, 700); // 700ms di pressione per aprire
+        }
+    });
+
+    feed.addEventListener('touchend', () => {
+        clearTimeout(touchTimeout);
+    });
+
+    feed.addEventListener('touchcancel', () => {
+        clearTimeout(touchTimeout);
+    });
 }
 
 function ensureRemoteFeed(socketId, nickname='Utente'){
@@ -189,7 +312,7 @@ function ensureRemoteFeed(socketId, nickname='Utente'){
   const template = document.getElementById('remote-video-template');
   const div = template.content.cloneNode(true).querySelector('.video-feed');
   div.dataset.peerId = socketId; 
-  div.querySelector('.video-label').textContent = nickname;
+  div.querySelector('.remote-nickname').textContent = nickname;
   addRemoteControlListeners(div); 
   
   // ***** AGGIORNAMENTO LISTENER CLICK *****
@@ -210,6 +333,7 @@ function removeRemoteFeed(socketId){
   delete remoteNicknames[socketId];
   delete iceCandidateQueues[socketId];
   delete videoSenders[socketId]; 
+  delete manuallyMutedPeers[socketId]; // Rimuovi stato mute
 
   if (remoteAudioProcessors[socketId]) {
     clearInterval(remoteAudioProcessors[socketId].interval);
@@ -244,7 +368,6 @@ function toggleAudio(){
 }
 
 function toggleVideo(){
-// ... (codice omesso) ...
   isVideoEnabled = !isVideoEnabled;
   if (localStream) localStream.getVideoTracks().forEach(track => track.enabled = isVideoEnabled);
   toggleVideoButton.querySelector('.material-icons').textContent = isVideoEnabled ? 'videocam' : 'videocam_off';
@@ -267,7 +390,6 @@ function disconnect(){
 }
 
 async function toggleScreenShare() {
-// ... (codice omesso) ...
     if (screenStream) {
         // Stop sharing
         screenStream.getTracks().forEach(track => track.stop());
@@ -363,20 +485,37 @@ function addChatMessage(sender, message, isLocal=false, type='public'){
 
 function clearChatInput(){ chatMessageInput.value = ''; }
 
+// ***** FUNZIONE sendMessage AGGIORNATA per gestire il comando /dm *****
 function sendMessage(){
-    const message = chatMessageInput.value.trim();
-    if (!message) return;
+    const fullMessage = chatMessageInput.value.trim();
+    if (!fullMessage) return;
     
-    // TEMPORARY: Assume public message for now until UI for private messages is implemented
-    // La logica andrà adattata quando la UI sarà pronta a specificare il destinatario.
-    const isPrivate = false; // Sarà true se l'utente ha selezionato un destinatario
-    const recipientId = null; // Sarà l'ID del peer se isPrivate è true
+    const parts = fullMessage.split(' ');
     
-    if (isPrivate && recipientId) {
-        sendPrivateMessage(recipientId, message);
-    } else if (socket && currentRoomId) {
-        socket.emit('send-message', currentRoomId, userNickname, message);
-        addChatMessage(userNickname, message, true, 'public');
+    // 1. Controlla se è un comando /dm
+    if (parts[0].toLowerCase() === '/dm' && parts.length >= 3) {
+        const recipientNickname = parts[1];
+        const messageContent = parts.slice(2).join(' ');
+
+        // Trova l'ID del peer dal nickname (ricerca case-insensitive)
+        const recipientId = Object.keys(remoteNicknames).find(
+            key => remoteNicknames[key] && remoteNicknames[key].toLowerCase() === recipientNickname.toLowerCase()
+        );
+
+        if (recipientId) {
+            sendPrivateMessage(recipientId, messageContent);
+            clearChatInput();
+            
+        } else {
+            addChatMessage('Sistema', `Utente privato "${recipientNickname}" non trovato.`, true, 'system');
+        }
+        return; 
+    }
+
+    // 2. Messaggio Pubblico (Logica originale)
+    if (socket && currentRoomId) {
+        socket.emit('send-message', currentRoomId, userNickname, fullMessage);
+        addChatMessage(userNickname, fullMessage, true, 'public');
         clearChatInput();
         
         // Fix per il focus e lo scroll su mobile
@@ -401,18 +540,17 @@ function sendPrivateMessage(recipientId, message) {
     }
 
     if (socket && currentRoomId) {
-        // Nuovo evento da inviare al server (richiede implementazione lato server!)
+        // Evento da inviare al server (richiede implementazione lato server)
         socket.emit('send-private-message', currentRoomId, recipientId, userNickname, message);
         
         // Visualizzazione locale (Mittente)
         const recipientNickname = remoteNicknames[recipientId] || 'Utente sconosciuto';
         addChatMessage(
-            `${userNickname} (a ${recipientNickname})`, 
+            `${userNickname} (DM a ${recipientNickname})`, 
             message, 
             true,
             'private' // Usa il tipo 'private' per la visualizzazione
         );
-        clearChatInput();
     } else {
         log('Errore DM: Socket non connesso o RoomId mancante. Messaggio non inviato.');
     }
@@ -574,6 +712,11 @@ function createPeerConnection(socketId){
     
     if(video && event.streams.length > 0) {
         video.srcObject = event.streams[0];
+        
+        // Applica lo stato di mute locale all'arrivo del video
+        if (manuallyMutedPeers[socketId]) {
+            video.muted = true;
+        }
     } else log(`Impossibile collegare lo stream per ${socketId}.`);
   };
 
@@ -678,4 +821,49 @@ showChatBtn.addEventListener('click', () => {
 sendChatButton.addEventListener('click', sendMessage);
 chatMessageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') sendMessage();
+});
+
+
+// --- Listener per Nascondere il Context Menu ---
+document.addEventListener('click', (e) => {
+    // Nascondi se il click non è all'interno del menu o di un video feed
+    if (!contextMenuEl.classList.contains('hidden') && 
+        !contextMenuEl.contains(e.target) && 
+        !e.target.closest('.video-feed')) {
+        hideContextMenu();
+    }
+});
+
+document.addEventListener('contextmenu', (e) => {
+    // Nascondi il menu se il click destro non è su un video feed
+    if (contextMenuEl && !e.target.closest('.video-feed')) {
+        hideContextMenu();
+    }
+});
+
+
+// --- Listener del Menu Contestuale (Azioni DM e Mute) ---
+menuMuteUser.addEventListener('click', () => {
+    if (contextTargetPeerId) {
+        toggleRemoteMute(contextTargetPeerId);
+        hideContextMenu();
+    }
+});
+
+menuDmUser.addEventListener('click', () => {
+    if (contextTargetPeerId) {
+        const nickname = remoteNicknames[contextTargetPeerId] || 'Utente';
+        
+        // 1. Nascondi il menu
+        hideContextMenu();
+
+        // 2. Apri il pannello chat su mobile se non è già aperto
+        if (window.innerWidth <= 768 && chatPanel.classList.contains('hidden')) {
+            showChatBtn.click(); // Riutilizza il listener esistente per aprire la chat
+        }
+        
+        // 3. Focalizza l'input e imposta il comando /dm
+        chatMessageInput.value = `/dm ${nickname} `; 
+        chatMessageInput.focus();
+    }
 });
