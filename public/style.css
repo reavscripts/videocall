@@ -14,7 +14,7 @@ html,body{
     background:var(--bg);
     color:#fff;
     font-family:Roboto,Arial,sans-serif;
-    /* IMPORTANTE: Impedisce lo scroll orizzontale su mobile */
+    /* FIX: Impedisce lo scroll orizzontale su mobile */
     overflow-x: hidden; 
 }
 .hidden{display:none!important}
@@ -169,7 +169,7 @@ html,body{
     border:3px solid transparent;
 }
 
-/* Dimensioni predefinite per video NON in focus (restano 4:3) */
+/* Dimensioni predefinite per video NON in focus (desktop) */
 .video-feed.ratio-4-3 {
     width: 240px; 
     height: 180px; 
@@ -186,13 +186,13 @@ html,body{
     order: -1; 
 }
 
-/* 1. Video in focus 4:3 (Webcam) - Dimensione standard in focus */
+/* 1. Video in focus 4:3 (Webcam) - Dimensione standard in focus (desktop) */
 .video-feed.is-focused.ratio-4-3 {
     width: 640px; 
     height: 480px; 
 }
 
-/* 2. Video in focus 16:9 (Screen Share) - FIX: Più largo per 16:9 */
+/* 2. Video in focus 16:9 (Screen Share) - Più largo per 16:9 (desktop) */
 .video-feed.is-focused.ratio-16-9 {
     width: 800px; 
     height: 450px; 
@@ -297,7 +297,7 @@ html,body{
     font-weight:bold;
 }
 
-/* NUOVO STILE: MESSAGGI PRIVATI (DM) */
+/* Stile Messaggi Privati (DM) */
 .chat-message.private-message {
     border-left: 3px solid var(--accent-color);
     padding-left: 8px;
@@ -351,7 +351,6 @@ html,body{
 
 /* Main Controls Bar */
 #main-controls-bar{
-    /* PASSAGGIO A FIXED PER MOBILE, MA QUI TENIAMO ASSOLUTO PER DESKTOP */
     position:absolute; 
     bottom:20px;
     left:50%;
@@ -396,7 +395,7 @@ html,body{
     background:#c62828;
 }
 
-/* --- MEDIA QUERIES/RESPONSIVE ----------------- */
+/* --- MEDIA QUERIES/RESPONSIVE (CORREZIONE CRITICA) ----------------- */
 @media (max-width: 768px) {
     /* Layout Mobile: Griglia Video */
     #videos-grid {
@@ -404,32 +403,38 @@ html,body{
         align-items: center;
         gap: 6px;
         justify-content: flex-start;
-        /* Rimuovi l'overflow-y se causa problemi con l'altezza: 100% è gestita da main-area */
+        /* Assicura che la griglia possa scorrere verticalmente */
         overflow-y: auto; 
+        width: 100vw; /* Importante per contenere i figli */
     }
     
-    /* FIX: Imposta la larghezza massima per i video non focalizzati */
-    .video-feed.ratio-4-3, .video-feed.ratio-16-9 {
-        width: 95vw; /* Usa la larghezza del viewport */
+    /* FIX: Assicura che i video NON focalizzati usino la larghezza dello schermo */
+    .video-feed.ratio-4-3, 
+    .video-feed.ratio-16-9 {
+        width: 95vw; 
         height: auto;
+        /* Aggiungo max-width per sicurezza */
+        max-width: 95vw;
     }
     
     .video-feed.is-focused {
         order: -1; 
-        /* FIX: Assicurati che il video in focus sia al 95% della larghezza e non ecceda l'altezza verticale */
-        width: 95vw; 
+        /* FIX: Il video in focus usa la larghezza dello schermo */
+        width: 95vw !important; 
         height: auto;
-        max-height: 75vh; /* Limita l'altezza massima per lasciare spazio ai controlli */
+        /* FIX: Limita l'altezza massima per lasciare spazio ai controlli */
+        max-height: 70vh !important; 
     }
 
-    /* FIX: Sovrascrivi le dimensioni fisse per i video focalizzati */
+    /* FIX: Sovrascrivi le dimensioni fisse per i video focalizzati (rende responsive) */
+    /* Aggiungo !important per sovrascrivere le regole desktop forzate */
     .video-feed.is-focused.ratio-4-3, 
     .video-feed.is-focused.ratio-16-9 {
-        width: 95%; 
+        width: 95vw !important; 
         height: auto;
     }
     
-    /* FIX: Controlli sempre visibili e centrati */
+    /* FIX: Controlli sempre visibili in basso e centrati */
     #main-controls-bar {
         position: fixed; /* Mantiene i pulsanti sempre in vista */
         bottom: 10px;
@@ -439,7 +444,7 @@ html,body{
         max-width: 95%; 
     }
     
-    /* Layout Mobile: Chat */
+    /* Layout Mobile: Chat (funzionalità di overlay) */
     #chat-panel {
         position: fixed;
         inset: 0;

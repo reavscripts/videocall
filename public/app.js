@@ -80,7 +80,7 @@ function updateLocalVideo(){
   }
 }
 
-// LOGICA FOCUS - CORRETTA
+// LOGICA FOCUS - PERMETTE DM
 function setFocus(peerId){
   videosGrid.querySelectorAll('.video-feed').forEach(feed => feed.classList.remove('is-focused'));
   focusedPeerId = peerId;
@@ -120,7 +120,6 @@ function ensureRemoteFeed(socketId, nickname='Utente'){
 
   const template = document.getElementById('remote-video-template');
   const div = template.content.cloneNode(true).querySelector('.video-feed');
-  // CORREZIONE CRITICA: usa 'dataset.peerId' (camelCase), non 'dataset.peer-id'
   div.dataset.peerId = socketId; 
   div.querySelector('.video-label').textContent = nickname;
   addRemoteControlListeners(div); 
@@ -178,7 +177,7 @@ function disconnect(){
   location.reload();
 }
 
-// ********* MODIFICA PER CONDIVISIONE SCHERMO (Ratio) *********
+// Condivisione Schermo
 async function toggleScreenShare() {
     // La condivisione schermo su mobile non è supportata
     if( /Mobi|Android/i.test(navigator.userAgent) ) {
@@ -228,7 +227,6 @@ async function toggleScreenShare() {
         }
     }
 }
-// *************************************************************************
 
 // ---------- Link e URL ----------
 function getRoomIdFromUrl(){
@@ -248,7 +246,7 @@ function copyRoomLink(){
 }
 
 // ---------- Chat Logic ----------
-// AGGIORNATA PER SUPPORTARE DM
+// AGGIORNATA PER SUPPORTO DM
 function addChatMessage(sender, message, isLocal=false, dmRecipient=null){
     const messageEl = document.createElement('div');
     messageEl.classList.add('chat-message');
@@ -284,7 +282,7 @@ function addChatMessage(sender, message, isLocal=false, dmRecipient=null){
 
 function clearChatInput(){ chatMessageInput.value = ''; }
 
-// AGGIORNATA PER LOGICA DM
+// LOGICA DM: INVIA MESSAGGIO PRIVATO se focusedPeerId è settato
 function sendMessage(){
     const message = chatMessageInput.value.trim();
     if (!message) return;
@@ -347,12 +345,11 @@ function initializeSocket(){
     addChatMessage(senderNickname, message, false);
   });
   
-  // ********* LISTENER: RICEZIONE DM *********
+  // LISTENER: RICEZIONE DM
   socket.on('new-private-message', (senderNickname, message)=>{
     // Messaggio Privato ricevuto. dmRecipient = 'Tu'
     addChatMessage(senderNickname, message, false, 'Tu');
   });
-  // *************************************************
 
   socket.on('remote-stream-type-changed', (peerId, newRatio) => {
       const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
