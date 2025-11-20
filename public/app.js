@@ -179,7 +179,7 @@ function setFocus(peerId, manual=true){
 }
 
 function addRemoteControlListeners(feed){
-// ... (omesso codice invariato) ...
+// ... (codice omesso) ...
 }
 
 function ensureRemoteFeed(socketId, nickname='Utente'){
@@ -244,7 +244,7 @@ function toggleAudio(){
 }
 
 function toggleVideo(){
-// ... (omesso codice invariato) ...
+// ... (codice omesso) ...
   isVideoEnabled = !isVideoEnabled;
   if (localStream) localStream.getVideoTracks().forEach(track => track.enabled = isVideoEnabled);
   toggleVideoButton.querySelector('.material-icons').textContent = isVideoEnabled ? 'videocam' : 'videocam_off';
@@ -267,7 +267,7 @@ function disconnect(){
 }
 
 async function toggleScreenShare() {
-// ... (omesso codice invariato) ...
+// ... (codice omesso) ...
     if (screenStream) {
         // Stop sharing
         screenStream.getTracks().forEach(track => track.stop());
@@ -340,14 +340,18 @@ function copyRoomLink(){
 }
 
 // ---------- Chat Logic ----------
-// ***** Funzione addChatMessage modificata per supportare sender-system *****
-function addChatMessage(sender, message, isLocal=false){
+// ***** Funzione addChatMessage MODIFICATA per supportare il 'type' (es. 'private') *****
+function addChatMessage(sender, message, isLocal=false, type='public'){
     const messageEl = document.createElement('div');
     messageEl.classList.add('chat-message');
     
-    let cssClass = isLocal ? 'sender-me' : 'sender-remote';
-    if (sender === 'Sistema') {
-        cssClass = 'sender-system'; // Applica la nuova classe CSS
+    let cssClass;
+    if (type === 'system') {
+        cssClass = 'sender-system';
+    } else if (type === 'private') {
+        cssClass = 'sender-private'; // Per messaggi privati
+    } else {
+        cssClass = isLocal ? 'sender-me' : 'sender-remote';
     }
 
     messageEl.innerHTML = `<span class="${cssClass}">${sender}: </span>${message}`;
@@ -362,9 +366,17 @@ function clearChatInput(){ chatMessageInput.value = ''; }
 function sendMessage(){
     const message = chatMessageInput.value.trim();
     if (!message) return;
-    if (socket && currentRoomId) {
+    
+    // TEMPORARY: Assume public message for now until UI for private messages is implemented
+    // La logica andrà adattata quando la UI sarà pronta a specificare il destinatario.
+    const isPrivate = false; // Sarà true se l'utente ha selezionato un destinatario
+    const recipientId = null; // Sarà l'ID del peer se isPrivate è true
+    
+    if (isPrivate && recipientId) {
+        sendPrivateMessage(recipientId, message);
+    } else if (socket && currentRoomId) {
         socket.emit('send-message', currentRoomId, userNickname, message);
-        addChatMessage(userNickname, message, true);
+        addChatMessage(userNickname, message, true, 'public');
         clearChatInput();
         
         // Fix per il focus e lo scroll su mobile
@@ -381,6 +393,32 @@ function sendMessage(){
     }
 }
 
+// ***** NUOVA FUNZIONE: Invio Messaggio Privato *****
+function sendPrivateMessage(recipientId, message) {
+    if (!message || !recipientId) {
+        log('Errore DM: Messaggio o Destinatario mancante.');
+        return;
+    }
+
+    if (socket && currentRoomId) {
+        // Nuovo evento da inviare al server (richiede implementazione lato server!)
+        socket.emit('send-private-message', currentRoomId, recipientId, userNickname, message);
+        
+        // Visualizzazione locale (Mittente)
+        const recipientNickname = remoteNicknames[recipientId] || 'Utente sconosciuto';
+        addChatMessage(
+            `${userNickname} (a ${recipientNickname})`, 
+            message, 
+            true,
+            'private' // Usa il tipo 'private' per la visualizzazione
+        );
+        clearChatInput();
+    } else {
+        log('Errore DM: Socket non connesso o RoomId mancante. Messaggio non inviato.');
+    }
+}
+
+
 // ---------- Socket.IO / WebRTC ----------
 function initializeSocket(){
   socket = io(RENDER_SERVER_URL);
@@ -389,7 +427,7 @@ function initializeSocket(){
 
   socket.on('welcome', (newPeerId, nickname, peers=[])=>{
     remoteNicknames[newPeerId] = nickname;
-    addChatMessage('Sistema', `Benvenuto nella stanza ${currentRoomId}!`);
+    addChatMessage('Sistema', `Benvenuto nella stanza ${currentRoomId}!`, false, 'system');
     peers.forEach(peer=>{
       if(peer.id !== socket.id) {
         remoteNicknames[peer.id] = peer.nickname;
@@ -403,17 +441,28 @@ function initializeSocket(){
     remoteNicknames[peerId] = nickname;
     createPeerConnection(peerId); 
     log(`Peer unito: ${nickname} (${peerId})`);
-    addChatMessage('Sistema', `${nickname} è entrato.`);
+    addChatMessage('Sistema', `${nickname} è entrato.`, false, 'system');
   });
 
   socket.on('peer-left', (peerId)=>{
     const nickname = remoteNicknames[peerId] || 'Un utente';
     removeRemoteFeed(peerId);
-    addChatMessage('Sistema', `${nickname} è uscito.`);
+    addChatMessage('Sistema', `${nickname} è uscito.`, false, 'system');
   });
 
   socket.on('new-message', (senderNickname, message)=>{
-    addChatMessage(senderNickname, message, false);
+    addChatMessage(senderNickname, message, false, 'public');
+  });
+  
+  // ***** NUOVO: Listener per Messaggi Privati *****
+  socket.on('new-private-message', (senderNickname, message) => {
+      // Visualizzazione locale (Destinatario)
+      addChatMessage(
+          `Privato da ${senderNickname}`, 
+          message, 
+          false,
+          'private' // Usa il tipo 'private' per la visualizzazione
+      );
   });
   
   // ***** Listener AGGIORNATO: stato audio cambiato remoto con Auto-Focus *****

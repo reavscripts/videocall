@@ -307,6 +307,12 @@ html,body{
     font-weight: bold;
 }
 
+/* MESSAGGIO PRIVATO (NUOVO) */
+.sender-private{
+    color: #8BC34A; /* Verde chiaro per i DM */
+    font-weight: bold;
+}
+
 #chat-input-area{
     display:flex;
     padding:10px;
