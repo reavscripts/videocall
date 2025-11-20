@@ -1,5 +1,4 @@
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
-//const RENDER_SERVER_URL = "http://localhost:3000"; 
 
 // ---------- DOM & Controlli ----------
 const nicknameOverlay = document.getElementById('nickname-overlay');
@@ -172,7 +171,6 @@ function disconnect(){
   location.reload();
 }
 
-// ********* MODIFICA PER CONDIVISIONE SCHERMO (Ratio) *********
 async function toggleScreenShare() {
     // La condivisione schermo su mobile non è supportata
     if( /Mobi|Android/i.test(navigator.userAgent) ) {
@@ -222,7 +220,6 @@ async function toggleScreenShare() {
         }
     }
 }
-// *************************************************************************
 
 // ---------- Link e URL ----------
 function getRoomIdFromUrl(){
@@ -430,6 +427,10 @@ showChatBtn.addEventListener('click', () => {
         chatPanel.classList.remove('hidden');
         setTimeout(() => chatPanel.classList.add('active'), 10); 
 
+        // *************** FIX: Mette a fuoco l'input per far apparire la tastiera ***************
+        chatMessageInput.focus();
+        // ***************************************************************************************
+
         let closeBtn = document.getElementById('close-chat-btn');
         if (!closeBtn) {
             closeBtn = document.createElement('button');
@@ -455,6 +456,10 @@ showChatBtn.addEventListener('click', () => {
         }
     } else { // desktop: sidebar toggle
         chatPanel.classList.toggle('hidden');
+        if (!chatPanel.classList.contains('hidden')) {
+            // Mette a fuoco l'input anche su desktop
+            chatMessageInput.focus();
+        }
     }
 });
 
