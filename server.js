@@ -9,10 +9,10 @@ const server = http.createServer(app);
 
 // Configurazione Socket.IO
 const io = new Server(server, {
-  cors: {
-    origin: '*', // modifica con il tuo dominio in produzione
-    methods: ['GET', 'POST']
-  }
+ cors: {
+  origin: '*', // modifica con il tuo dominio in produzione
+  methods: ['GET', 'POST']
+ }
 });
 
 // Serve file statici (HTML/CSS/JS)
@@ -23,68 +23,69 @@ const rooms = {}; // { roomId: { socketId: nickname, ... } }
 
 // Gestione connessione Socket.IO
 io.on('connection', (socket) => {
-  console.log('Nuovo client connesso', socket.id);
+ console.log('Nuovo client connesso', socket.id);
 
-  socket.on('join-room', (roomId, nickname) => {
-    socket.join(roomId);
+ socket.on('join-room', (roomId, nickname) => {
+  socket.join(roomId);
 
-    if (!rooms[roomId]) rooms[roomId] = {};
-    rooms[roomId][socket.id] = nickname;
+  if (!rooms[roomId]) rooms[roomId] = {};
+  rooms[roomId][socket.id] = nickname;
 
-    // Avvisa chi era già nella stanza
-    const peers = Object.entries(rooms[roomId])
-      .filter(([id]) => id !== socket.id)
-      .map(([id, nick]) => ({ id, nickname: nick }));
+  // Avvisa chi era già nella stanza
+  const peers = Object.entries(rooms[roomId])
+   .filter(([id]) => id !== socket.id)
+   .map(([id, nick]) => ({ id, nickname: nick }));
 
-    socket.emit('welcome', socket.id, nickname, peers);
+  socket.emit('welcome', socket.id, nickname, peers);
 
-    // Avvisa gli altri peer
-    socket.to(roomId).emit('peer-joined', socket.id, nickname);
+  // Avvisa gli altri peer
+  socket.to(roomId).emit('peer-joined', socket.id, nickname);
 
-    // Messaggi chat (Pubblici)
-    socket.on('send-message', (room, sender, message) => {
-      io.to(room).emit('new-message', sender, message);
-    });
-    
-    // ******************************************************
-    // NUOVA LOGICA: MESSAGGI PRIVATI (DM)
-    // ******************************************************
-    socket.on('send-private-message', (roomId, recipientId, senderNickname, message) => {
-        // Inoltra il messaggio SOLO al socket ID specifico del destinatario
-        // 'io.to(recipientId)' invia l'evento 'new-private-message' solo al client destinatario.
-        io.to(recipientId).emit('new-private-message', senderNickname, message);
-        
-        // Log opzionale sul server
-        console.log(`DM inviato da ${senderNickname} (stanza ${roomId}) a socket ${recipientId}`);
-    });
-    // ******************************************************
-
-    // Offerte/Answer ICE per WebRTC
-    socket.on('offer', (toId, offer) => {
-      io.to(toId).emit('offer', socket.id, offer);
-    });
-
-    socket.on('answer', (toId, answer) => {
-      io.to(toId).emit('answer', socket.id, answer);
-    });
-
-    socket.on('candidate', (toId, candidate) => {
-      io.to(toId).emit('candidate', socket.id, candidate);
-    });
-
-    socket.on('stream-type-changed', (room, newRatio) => {
-      socket.to(room).emit('remote-stream-type-changed', socket.id, newRatio);
-    });
-
-    socket.on('disconnect', () => {
-      if (rooms[roomId]) {
-        delete rooms[roomId][socket.id];
-        socket.to(roomId).emit('peer-left', socket.id);
-        if (Object.keys(rooms[roomId]).length === 0) delete rooms[roomId];
-      }
-      console.log(`Client ${socket.id} disconnesso`);
-    });
+  // Messaggi chat (Pubblici)
+  socket.on('send-message', (room, sender, message) => {
+      // MODIFICA: Invia il messaggio a tutti nella stanza, TRANNE il mittente.
+   socket.to(room).emit('new-message', sender, message);
   });
+ 
+  // ******************************************************
+  // NUOVA LOGICA: MESSAGGI PRIVATI (DM)
+  // ******************************************************
+  socket.on('send-private-message', (roomId, recipientId, senderNickname, message) => {
+    // Inoltra il messaggio SOLO al socket ID specifico del destinatario
+    // 'io.to(recipientId)' invia l'evento 'new-private-message' solo al client destinatario.
+    io.to(recipientId).emit('new-private-message', senderNickname, message);
+   
+    // Log opzionale sul server
+    console.log(`DM inviato da ${senderNickname} (stanza ${roomId}) a socket ${recipientId}`);
+  });
+  // ******************************************************
+
+  // Offerte/Answer ICE per WebRTC
+  socket.on('offer', (toId, offer) => {
+   io.to(toId).emit('offer', socket.id, offer);
+  });
+
+  socket.on('answer', (toId, answer) => {
+   io.to(toId).emit('answer', socket.id, answer);
+  });
+
+  socket.on('candidate', (toId, candidate) => {
+   io.to(toId).emit('candidate', socket.id, candidate);
+  });
+
+  socket.on('stream-type-changed', (room, newRatio) => {
+   socket.to(room).emit('remote-stream-type-changed', socket.id, newRatio);
+  });
+
+  socket.on('disconnect', () => {
+   if (rooms[roomId]) {
+    delete rooms[roomId][socket.id];
+    socket.to(roomId).emit('peer-left', socket.id);
+    if (Object.keys(rooms[roomId]).length === 0) delete rooms[roomId];
+   }
+   console.log(`Client ${socket.id} disconnesso`);
+  });
+ });
 });
 
 // Avvio server
