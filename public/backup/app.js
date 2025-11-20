@@ -1,4 +1,9 @@
-const RENDER_SERVER_URL = "http://localhost:3000"; 
+// app.js
+
+// URL del server WebSocket / Socket.IO
+const RENDER_SERVER_URL = (typeof process !== 'undefined' && process.env.SOCKET_URL)
+    ? process.env.SOCKET_URL
+    : "https://videocall-webrtc-signaling-server.onrender.com";
 
 // ---------- DOM & Controlli ----------
 const nicknameOverlay = document.getElementById('nickname-overlay');
@@ -9,7 +14,7 @@ const videosGrid = document.getElementById('videos-grid');
 const localVideoEl = document.getElementById('local-video');
 const localFeedEl = document.getElementById('local-feed'); 
 
-// Controlli Media (Globali)
+// Controlli Media
 const toggleAudioButton = document.getElementById('toggle-audio-button');
 const toggleVideoButton = document.getElementById('toggle-video-button');
 const disconnectButton = document.getElementById('disconnect-button');
@@ -22,8 +27,9 @@ const chatPanel = document.getElementById('chat-panel');
 const messagesContainer = document.getElementById('messages-container');
 const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
-const showChatBtn = document.getElementById('show-chat-btn');
+const showChatButton = document.getElementById('show-chat-btn');
 
+// Variabili globali
 let socket = null;
 let localStream = null;
 let userNickname = 'Ospite';
@@ -46,7 +52,6 @@ const iceConfiguration = {
 
 // ---------- Helpers ----------
 function log(...args){ console.log('[APP]',...args); }
-
 function showOverlay(show){
   if(show){
     nicknameOverlay.classList.remove('hidden');
@@ -57,6 +62,7 @@ function showOverlay(show){
   }
 }
 
+// ---------- Local Media ----------
 async function startLocalMedia(){
   try{
     localStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
@@ -65,9 +71,9 @@ async function startLocalMedia(){
     toggleVideoButton.querySelector('.material-icons').textContent = 'videocam';
     localFeedEl.classList.add('ratio-4-3'); 
     localFeedEl.classList.remove('ratio-16-9'); 
-  }catch(err){ 
+  }catch(err){
     console.error('getUserMedia error',err); 
-    alert('Controlla webcam/microfono'); 
+    alert('Controlla webcam/microfono');
   }
 }
 
@@ -80,31 +86,32 @@ function updateLocalVideo(){
   }
 }
 
-// LOGICA FOCUS 
+// ---------- Focus Video ----------
 function setFocus(peerId){
   videosGrid.querySelectorAll('.video-feed').forEach(feed => feed.classList.remove('is-focused'));
   focusedPeerId = peerId;
-  if (peerId === 'local') {
-      localFeedEl.classList.add('is-focused');
+  if(peerId === 'local'){
+    localFeedEl.classList.add('is-focused');
   } else {
-      const newFocused = videosGrid.querySelector(`[data-peer-id="${focusedPeerId}"]`);
-      if(newFocused) newFocused.classList.add('is-focused');
+    const newFocused = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
+    if(newFocused) newFocused.classList.add('is-focused');
   }
 }
 
+// ---------- Remote Video ----------
 function addRemoteControlListeners(feed){
-    const videoEl = feed.querySelector('video');
-    const muteButton = feed.querySelector('.remote-mute-toggle');
-    const muteIcon = muteButton.querySelector('.material-icons');
-    
-    if(videoEl) videoEl.muted = false; 
+  const videoEl = feed.querySelector('video');
+  const muteButton = feed.querySelector('.remote-mute-toggle');
+  const muteIcon = muteButton.querySelector('.material-icons');
+  
+  if(videoEl) videoEl.muted = false; 
 
-    muteButton.addEventListener('click', () => {
-        if (!videoEl) return;
-        videoEl.muted = !videoEl.muted;
-        muteIcon.textContent = videoEl.muted ? 'volume_off' : 'mic';
-        muteButton.title = videoEl.muted ? 'Attiva audio utente' : 'Muta utente remoto';
-    });
+  muteButton.addEventListener('click', () => {
+      if(!videoEl) return;
+      videoEl.muted = !videoEl.muted;
+      muteIcon.textContent = videoEl.muted ? 'volume_off' : 'mic';
+      muteButton.title = videoEl.muted ? 'Attiva audio utente' : 'Muta utente remoto';
+  });
 }
 
 function ensureRemoteFeed(socketId, nickname='Utente'){
@@ -128,12 +135,10 @@ function ensureRemoteFeed(socketId, nickname='Utente'){
 function removeRemoteFeed(socketId){
   const el = videosGrid.querySelector(`[data-peer-id="${socketId}"]`);
   if(el) el.remove();
-  
   if(peerConnections[socketId]) { peerConnections[socketId].close(); delete peerConnections[socketId]; }
   delete remoteNicknames[socketId];
   delete iceCandidateQueues[socketId];
   delete videoSenders[socketId]; 
-
   if(focusedPeerId === socketId) setFocus('local');
 
   if(videosGrid.children.length === 1 && videosGrid.querySelector('#local-feed')){
@@ -148,291 +153,222 @@ function removeRemoteFeed(socketId){
 // ---------- Media Controls ----------
 function toggleAudio(){
   isAudioEnabled = !isAudioEnabled;
-  if (localStream) localStream.getAudioTracks().forEach(track => track.enabled = isAudioEnabled);
+  if(localStream) localStream.getAudioTracks().forEach(t => t.enabled = isAudioEnabled);
   toggleAudioButton.querySelector('.material-icons').textContent = isAudioEnabled ? 'mic' : 'mic_off';
   localMicStatusIcon.textContent = isAudioEnabled ? 'mic' : 'mic_off'; 
 }
 
 function toggleVideo(){
   isVideoEnabled = !isVideoEnabled;
-  if (localStream) localStream.getVideoTracks().forEach(track => track.enabled = isVideoEnabled);
+  if(localStream) localStream.getVideoTracks().forEach(t => t.enabled = isVideoEnabled);
   toggleVideoButton.querySelector('.material-icons').textContent = isVideoEnabled ? 'videocam' : 'videocam_off';
 }
 
 function disconnect(){
   Object.values(peerConnections).forEach(pc => pc.close());
-  localStream?.getTracks().forEach(track => track.stop());
-  localStream = null;
-  screenStream?.getTracks().forEach(track => track.stop()); 
-  screenStream = null;
-
-  if(socket) socket.disconnect();
+  localStream?.getTracks().forEach(t => t.stop());
+  screenStream?.getTracks().forEach(t => t.stop());
+  socket?.disconnect();
   location.reload();
 }
 
-async function toggleScreenShare() {
-    if (screenStream) {
-        screenStream.getTracks().forEach(track => track.stop());
-        screenStream = null;
-        if (localStream) {
-            const videoTrack = localStream.getVideoTracks()[0];
-            Object.values(videoSenders).forEach(sender => sender.replaceTrack(videoTrack)); 
-            updateLocalVideo(); 
-        }
-        localFeedEl.classList.remove('ratio-16-9'); 
-        localFeedEl.classList.add('ratio-4-3');
-        socket.emit('stream-type-changed', currentRoomId, '4-3');
-        shareScreenButton.querySelector('.material-icons').textContent = 'screen_share';
-        shareScreenButton.title = 'Condividi Schermo';
-    } else {
-        try {
-            screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-            const screenVideoTrack = screenStream.getVideoTracks()[0];
-            Object.values(videoSenders).forEach(sender => sender.replaceTrack(screenVideoTrack));
-            updateLocalVideo();
-            screenVideoTrack.onended = toggleScreenShare; 
-            localFeedEl.classList.remove('ratio-4-3');
-            localFeedEl.classList.add('ratio-16-9');
-            socket.emit('stream-type-changed', currentRoomId, '16-9');
-            shareScreenButton.querySelector('.material-icons').textContent = 'stop_screen_share';
-            shareScreenButton.title = 'Interrompi Condivisione';
-            Object.values(peerConnections).forEach(pc => pc.onnegotiationneeded());
-        } catch (err) {
-            log('Errore condivisione schermo:', err);
-            screenStream = null;
-            localFeedEl.classList.remove('ratio-16-9'); 
-            localFeedEl.classList.add('ratio-4-3');
-            shareScreenButton.querySelector('.material-icons').textContent = 'screen_share';
-            shareScreenButton.title = 'Condividi Schermo';
-        }
+// ---------- Screen Share ----------
+async function toggleScreenShare(){
+  if(screenStream){
+    screenStream.getTracks().forEach(t => t.stop());
+    screenStream = null;
+    if(localStream){
+      const videoTrack = localStream.getVideoTracks()[0];
+      Object.values(videoSenders).forEach(s => s.replaceTrack(videoTrack));
     }
-}
-
-// ---------- Link e URL ----------
-function getRoomIdFromUrl(){
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('room');
-}
-
-function copyRoomLink(){
-    const url = `${window.location.protocol}//${window.location.host}${window.location.pathname}?room=${currentRoomId}`;
-    navigator.clipboard.writeText(url).then(() => {
-        shareRoomLinkButton.value = 'Link Copiato!';
-        setTimeout(() => { shareRoomLinkButton.value = 'Ottieni Link'; }, 3000);
-    }).catch(err => {
-        console.error('Errore copia link:', err);
-        alert(`Copia manuale: ${url}`);
-    });
-}
-
-// ---------- Chat Logic ----------
-function addChatMessage(sender, message, isLocal=false){
-    const messageEl = document.createElement('div');
-    messageEl.classList.add('chat-message');
-    if(isLocal) {
-      messageEl.innerHTML = `<span class="sender-me">Tu: </span>${message}`;
-      messageEl.classList.add('local');
-    } else {
-      messageEl.innerHTML = `<span class="sender-remote">${sender}: </span>${message}`;
-      messageEl.classList.add('remote');
+    localFeedEl.classList.remove('ratio-16-9'); 
+    localFeedEl.classList.add('ratio-4-3');
+    shareScreenButton.querySelector('.material-icons').textContent = 'screen_share';
+    shareScreenButton.title = 'Condividi Schermo';
+  } else {
+    try{
+      screenStream = await navigator.mediaDevices.getDisplayMedia({ video:true, audio:true });
+      const screenVideoTrack = screenStream.getVideoTracks()[0];
+      Object.values(videoSenders).forEach(s => s.replaceTrack(screenVideoTrack));
+      updateLocalVideo();
+      screenVideoTrack.onended = toggleScreenShare;
+      localFeedEl.classList.remove('ratio-4-3');
+      localFeedEl.classList.add('ratio-16-9');
+      shareScreenButton.querySelector('.material-icons').textContent = 'stop_screen_share';
+      shareScreenButton.title = 'Interrompi Condivisione';
+      Object.values(peerConnections).forEach(pc => pc.onnegotiationneeded());
+    }catch(err){
+      log('Errore condivisione schermo:', err);
+      screenStream = null;
+      localFeedEl.classList.remove('ratio-16-9'); 
+      localFeedEl.classList.add('ratio-4-3');
+      shareScreenButton.querySelector('.material-icons').textContent = 'screen_share';
+      shareScreenButton.title = 'Condividi Schermo';
     }
-    messagesContainer.appendChild(messageEl);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+}
+
+// ---------- Chat ----------
+function addChatMessage(sender,message,isLocal=false){
+  const msg = document.createElement('div');
+  msg.classList.add('chat-message');
+  msg.innerHTML = isLocal 
+    ? `<span class="sender-me">Tu: </span>${message}` 
+    : `<span class="sender-remote">${sender}: </span>${message}`;
+  messagesContainer.appendChild(msg);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
 function clearChatInput(){ chatMessageInput.value = ''; }
 
 function sendMessage(){
-    const message = chatMessageInput.value.trim();
-    if (!message) return;
-    if (socket && currentRoomId) {
-        socket.emit('send-message', currentRoomId, userNickname, message);
-        addChatMessage(userNickname, message, true);
-        clearChatInput();
-    } else {
-        log('Errore: Socket non connesso o RoomId mancante. Messaggio non inviato.');
-        alert('Impossibile inviare il messaggio: connessione non stabilita.');
-    }
+  const message = chatMessageInput.value.trim();
+  if(!message) return;
+  if(socket && currentRoomId){
+    socket.emit('send-message', currentRoomId, userNickname, message);
+    addChatMessage(userNickname,message,true);
+    clearChatInput();
+  } else {
+    alert('Impossibile inviare messaggio: connessione non stabilita.');
+  }
 }
 
 // ---------- Socket.IO / WebRTC ----------
 function initializeSocket(){
   socket = io(RENDER_SERVER_URL);
-  
+
   socket.on('connect', ()=> log('Connesso', socket.id));
 
-  socket.on('welcome', (newPeerId, nickname, peers=[])=>{
-    remoteNicknames[newPeerId] = nickname;
-    addChatMessage('Sistema', `Benvenuto nella stanza ${currentRoomId}!`);
-    peers.forEach(peer=>{
-      if(peer.id !== socket.id) {
-        remoteNicknames[peer.id] = peer.nickname;
-        createPeerConnection(peer.id); 
-      }
-    });
+  socket.on('welcome',(newPeerId,nickname,peers=[])=>{
+    remoteNicknames[newPeerId]=nickname;
+    addChatMessage('Sistema',`Benvenuto nella stanza ${currentRoomId}!`);
+    peers.forEach(peer=>{ if(peer.id!==socket.id){ remoteNicknames[peer.id]=peer.nickname; createPeerConnection(peer.id); } });
     setFocus('local');
   });
 
-  socket.on('peer-joined', (peerId,nickname)=>{
-    remoteNicknames[peerId] = nickname;
-    createPeerConnection(peerId); 
-    log(`Peer unito: ${nickname} (${peerId})`);
-    addChatMessage('Sistema', `${nickname} è entrato.`);
+  socket.on('peer-joined',(peerId,nickname)=>{
+    remoteNicknames[peerId]=nickname;
+    createPeerConnection(peerId);
+    addChatMessage('Sistema',`${nickname} è entrato.`);
   });
 
-  socket.on('peer-left', (peerId)=>{
-    const nickname = remoteNicknames[peerId] || 'Un utente';
+  socket.on('peer-left',(peerId)=>{
+    const nickname=remoteNicknames[peerId]||'Un utente';
     removeRemoteFeed(peerId);
-    addChatMessage('Sistema', `${nickname} è uscito.`);
+    addChatMessage('Sistema',`${nickname} è uscito.`);
   });
 
-  socket.on('new-message', (senderNickname, message)=>{
-    addChatMessage(senderNickname, message, false);
-  });
-  
-  socket.on('remote-stream-type-changed', (peerId, newRatio) => {
-      const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
-      if(feed){
-          feed.classList.remove('ratio-4-3', 'ratio-16-9');
-          feed.classList.add(`ratio-${newRatio}`);
-          log(`Rapporto video aggiornato per ${remoteNicknames[peerId]} a ${newRatio}`);
-      }
-  });
+  socket.on('new-message',(sender,message)=>{ addChatMessage(sender,message,false); });
 
-  socket.on('offer', async (fromId, offer)=>{
-    const pc = createPeerConnection(fromId); 
-    if(pc.signalingState !== 'stable') return; 
+  socket.on('offer',async (fromId,offer)=>{
+    const pc=createPeerConnection(fromId);
+    if(pc.signalingState!=='stable') return;
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    if (iceCandidateQueues[fromId]) {
-      iceCandidateQueues[fromId].forEach(candidate => { if(candidate) pc.addIceCandidate(new RTCIceCandidate(candidate)); });
-      iceCandidateQueues[fromId] = [];
-    }
-    const answer = await pc.createAnswer();
+    if(iceCandidateQueues[fromId]) iceCandidateQueues[fromId].forEach(c=>{ if(c) pc.addIceCandidate(new RTCIceCandidate(c)); });
+    iceCandidateQueues[fromId]=[];
+    const answer=await pc.createAnswer();
     await pc.setLocalDescription(answer);
-    socket.emit('answer', fromId, pc.localDescription);
+    socket.emit('answer',fromId,pc.localDescription);
   });
 
-  socket.on('answer', async (fromId, answer)=>{
-    const pc = peerConnections[fromId];
-    if(pc) {
-        if(pc.signalingState !== 'have-local-offer') return;
-        await pc.setRemoteDescription(new RTCSessionDescription(answer));
-        if (iceCandidateQueues[fromId]) {
-          iceCandidateQueues[fromId].forEach(candidate => { if(candidate) pc.addIceCandidate(new RTCIceCandidate(candidate)); });
-          iceCandidateQueues[fromId] = [];
-        }
-    }
+  socket.on('answer',async(fromId,answer)=>{
+    const pc=peerConnections[fromId];
+    if(pc && pc.signalingState==='have-local-offer') await pc.setRemoteDescription(new RTCSessionDescription(answer));
   });
 
-  socket.on('candidate', async (fromId, candidate)=>{
-    const pc = peerConnections[fromId];
-    if(pc && candidate) {
-      if (pc.remoteDescription) {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      } else {
-        if (!iceCandidateQueues[fromId]) iceCandidateQueues[fromId] = [];
-        iceCandidateQueues[fromId].push(candidate);
-        log(`Candidato ICE accodato per ${fromId}.`);
-      }
+  socket.on('candidate',async(fromId,candidate)=>{
+    const pc=peerConnections[fromId];
+    if(pc && candidate){
+      if(pc.remoteDescription) await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      else { if(!iceCandidateQueues[fromId]) iceCandidateQueues[fromId]=[]; iceCandidateQueues[fromId].push(candidate); }
     }
   });
 }
 
+// ---------- Peer Connection ----------
 function createPeerConnection(socketId){
   if(peerConnections[socketId]) return peerConnections[socketId];
+  const pc=new RTCPeerConnection(iceConfiguration);
+  peerConnections[socketId]=pc;
+  iceCandidateQueues[socketId]=[];
 
-  const pc = new RTCPeerConnection(iceConfiguration);
-  peerConnections[socketId] = pc;
-  iceCandidateQueues[socketId] = []; 
+  if(localStream){
+    localStream.getTracks().forEach(track=>{
+      const sender=pc.addTrack(track,localStream);
+      if(track.kind==='video') videoSenders[socketId]=sender;
+    });
+  }
 
-  if(localStream) {
-      localStream.getTracks().forEach(track => {
-        const sender = pc.addTrack(track, localStream);
-        if(track.kind === 'video') videoSenders[socketId] = sender;
-      });
-  } else log('WARNING: localStream è null.');
-
-  pc.onicecandidate = event=>{ if(event.candidate) socket.emit('candidate', socketId, event.candidate); };
-  pc.ontrack = event=>{
-    const feed = ensureRemoteFeed(socketId, remoteNicknames[socketId]);
-    const video = feed.querySelector('video');
-    if(video && event.streams.length > 0) video.srcObject = event.streams[0];
-    else log(`Impossibile collegare lo stream per ${socketId}.`);
+  pc.onicecandidate=event=>{ if(event.candidate) socket.emit('candidate',socketId,event.candidate); };
+  pc.ontrack=event=>{
+    const feed=ensureRemoteFeed(socketId,remoteNicknames[socketId]);
+    const video=feed.querySelector('video');
+    if(video && event.streams && event.streams.length>0) video.srcObject=event.streams[0];
   };
 
-  const shouldCreateOffer = (socket.id < socketId); 
-  pc.onnegotiationneeded = async ()=>{
-    if(shouldCreateOffer && pc.signalingState === 'stable'){
-      try{
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socket.emit('offer', socketId, pc.localDescription);
-      }catch(err){ console.error('Error creating/sending offer', err); }
-    }
+  const shouldCreateOffer = (socket.id < socketId);
+  pc.onnegotiationneeded=async()=>{
+    if(!shouldCreateOffer) return;
+    if(pc.signalingState!=='stable') return;
+    try{ const offer=await pc.createOffer(); await pc.setLocalDescription(offer); socket.emit('offer',socketId,pc.localDescription); }
+    catch(err){ console.error('Errore offer',err); }
   };
 
   return pc;
 }
 
-// ---------- Inizializzazione Listener e Avvio ----------
-document.addEventListener('DOMContentLoaded', () => {
-    const urlRoomId = getRoomIdFromUrl();
-    if (urlRoomId) roomIdInput.value = urlRoomId;
+// ---------- URL / Link ----------
+function getRoomIdFromUrl(){ return new URLSearchParams(window.location.search).get('room'); }
+function copyRoomLink(){
+  const url=`${window.location.protocol}//${window.location.host}${window.location.pathname}?room=${currentRoomId}`;
+  navigator.clipboard.writeText(url).then(()=>{ shareRoomLinkButton.value='Link Copiato!'; setTimeout(()=>{ shareRoomLinkButton.value='Ottieni Link'; },3000); });
+}
+
+// ---------- Event Listeners ----------
+document.addEventListener('DOMContentLoaded',()=>{
+  const urlRoomId=getRoomIdFromUrl();
+  if(urlRoomId) roomIdInput.value=urlRoomId;
 });
 
-joinButton.addEventListener('click', async ()=>{
-  const nickname = nicknameInput.value.trim();
-  const roomId = roomIdInput.value.trim();
-  if(!nickname || !roomId){ alert('Inserisci nickname e stanza'); return; }
-
-  userNickname = nickname;
-  currentRoomId = roomId;
-  await startLocalMedia(); 
+joinButton.addEventListener('click',async()=>{
+  const nickname=nicknameInput.value.trim();
+  const roomId=roomIdInput.value.trim();
+  if(!nickname||!roomId){ alert('Inserisci nickname e stanza'); return; }
+  userNickname=nickname;
+  currentRoomId=roomId;
+  await startLocalMedia();
   initializeSocket();
-  socket.emit('join-room', currentRoomId, userNickname); 
-  document.getElementById('room-name-display').textContent = roomId;
+  socket.emit('join-room',currentRoomId,userNickname);
+  document.getElementById('room-name-display').textContent=roomId;
   showOverlay(false);
   setFocus('local');
-  localFeedEl.addEventListener('click', ()=> setFocus('local'));
+  localFeedEl.addEventListener('click',()=> setFocus('local'));
 });
 
-// Listener Media
-toggleAudioButton.addEventListener('click', toggleAudio);
-toggleVideoButton.addEventListener('click', toggleVideo);
-disconnectButton.addEventListener('click', disconnect);
-shareScreenButton.addEventListener('click', toggleScreenShare); 
-shareRoomLinkButton.addEventListener('click', copyRoomLink); 
+toggleAudioButton.addEventListener('click',toggleAudio);
+toggleVideoButton.addEventListener('click',toggleVideo);
+disconnectButton.addEventListener('click',disconnect);
+shareScreenButton.addEventListener('click',toggleScreenShare); 
+shareRoomLinkButton.addEventListener('click',copyRoomLink);
 
-// Listener Chat
-showChatBtn.addEventListener('click', () => {
-    if(window.innerWidth <= 768){ // mobile
-        chatPanel.classList.add('active');
-        let backBtn = document.createElement('button');
-        backBtn.textContent = '← Torna alle webcam';
-        backBtn.style.padding = '10px';
-        backBtn.style.border = 'none';
-        backBtn.style.background = 'var(--primary-color)';
-        backBtn.style.color = '#000';
-        backBtn.style.fontWeight = 'bold';
-        backBtn.style.margin = '10px';
-        backBtn.style.borderRadius = '6px';
-        backBtn.id = 'close-chat-btn';
+// Chat
+sendChatButton.addEventListener('click',sendMessage);
+chatMessageInput.addEventListener('keydown',e=>{ if(e.key==='Enter') sendMessage(); });
 
-        const oldBtn = document.getElementById('close-chat-btn');
-        if(oldBtn) oldBtn.remove();
-
-        chatPanel.prepend(backBtn);
-
-        backBtn.addEventListener('click', () => {
-            chatPanel.classList.remove('active');
-            backBtn.remove();
-        });
-    } else { // desktop
-        chatPanel.classList.toggle('hidden');
+// Mostra/Nascondi chat su mobile/desktop
+showChatButton.addEventListener('click',()=>{
+  if(window.innerWidth<=768){
+    chatPanel.classList.toggle('mobile-fullscreen');
+    if(chatPanel.classList.contains('mobile-fullscreen')){
+      const backBtn=document.createElement('button');
+      backBtn.textContent='🔙 Torna alle Webcam';
+      backBtn.id='chat-back-btn';
+      backBtn.style.marginBottom='10px';
+      chatPanel.prepend(backBtn);
+      backBtn.addEventListener('click',()=>{
+        chatPanel.classList.remove('mobile-fullscreen');
+        backBtn.remove();
+      });
     }
-});
-
-sendChatButton.addEventListener('click', sendMessage);
-chatMessageInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') sendMessage();
+  } else chatPanel.classList.toggle('hidden');
 });
