@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Conferenza Video - WebRTC</title>
 <link rel="stylesheet" href="style.css" />
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 </head>
 <body>
 
@@ -36,27 +37,26 @@
 </div>
 </header>
 
-
 <main id="main-area">
-<section id="video-area">
-<div id="videos-grid" class="videos-grid">
-<div id="remote-video-placeholder" class="video-placeholder">In attesa di altri partecipanti...</div>
 
+<section id="videos-grid">
 
-<div id="local-feed" class="video-feed local-feed ratio-4-3" data-peer-id="local">
-<div class="video-content-wrapper">
-    <video id="local-video" autoplay muted playsinline></video>
-</div>
-<div class="video-label">Tu <span id="local-mic-status" class="material-icons">mic</span></div>
-<button class="remote-mute-toggle main-mute-btn" title="Disattiva Audio Locale">
-    <span class="material-icons">volume_up</span>
-</button>
-</div>
-</div>
+    <div id="local-feed" class="video-feed ratio-4-3 hidden">
+        <div class="video-content-wrapper">
+            <video id="local-video" autoplay playsinline></video>
+        </div>
+        <div class="video-label">
+            <span id="local-mic-status" class="material-icons">mic</span>
+            <span id="local-nickname">Tu</span>
+        </div>
+        <button class="local-mute-toggle" title="Disattiva Audio Locale">
+            <span class="material-icons">volume_up</span>
+        </button>
+    </div>
 </section>
 
 
-<aside id="chat-panel" class="panel-column hidden">
+<aside id="chat-panel" class="panel-column">
 <h3>💬 Chat</h3>
 <div id="messages-container"></div>
 <div id="chat-input-area">
@@ -89,8 +89,7 @@
 </div>
 </template>
 
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
