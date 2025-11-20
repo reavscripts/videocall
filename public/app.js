@@ -80,7 +80,7 @@ function updateLocalVideo(){
   }
 }
 
-// LOGICA FOCUS - AGGIORNATA PER DM
+// LOGICA FOCUS - CORRETTA
 function setFocus(peerId){
   videosGrid.querySelectorAll('.video-feed').forEach(feed => feed.classList.remove('is-focused'));
   focusedPeerId = peerId;
@@ -347,7 +347,7 @@ function initializeSocket(){
     addChatMessage(senderNickname, message, false);
   });
   
-  // ********* NUOVO LISTENER: RICEZIONE DM *********
+  // ********* LISTENER: RICEZIONE DM *********
   socket.on('new-private-message', (senderNickname, message)=>{
     // Messaggio Privato ricevuto. dmRecipient = 'Tu'
     addChatMessage(senderNickname, message, false, 'Tu');

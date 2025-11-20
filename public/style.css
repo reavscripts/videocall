@@ -14,6 +14,8 @@ html,body{
     background:var(--bg);
     color:#fff;
     font-family:Roboto,Arial,sans-serif;
+    /* IMPORTANTE: Impedisce lo scroll orizzontale su mobile */
+    overflow-x: hidden; 
 }
 .hidden{display:none!important}
 
@@ -295,6 +297,25 @@ html,body{
     font-weight:bold;
 }
 
+/* NUOVO STILE: MESSAGGI PRIVATI (DM) */
+.chat-message.private-message {
+    border-left: 3px solid var(--accent-color);
+    padding-left: 8px;
+    margin-left: -20px; 
+    padding-left: 17px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    background-color: rgba(255, 152, 0, 0.1); 
+    border-radius: 4px;
+}
+
+.chat-message.private-message .sender-me, 
+.chat-message.private-message .sender-remote {
+    color: var(--accent-color);
+    font-style: italic;
+}
+
+
 #chat-input-area{
     display:flex;
     padding:10px;
@@ -330,7 +351,8 @@ html,body{
 
 /* Main Controls Bar */
 #main-controls-bar{
-    position:absolute;
+    /* PASSAGGIO A FIXED PER MOBILE, MA QUI TENIAMO ASSOLUTO PER DESKTOP */
+    position:absolute; 
     bottom:20px;
     left:50%;
     transform:translateX(-50%);
@@ -382,18 +404,41 @@ html,body{
         align-items: center;
         gap: 6px;
         justify-content: flex-start;
+        /* Rimuovi l'overflow-y se causa problemi con l'altezza: 100% è gestita da main-area */
+        overflow-y: auto; 
     }
     
+    /* FIX: Imposta la larghezza massima per i video non focalizzati */
     .video-feed.ratio-4-3, .video-feed.ratio-16-9 {
-        width: 95%;
+        width: 95vw; /* Usa la larghezza del viewport */
         height: auto;
     }
     
     .video-feed.is-focused {
         order: -1; 
-        max-height: 45vh;
+        /* FIX: Assicurati che il video in focus sia al 95% della larghezza e non ecceda l'altezza verticale */
+        width: 95vw; 
+        height: auto;
+        max-height: 75vh; /* Limita l'altezza massima per lasciare spazio ai controlli */
     }
 
+    /* FIX: Sovrascrivi le dimensioni fisse per i video focalizzati */
+    .video-feed.is-focused.ratio-4-3, 
+    .video-feed.is-focused.ratio-16-9 {
+        width: 95%; 
+        height: auto;
+    }
+    
+    /* FIX: Controlli sempre visibili e centrati */
+    #main-controls-bar {
+        position: fixed; /* Mantiene i pulsanti sempre in vista */
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: auto;
+        max-width: 95%; 
+    }
+    
     /* Layout Mobile: Chat */
     #chat-panel {
         position: fixed;
@@ -412,31 +457,4 @@ html,body{
     #chat-input-area {padding: 8px;}
     #chat-message-input {font-size: 0.95rem; min-height: 36px;}
     #send-chat-button {height: 36px; padding: 0 12px;}
-
-    #main-controls-bar {
-        bottom: 10px;
-    }
-
 }
-
-/* ************************************** */
-/* NUOVO STILE: MESSAGGI PRIVATI (DM) */
-/* ************************************** */
-.chat-message.private-message {
-    border-left: 3px solid var(--accent-color);
-    padding-left: 8px;
-    /* Spostato per bilanciare l'aggiunta di padding-left: 17px */
-    margin-left: -20px; 
-    padding-left: 17px;
-    padding-top: 2px;
-    padding-bottom: 2px;
-    background-color: rgba(255, 152, 0, 0.1); 
-    border-radius: 4px;
-}
-
-.chat-message.private-message .sender-me, 
-.chat-message.private-message .sender-remote {
-    color: var(--accent-color);
-    font-style: italic;
-}
-/* ************************************** */
