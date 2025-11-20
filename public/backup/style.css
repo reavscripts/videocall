@@ -258,7 +258,7 @@ html,body{
 .context-menu-trigger {
     position:absolute;
     top:5px;
-    right:40px; /* Spostato a sinistra per lasciare spazio al mute button */
+    right:50px; /* MODIFICATO: Aumentato a 50px per evitare sovrapposizioni con il pulsante mute */
     background:rgba(0,0,0,0.6);
     color:#fff;
     border:none;
@@ -492,7 +492,7 @@ html,body{
 
     /* Su mobile mostra sempre l'icona menu */
     .context-menu-trigger {
-        opacity: 1; 
+        opacity: 1; /* Forzato a 1 */
     }
 
     /* Layout Mobile: Chat */

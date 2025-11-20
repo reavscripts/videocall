@@ -572,6 +572,50 @@ function sendPrivateMessage(recipientId, recipientNickname, message) {
     }
 }
 
+// ***** NUOVA FUNZIONE HELPER: Apertura Forzata Chat Mobile *****
+function openChatPanelMobile(callback) {
+    if (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden')) {
+        // La chat è già aperta, esegui il callback immediatamente
+        if (callback) callback();
+        return;
+    }
+
+    // Forza l'apertura della chat (logica mobile)
+    chatPanel.classList.remove('hidden');
+    // Aggiungiamo un piccolo timeout per far sì che il browser elabori il remove('hidden')
+    setTimeout(() => {
+        chatPanel.classList.add('active');
+        
+        // Aggiungi il pulsante di chiusura (copia la logica dal listener di showChatBtn)
+        let closeBtn = document.getElementById('close-chat-btn');
+        if (!closeBtn) {
+            closeBtn = document.createElement('button');
+            closeBtn.textContent = '← Torna alle webcam';
+            closeBtn.id = 'close-chat-btn';
+            
+            closeBtn.style.cssText = `
+                position: relative; width: calc(100% - 20px); padding: 10px; margin: 10px;
+                border: none; background: var(--primary-color); color: var(--bg);
+                font-weight: bold; cursor: pointer; border-radius: 6px;
+            `; 
+
+            const chatHeader = chatPanel.querySelector('h3');
+            if(chatHeader) chatPanel.insertBefore(closeBtn, chatHeader);
+
+            closeBtn.addEventListener('click', () => {
+                chatPanel.classList.remove('active');
+                setTimeout(() => {
+                    chatPanel.classList.add('hidden');
+                    closeBtn.remove(); 
+                }, 300);
+            });
+        }
+        
+        // Esegui il callback (per dare il focus) dopo la transizione CSS (350ms)
+        setTimeout(callback, 350); 
+    }, 10);
+}
+
 
 // ---------- Socket.IO / WebRTC ----------
 function initializeSocket(){
@@ -864,13 +908,26 @@ menuDmUser.addEventListener('click', () => {
         // 1. Nascondi il menu
         hideContextMenu();
 
-        // 2. Apri il pannello chat su mobile se non è già aperto
-        if (window.innerWidth <= 768 && chatPanel.classList.contains('hidden')) {
-            showChatBtn.click(); // Riutilizza il listener esistente per aprire la chat
+        // 2. Azione di focus e pre-popolazione
+        const focusAndSetDM = () => {
+            chatMessageInput.value = `/dm ${nickname} `; 
+            chatMessageInput.focus(); 
+            
+            // Forza lo scroll su mobile dopo un breve ritardo per l'input
+            if(window.innerWidth <= 768) {
+                setTimeout(() => {
+                    chatMessageInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }, 50);
+            }
+        };
+
+        // 3. Gestione apertura/focus
+        if (window.innerWidth <= 768) {
+            // Su mobile, usiamo la funzione che forza l'apertura e dà il focus con ritardo
+            openChatPanelMobile(focusAndSetDM);
+        } else {
+            // Su desktop, eseguiamo immediatamente l'azione
+            focusAndSetDM();
         }
-        
-        // 3. Focalizza l'input e imposta il comando /dm
-        chatMessageInput.value = `/dm ${nickname} `; 
-        chatMessageInput.focus();
     }
 });

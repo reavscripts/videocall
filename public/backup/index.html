@@ -82,11 +82,25 @@
         <span class="remote-mic-status material-icons">mic</span>
         <span class="remote-nickname"></span>
     </div>
+    <button class="context-menu-trigger" title="Opzioni Utente">
+        <span class="material-icons">more_vert</span>
+    </button>
     <button class="remote-mute-toggle" title="Silenzia Remoto">
         <span class="material-icons">volume_up</span>
     </button>
 </div>
 </template>
+
+<div id="remote-context-menu" class="hidden">
+    <div id="menu-dm-user" class="menu-item">
+        <span class="material-icons">message</span> 
+        <span>Messaggio Privato a Utente</span>
+    </div>
+    <div id="menu-mute-user" class="menu-item">
+        <span class="material-icons">volume_off</span> 
+        <span>Silenzia Audio</span>
+    </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
 <script src="app.js"></script>
