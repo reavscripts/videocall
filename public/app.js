@@ -262,6 +262,20 @@ function sendMessage(){
         socket.emit('send-message', currentRoomId, userNickname, message);
         addChatMessage(userNickname, message, true);
         clearChatInput();
+        
+        // *************** FIX: Ritorno Focus e Scroll ***************
+        // 1. Rimetto il focus per riaprire la tastiera
+        chatMessageInput.focus();
+        
+        // 2. Forza lo scroll alla fine della pagina per visualizzare l'input sopra la tastiera
+        if(window.innerWidth <= 768) {
+             // Utilizzo setTimeout per dare il tempo alla tastiera di aprirsi e al layout di ricalcolare
+             setTimeout(() => {
+                 window.scrollTo(0, document.body.scrollHeight);
+             }, 50);
+        }
+        // ************************************************************
+        
     } else {
         log('Errore: Socket non connesso o RoomId mancante. Messaggio non inviato.');
         alert('Impossibile inviare il messaggio: connessione non stabilita.');
@@ -427,9 +441,8 @@ showChatBtn.addEventListener('click', () => {
         chatPanel.classList.remove('hidden');
         setTimeout(() => chatPanel.classList.add('active'), 10); 
 
-        // *************** FIX: Mette a fuoco l'input per far apparire la tastiera ***************
+        // Mette a fuoco l'input per far apparire la tastiera
         chatMessageInput.focus();
-        // ***************************************************************************************
 
         let closeBtn = document.getElementById('close-chat-btn');
         if (!closeBtn) {
