@@ -25,28 +25,23 @@ const rooms = {}; // { roomId: { socketId: nickname, ... } }
 io.on('connection', (socket) => {
  console.log('Nuovo client connesso', socket.id);
 
- let roomId = null; // Memorizza l'ID della stanza per l'uso in disconnect
-
- socket.on('join-room', (roomIdReq, nickname) => {
-  
-  if (!rooms[roomIdReq]) rooms[roomIdReq] = {};
-
-  // **************************************************
-  // *** NUOVO CONTROLLO: Verifica Nickname Duplicato ***
-  const nicknamesInRoom = Object.values(rooms[roomIdReq]);
-  if (nicknamesInRoom.includes(nickname)) {
-    // Rifiuta la connessione e invia un errore specifico al client
-    socket.emit('nickname-in-use', `Il nickname '${nickname}' è già in uso nella stanza ${roomIdReq}.`);
-    return; // BLOCCA l'unione alla stanza
-  }
-  // **************************************************
-  
-  // Prosegui con l'unione alla stanza
-  roomId = roomIdReq; 
+ socket.on('join-room', (roomId, nickname) => {
   socket.join(roomId);
 
-  rooms[roomId][socket.id] = nickname;
+  // *** Inizializzazione nickname e gestione esistenza stanza ***
+  if (!rooms[roomId]) rooms[roomId] = {};
+  
+  // *** CONTROLLO UNICITÀ NICKNAME PRIMA DI AGGIUNGERLO ***
+  const nicknameExists = Object.values(rooms[roomId]).some(existingNick => existingNick.toLowerCase() === nickname.toLowerCase());
 
+  if (nicknameExists) {
+    socket.emit('nickname-in-use', `Il nickname '${nickname}' è già in uso in questa stanza.`);
+    socket.disconnect(true); // Disconnetti il socket immediatamente
+    return;
+  }
+  
+  rooms[roomId][socket.id] = nickname;
+  
   // Avvisa chi era già nella stanza
   const peers = Object.entries(rooms[roomId])
    .filter(([id]) => id !== socket.id)
@@ -56,31 +51,28 @@ io.on('connection', (socket) => {
 
   // Avvisa gli altri peer
   socket.to(roomId).emit('peer-joined', socket.id, nickname);
-
-  console.log(`Utente ${nickname} (${socket.id}) si è unito alla stanza ${roomId}`);
+  console.log(`${nickname} (${socket.id}) si è unito alla stanza ${roomId}`);
  });
 
- // ******************************************************
- // ***** Gestione Chat Pubblica *****
- // ******************************************************
- socket.on('send-message', (roomId, senderNickname, message) => {
-  // Inoltra il messaggio a tutti i client nella stanza, escluso il mittente
-  socket.to(roomId).emit('new-message', senderNickname, message);
- });
- 
- // ******************************************************
- // ***** Gestione Messaggi Privati (DM) *****
- // ******************************************************
+  // ******************************************************
+  // ***** CHAT PUBBLICA: Evento 'send-message' aggiunto *****
+  socket.on('send-message', (roomId, senderNickname, message) => {
+    // Inoltra il messaggio a tutti tranne il mittente
+    socket.to(roomId).emit('new-message', senderNickname, message);
+    console.log(`Messaggio Pubblico in ${roomId} da ${senderNickname}: ${message}`);
+  });
+  // ******************************************************
+
+  // ******************************************************
+  // ***** CHAT PRIVATA: Logica esistente *****
   socket.on('send-private-message', (roomId, recipientId, senderNickname, message) => {
     // Inoltra il messaggio SOLO al socket ID specifico del destinatario
-    // 'io.to(recipientId)' invia l'evento 'new-private-message' solo al client destinatario.
     io.to(recipientId).emit('new-private-message', senderNickname, message);
    
     // Log opzionale sul server
     console.log(`DM inviato da ${senderNickname} (stanza ${roomId}) a socket ${recipientId}`);
   });
   // ******************************************************
-
 
   // Offerte/Answer ICE per WebRTC
   socket.on('offer', (toId, offer) => {
@@ -95,41 +87,44 @@ io.on('connection', (socket) => {
    io.to(toId).emit('candidate', socket.id, candidate);
   });
 
+  socket.on('audio-status-changed', (room, isTalking) => {
+    socket.to(room).emit('audio-status-changed', socket.id, isTalking);
+  });
+  
   socket.on('stream-type-changed', (room, newRatio) => {
    socket.to(room).emit('remote-stream-type-changed', socket.id, newRatio);
   });
 
-  // Gestione Mute/Unmute Remoto
-  socket.on('toggle-remote-mute', (targetId) => {
-    io.to(targetId).emit('remote-mute-toggled', socket.id);
-  });
-  
-  // Gestione Microfono/Video Status
-  socket.on('update-status', (roomId, isAudioEnabled, isVideoEnabled) => {
-    socket.to(roomId).emit('peer-status-updated', socket.id, isAudioEnabled, isVideoEnabled);
-  });
-
   socket.on('disconnect', () => {
-   console.log('Client disconnesso', socket.id);
-   
-   if (rooms[roomId]) {
-    const disconnectedNickname = rooms[roomId][socket.id];
-    delete rooms[roomId][socket.id];
-    
-    // Rimuovi la stanza se non ci sono più peer
-    if (Object.keys(rooms[roomId]).length === 0) {
-     delete rooms[roomId];
-     console.log(`Stanza ${roomId} chiusa.`);
-    } else {
-     // Avvisa gli altri peer della disconnessione
-     socket.to(roomId).emit('peer-disconnected', socket.id, disconnectedNickname);
+   let roomId = null;
+   let disconnectedNickname = 'Un utente';
+
+   // Cerca la stanza e il nickname
+   for (const id in rooms) {
+    if (rooms[id][socket.id]) {
+     roomId = id;
+     disconnectedNickname = rooms[id][socket.id];
+     delete rooms[id][socket.id];
+
+     // Se la stanza è vuota, eliminala
+     if (Object.keys(rooms[id]).length === 0) {
+      delete rooms[id];
+     }
+     break;
     }
+   }
+
+   if (roomId) {
+    console.log(`${disconnectedNickname} (${socket.id}) ha lasciato la stanza ${roomId}`);
+    // Avvisa tutti nella stanza
+    socket.to(roomId).emit('peer-left', socket.id, disconnectedNickname);
+   } else {
+    console.log('Client disconnesso', socket.id);
    }
   });
 });
 
-// Avvio del server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
- console.log(`Server di segnalazione in ascolto sulla porta ${PORT}`);
+ console.log(`Server Socket.IO e WebRTC in ascolto sulla porta ${PORT}`);
 });
