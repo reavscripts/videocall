@@ -42,152 +42,164 @@ html,body{
     padding:28px;
     border-radius:10px;
     width:360px;
-    max-width:90%;
-    box-shadow:0 10px 20px rgba(0,0,0,0.3);
+    text-align:center;
+    animation:slideDown 0.4s ease;
 }
 
 .card h2{
-    margin-top:0;
-    margin-bottom:20px;
     color:var(--primary-color);
-    text-align:center;
-    font-weight:400;
+    margin-bottom:20px;
 }
 
 .card input[type="text"]{
-    width:100%;
+    width:calc(100% - 20px);
     padding:12px;
     margin-bottom:15px;
-    border:1px solid #333;
+    border:1px solid #444;
     border-radius:6px;
-    background:var(--bg);
+    background:rgba(255,255,255,0.1);
     color:#fff;
-    font-size:16px;
-}
-.card input[type="text"]:focus{
-    border-color:var(--primary-color);
+    font-size:1em;
     outline:none;
 }
 
-.card .row{
-    display:flex;
-    justify-content:space-between;
-    gap:10px;
+.card input[type="text"]::placeholder{
+    color:var(--muted);
 }
 
 .card button{
-    flex-grow:1;
-    padding:12px;
+    background:var(--primary-color);
+    color:var(--bg);
+    padding:12px 25px;
     border:none;
     border-radius:6px;
-    font-weight:500;
+    font-size:1.1em;
+    font-weight:bold;
     cursor:pointer;
-    transition:background 0.2s ease;
+    transition:background-color 0.2s ease;
 }
 
-#join-button{
-    background:var(--primary-color);
-    color:var(--surface);
-}
-#join-button:hover{background:darken(var(--primary-color), 10%);}
-
-#copy-room-link{
-    background:var(--surface);
-    color:var(--primary-color);
-    border:1px solid var(--primary-color);
+.card button:hover{
+    background:var(--accent-color);
 }
 
-/* MAIN LAYOUT */
-#main-container{
-    display:flex;
-    height:100%;
-    width:100%;
-    overflow:hidden;
-}
-
-#videos-area{
-    flex-grow:1;
+/* Conferenza */
+#conference-container{
     display:flex;
     flex-direction:column;
-    padding:10px;
+    width:100vw;
+    height:100vh;
     overflow:hidden;
-    position:relative;
 }
 
-#controls-bar{
-    flex-shrink:0;
+#room-header{
     display:flex;
-    justify-content:center;
-    gap:10px;
-    padding:10px 0;
-    background:rgba(0,0,0,0.5); 
-    position:fixed;
-    bottom:0;
-    left:0;
-    right:0;
-    z-index:10;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 20px;
+    background:var(--surface);
+    border-bottom:1px solid #333;
+    z-index:100;
 }
 
-#controls-bar button{
+#room-header h3{
+    margin:0;
+    color:var(--text-color);
+    font-size:1.1em;
+}
+
+#room-name-display{
+    color:var(--primary-color);
+}
+
+.header-controls{
+    display:flex;
+    gap:8px;
+}
+
+.header-controls button,.header-controls input[type="button"]{
     background:var(--surface);
     color:#fff;
     border:none;
-    border-radius:50%;
-    width:48px;
-    height:48px;
+    border-radius:5px;
+    padding:8px;
+    font-size:0.9em;
+    cursor:pointer;
+    transition:background-color 0.2s ease;
     display:flex;
     align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    transition:background 0.2s;
+    gap:4px;
+}
+
+.header-controls button:hover,.header-controls input[type="button"]:hover{
+    background:#444;
+}
+
+/* Main Area */
+#main-area{
+    flex-grow:1;
+    display:flex;
     position:relative;
+    overflow:hidden;
 }
 
-#controls-bar button:hover{background:rgba(255,255,255,0.1);}
-
-#controls-bar button .material-icons{font-size:24px;}
-
-/* Pulsanti Toggle (Attivo/Disattivo) */
-#toggle-audio-button.active,
-#toggle-video-button.active{
-    background:var(--danger);
-    color:#fff;
-}
-#toggle-audio-button.active:hover,
-#toggle-video-button.active:hover{background:darken(var(--danger), 10%);}
-
-/* Pulsante Disconnetti */
-#disconnect-button{
-    background:var(--danger);
-}
-#disconnect-button:hover{background:darken(var(--danger), 10%);}
-
-
-/* Griglia Video */
+/* Video Grid */
 #videos-grid{
     flex-grow:1;
     display:flex;
     flex-wrap:wrap;
+    justify-content:flex-start; 
+    align-items:flex-start;
     gap:10px;
-    align-items:center;
-    justify-content:center;
+    padding:10px;
+    background:var(--bg);
     overflow-y:auto;
-    overflow-x:hidden; 
-    padding-top:10px;
-    padding-bottom:10px; 
-    transition: padding 0.3s ease;
-    height: calc(100% - 70px); /* Spazio per la barra controlli */
+    transition:margin-right 0.3s ease;
 }
 
-/* Base Video Feed */
 .video-feed{
-    position:relative;
-    background:#000;
+    background:var(--surface);
     border-radius:8px;
     overflow:hidden;
-    transition:all 0.3s ease;
-    cursor:pointer;
-    box-shadow:0 4px 8px rgba(0,0,0,0.4);
+    position:relative;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4);
+    transition:width 0.3s ease, height 0.3s ease, border-color 0.2s ease, transform 0.2s ease;
+    border:3px solid transparent;
+}
+
+/* Dimensioni predefinite per video NON in focus (restano 4:3) */
+.video-feed.ratio-4-3 {
+    width: 240px; 
+    height: 180px; 
+}
+
+.video-feed.ratio-16-9 {
+    width: 240px;
+    height: 135px; /* 16:9 più piccolo per gli altri video */
+}
+
+/* Video in focus (generico) */
+.video-feed.is-focused{
+    border-color:var(--primary-color);
+    order: -1; 
+}
+
+/* 1. Video in focus 4:3 (Webcam) - Dimensione standard in focus */
+.video-feed.is-focused.ratio-4-3 {
+    width: 640px; 
+    height: 480px; 
+}
+
+/* 2. Video in focus 16:9 (Screen Share) - FIX: Più largo per 16:9 */
+.video-feed.is-focused.ratio-16-9 {
+    width: 800px; 
+    height: 450px; 
+}
+
+/* NUOVO: Bordo per l'utente che sta parlando */
+.video-feed.is-talking {
+    border-color: #4caf50 !important; /* Verde brillante (importante per sovrascrivere is-focused) */
+    box-shadow: 0 0 10px #4caf50;
 }
 
 .video-feed video{
@@ -197,234 +209,139 @@ html,body{
     display:block;
 }
 
-/* Dimensioni Predefinite (Desktop) */
-.video-feed.ratio-4-3{
-    width:240px; 
-    height:180px; 
-}
-.video-feed.ratio-16-9{
-    width:320px; 
-    height:180px; 
-}
-
-/* Stile per il Feed Locale */
-#local-feed{
-    order:100; /* Sposta il feed locale per ultimo */
-    border:2px solid var(--primary-color);
+/* Placeholder per quando non ci sono video remoti */
+#remote-video-placeholder {
+    width: 300px;
+    height: 225px;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--muted);
+    font-size: 1.1em;
+    text-align: center;
 }
 
-
-/* Video in Focus (Modalità a un solo grande video) */
-.video-feed.is-focused{
-    width:800px!important; 
-    height:calc(100vh - 150px)!important; /* Altezza massima 100% viewport - Controlli/Padding */
-    order:-1; /* Sposta il video in focus all'inizio */
-    max-width:calc(100vw - var(--panel-width-desktop) - 20px); /* Limite per non superare l'area video */
-    margin:auto;
-    box-shadow:0 0 15px var(--primary-color);
-}
-.video-feed.is-focused.ratio-4-3{
-    width:640px!important; 
-}
-.video-feed.is-focused.ratio-16-9{
-    width:800px!important; 
-}
-/* Gestione della ratio 4:3 in focus per schermi larghi */
-.video-feed.is-focused.ratio-4-3 video {
-    aspect-ratio: 4 / 3;
-    width: auto;
-    height: 100%;
-}
-/* Gestione della ratio 16:9 in focus */
-.video-feed.is-focused.ratio-16-9 video {
-    aspect-ratio: 16 / 9;
-    width: 100%;
-    height: auto;
-}
-
-
-/* Etichetta Video (Nickname e Stato Audio) */
 .video-label{
     position:absolute;
-    bottom:0;
-    left:0;
-    right:0;
-    background:rgba(0,0,0,0.5);
-    padding:4px 8px;
+    bottom:5px;
+    left:5px;
+    background:rgba(0,0,0,0.6);
+    color:#fff;
+    padding:3px 8px;
+    border-radius:4px;
+    font-size:0.8em;
     display:flex;
     align-items:center;
     gap:5px;
-    font-size:14px;
 }
 
-.remote-mic-status, #local-mic-status{
-    color:var(--danger); /* Icona rossa per muto */
-    font-size:18px;
-}
-
-/* Icona verde per audio attivo */
-.remote-mic-status.active, #local-mic-status.active{
-    color:#4caf50; 
-}
-
-/* Indicatore di chi sta parlando */
-.video-feed.is-talking{
-    border:2px solid var(--accent-color);
-    box-shadow:0 0 8px var(--accent-color);
-}
-
-/* Menu Contestuale Trigger */
-.context-menu-trigger{
+.local-mute-toggle,.remote-mute-toggle{
     position:absolute;
     top:5px;
     right:5px;
-    background:rgba(0,0,0,0.5);
+    background:rgba(0,0,0,0.6);
     color:#fff;
     border:none;
-    border-radius:4px;
+    border-radius:50%;
     width:30px;
     height:30px;
     display:flex;
-    align-items:center;
     justify-content:center;
+    align-items:center;
     cursor:pointer;
-    z-index:5;
-    opacity:0; /* Nascosto su desktop */
-    transition:opacity 0.2s;
+    font-size:1.2em;
 }
 
-.video-feed:hover .context-menu-trigger{
-    opacity:1; /* Mostrato al passaggio del mouse su desktop */
-}
-
-/* Pulsante Mute Remoto */
-.remote-mute-toggle{
+/* NUOVO: Pulsante Visivo per Context Menu */
+.context-menu-trigger {
     position:absolute;
     top:5px;
-    left:5px;
-    background:rgba(0,0,0,0.5);
+    right:50px; /* MODIFICATO: Aumentato a 50px per evitare sovrapposizioni con il pulsante mute */
+    background:rgba(0,0,0,0.6);
     color:#fff;
     border:none;
-    border-radius:4px;
+    border-radius:50%;
     width:30px;
     height:30px;
     display:flex;
-    align-items:center;
     justify-content:center;
-    cursor:pointer;
-    z-index:5;
-    transition:background 0.2s;
-}
-.remote-mute-toggle:hover{background:rgba(0,0,0,0.7);}
-.remote-mute-toggle.active{ /* Quando l'audio è silenziato localmente */
-    background:var(--danger);
-}
-
-
-/* Menu Contestuale */
-#remote-context-menu{
-    position:fixed;
-    background:var(--surface);
-    border-radius:8px;
-    box-shadow:0 6px 12px rgba(0,0,0,0.5);
-    z-index:100;
-    min-width:200px;
-    padding:5px 0;
-}
-.menu-item{
-    padding:10px 15px;
-    display:flex;
     align-items:center;
-    gap:10px;
     cursor:pointer;
-    transition:background 0.1s;
+    font-size:1.2em;
+    opacity: 0; /* Nascondi di default */
+    transition: opacity 0.2s ease;
 }
-.menu-item:hover{background:#333;}
-.menu-item .material-icons{font-size:20px;}
 
+/* Rendi visibile l'icona quando si passa il mouse sul feed (desktop) */
+.video-feed:hover .context-menu-trigger {
+    opacity: 1;
+}
 
-/* CHAT PANEL */
+/* Chat Panel (Desktop Sidebar) */
 #chat-panel{
-    flex-shrink:0;
     width:var(--panel-width-desktop);
+    min-width:var(--panel-width-desktop);
     background:var(--surface);
-    box-shadow:-2px 0 10px rgba(0,0,0,0.4);
     display:flex;
     flex-direction:column;
-    z-index:20;
-    height:100%;
-    transition:width 0.3s ease;
+    border-left:1px solid #333;
+    z-index:150;
 }
 
-#chat-header{
-    flex-shrink:0;
-    padding:10px 20px;
+#chat-panel.hidden{
+    display:none !important;
+}
+
+#chat-panel h3{
+    margin:0;
+    padding:15px 20px;
+    color:var(--primary-color);
     border-bottom:1px solid #333;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+    font-size:1.2em;
 }
 
 #messages-container{
     flex-grow:1;
-    overflow-y:auto;
     padding:15px 20px;
+    overflow-y:auto;
     display:flex;
     flex-direction:column;
     gap:10px;
 }
 
 .chat-message{
-    max-width:85%;
-    padding:8px 12px;
-    border-radius:15px;
+    font-size:0.95em;
     line-height:1.4;
-    word-wrap:break-word;
 }
-.chat-message.me{
-    align-self:flex-end;
-    background:var(--primary-color);
-    color:var(--surface);
-    border-bottom-right-radius:2px;
-}
-.chat-message.remote{
-    align-self:flex-start;
-    background:#333;
-    color:#fff;
-    border-bottom-left-radius:2px;
-}
-.chat-message.system{
-    align-self:center;
-    text-align:center;
-    background:transparent;
-    color:var(--muted);
-    font-size:12px;
-    padding:5px;
-    max-width:100%;
-}
-.chat-message .nickname{
-    display:block;
+
+.sender-me{
+    color:var(--primary-color);
     font-weight:bold;
-    font-size:12px;
-    margin-bottom:2px;
 }
 
-.chat-message.remote.dm{
-    background:#ffc107; /* Giallo scuro per DM ricevuti */
-    color:var(--surface);
-}
-.chat-message.me.dm{
-    background:#9e9e9e; /* Grigio per DM inviati */
-    color:var(--surface);
+.sender-remote{
+    color:var(--accent-color);
+    font-weight:bold;
 }
 
+/* NUOVI: Stili per messaggi di sistema e privati */
+.sender-system{
+    color: #FFEB3B; /* Giallo brillante */
+    font-weight: bold;
+}
+
+.sender-private{
+    color: #8BC34A; /* Verde chiaro per i DM */
+    font-weight: bold;
+}
 
 #chat-input-area{
-    flex-shrink:0;
+    display:flex;
     padding:10px;
     border-top:1px solid #333;
-    display:flex;
-    gap:10px;
+    gap:8px;
 }
 
 #chat-message-input{
@@ -432,168 +349,153 @@ html,body{
     padding:10px;
     border:1px solid #444;
     border-radius:6px;
-    background:var(--bg);
+    background:#2a2a2a;
     color:#fff;
-    font-size:14px;
-    resize:none;
-}
-#chat-message-input:focus{
-    border-color:var(--primary-color);
+    font-size:1em;
     outline:none;
 }
 
-#send-chat-button, #hide-chat-btn, #show-chat-btn{
+#send-chat-button{
     background:var(--primary-color);
-    color:#fff;
+    color:var(--bg);
     border:none;
     border-radius:6px;
-    width:40px;
-    height:40px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    padding:10px 15px;
+    font-size:1em;
+    font-weight:bold;
     cursor:pointer;
-    transition:background 0.2s;
-}
-#send-chat-button:hover, #hide-chat-btn:hover, #show-chat-btn:hover{background:darken(var(--primary-color), 10%);}
-
-#show-chat-btn{
-    position:fixed;
-    bottom:68px; /* Sopra la barra controlli */
-    right:10px;
-    z-index:20;
 }
 
-/* Animazioni */
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,152,0,0.7)}70%{box-shadow:0 0 0 10px rgba(255,152,0,0)}100%{box-shadow:0 0 0 0 rgba(255,152,0,0)}}
+#send-chat-button:hover{
+    background:var(--accent-color);
+}
 
-
-/* --- AVVISO STREAMING --- */
-.streaming-indicator{
-    position:absolute;
-    top:50%;
+/* Main Controls Bar: FIX per renderlo FISSO su mobile */
+#main-controls-bar{
+    position:fixed; /* MODIFICA: Utilizza fixed per rimanere visibile durante lo scroll */
+    bottom:20px;
     left:50%;
-    transform:translate(-50%, -50%);
-    background:rgba(0,0,0,0.7);
-    color:#fff;
-    padding:8px 15px;
-    border-radius:20px;
-    font-size:14px;
+    transform:translateX(-50%);
     display:flex;
-    align-items:center;
-    gap:5px;
-    z-index:10;
+    gap:15px;
+    background:rgba(0,0,0,0.8);
+    padding:12px 20px;
+    border-radius:12px;
+    z-index:200;
 }
-.streaming-indicator.private{
+
+#main-controls-bar button{
+    background:var(--surface);
+    color:#fff;
+    border:none;
+    border-radius:50%;
+    width:48px;
+    height:48px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+    transition:background-color 0.2s ease;
+    box-shadow:0 2px 4px rgba(0,0,0,0.3);
+}
+
+#main-controls-bar button:hover{
+    background:var(--primary-color);
+    color:var(--bg);
+}
+
+#main-controls-bar button .material-icons{
+    font-size:1.8em;
+}
+
+#disconnect-button{
     background:var(--danger);
 }
-.streaming-indicator .material-icons{
-    font-size:18px;
-}
-/* Icona condivisione schermo */
-#local-feed .material-icons.screen-share-icon{
-    position:absolute;
-    top:8px;
-    left:8px;
-    background:var(--primary-color);
-    border-radius:50%;
-    padding:5px;
-    z-index:5;
-    font-size:24px;
+
+#disconnect-button:hover{
+    background:#c62828;
 }
 
-
-/* --- MESSAGGI DI NOTIFICA (Toast) --- */
-#toast-container {
+/* --- Menu Contestuale (DM/Mute) --- */
+#remote-context-menu {
     position: fixed;
-    bottom: 70px; /* Sopra la barra controlli */
-    right: 10px;
-    z-index: 150;
-    display: flex;
-    flex-direction: column-reverse; /* I nuovi toast appaiono in alto */
-    align-items: flex-end;
-    gap: 10px;
+    background: var(--surface);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 500;
+    overflow: hidden;
+    padding: 5px 0;
+    min-width: 180px;
 }
 
-.toast {
-    background: rgba(30, 30, 30, 0.95);
-    color: #fff;
-    padding: 10px 15px;
-    border-radius: 6px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-    min-width: 250px;
-    max-width: 90vw;
-    opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    transform: translateX(100%);
+.menu-item {
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background-color 0.15s ease;
 }
 
-.toast.show {
-    opacity: 1;
-    transform: translateX(0);
+.menu-item:hover {
+    background: #3a3a3a;
 }
 
-.toast.info .material-icons { color: var(--primary-color); }
-.toast.success .material-icons { color: #4caf50; }
-.toast.error .material-icons { color: var(--danger); }
-.toast.warning .material-icons { color: var(--accent-color); }
+.menu-item .material-icons {
+    font-size: 1.2em;
+}
 
+/* Stile per l'opzione "Silenzia" quando l'utente è già mutato */
+.menu-item.active-toggle {
+    background: rgba(0, 188, 212, 0.2); /* Colore primario con opacità */
+    font-weight: bold;
+}
 
 /* --- MEDIA QUERIES/RESPONSIVE ----------------- */
 @media (max-width: 768px) {
-    
-    #main-container {
-        flex-direction: column;
-    }
-    
-    #videos-area {
-        padding: 5px;
-        flex-grow: 1;
-        height: 100%;
+    /* FIX: Nasconde il pulsante Condividi Schermo su mobile */
+    #main-controls-bar #share-screen-button {
+        display: none;
     }
 
     /* Layout Mobile: Griglia Video */
     #videos-grid {
         flex-direction: column;
-        align-items: center; 
+        align-items: center;
+        gap: 6px;
         justify-content: flex-start;
+        /* Aggiungo padding in basso per non coprire i controlli fissi */
         padding-bottom: 70px; 
-        /* AGGIUNTO: Assicura che la griglia occupi il 100% e nasconde overflow orizzontale */
-        width: 100%; 
-        overflow-x: hidden; 
-    }
-
-    /* Regole per TUTTE le video-feed (cruciale per eliminare lo scroll orizzontale) */
-    .video-feed { 
-        /* AGGIUNTO: Forza la larghezza massima per non causare scroll */
-        width: 95% !important; 
-        height: auto !important; 
-        max-width: 450px; 
     }
     
-    /* Video in focus - Riduzione dimensioni su mobile per far vedere più webcam remote */
+    .video-feed.ratio-4-3, .video-feed.ratio-16-9 {
+        width: 95%;
+        height: auto;
+    }
+    
     .video-feed.is-focused {
         order: -1; 
-        /* MODIFICATO: Riduce l'altezza massima per risparmiare spazio */
-        max-height: 40vh; 
-        /* MODIFICATO: Riduce leggermente la larghezza */
-        width: 90% !important; 
+        max-height: 45vh;
+        width: 95% !important; 
         height: auto !important; 
-        margin-top: 5px; 
     }
 
-    /* Le regole per la ratio 4:3 e 16:9 che seguono non sono state modificate in modo distruttivo. */
+    /* Regole aggiuntive per assicurare la ratio corretta su mobile in focus */
+    .video-feed.is-focused.ratio-4-3 video {
+        aspect-ratio: 4/3;
+    }
+
+    .video-feed.is-focused.ratio-16-9 video {
+        aspect-ratio: 16/9;
+    }
 
     /* Su mobile mostra sempre l'icona menu */
     .context-menu-trigger {
         opacity: 1; /* Forzato a 1 */
     }
 
-    /* Layout Mobile: Chat (presumo che questa parte sia corretta per l'overlay) */
+    /* Layout Mobile: Chat */
     #chat-panel {
         position: fixed;
         inset: 0;
@@ -628,31 +530,21 @@ html,body{
     
     /* Area Input (fissa in fondo) */
     #chat-input-area {
+        display: flex; 
+        position: relative; 
+        bottom: 0;
+        background: var(--surface);
+        z-index: 310;
+        padding: 8px; 
+        border-top: 1px solid #333;
+        min-height: 52px; 
         flex-shrink: 0; 
-        border-top: 1px solid #333; 
     }
 
-    /* Barre dei Controlli - Le tue regole originali per la dimensione dei pulsanti. */
-    #controls-bar{
-        gap: 5px;
-        padding: 10px 5px;
-    }
-    #controls-bar button {
-        width: 40px;
-        height: 40px;
-    }
-    #controls-bar button .material-icons{
-        font-size: 20px;
-    }
+    #chat-message-input {font-size: 0.95rem; min-height: 36px;}
+    #send-chat-button {height: 36px; padding: 0 12px;}
 
-    /* Toast su mobile */
-    #toast-container {
-        bottom: 55px; 
-        right: 5px;
-        left: 5px;
-        align-items: center; 
-    }
-    .toast {
-        min-width: 95%;
+    #main-controls-bar {
+        bottom: 10px;
     }
 }
