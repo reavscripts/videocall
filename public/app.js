@@ -864,13 +864,28 @@ menuDmUser.addEventListener('click', () => {
         // 1. Nascondi il menu
         hideContextMenu();
 
-        // 2. Apri il pannello chat su mobile se non è già aperto
-        if (window.innerWidth <= 768 && chatPanel.classList.contains('hidden')) {
-            showChatBtn.click(); // Riutilizza il listener esistente per aprire la chat
-        }
+        // 2. Logica di apertura della chat e messa a fuoco
+        const isMobile = window.innerWidth <= 768;
         
-        // 3. Focalizza l'input e imposta il comando /dm
-        chatMessageInput.value = `/dm ${nickname} `; 
-        chatMessageInput.focus();
+        const focusAction = () => {
+            // 3. Imposta il comando /dm e forza il focus
+            chatMessageInput.value = `/dm ${nickname} `; 
+            chatMessageInput.focus(); 
+            // Su mobile, forza lo scroll verso l'input per assicurare che sia visibile
+            if(isMobile) {
+                setTimeout(() => {
+                    chatMessageInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }, 50);
+            }
+        };
+
+        if (isMobile && chatPanel.classList.contains('hidden')) {
+            showChatBtn.click(); 
+            // Se stiamo aprendo la chat (mobile), ritardiamo il focus (0.3s è la durata della transizione CSS)
+            setTimeout(focusAction, 350); 
+        } else {
+            // Se è desktop o la chat è già aperta, esegui immediatamente
+            focusAction();
+        }
     }
 });
