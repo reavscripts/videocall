@@ -14,8 +14,6 @@ html,body{
     background:var(--bg);
     color:#fff;
     font-family:Roboto,Arial,sans-serif;
-    /* FIX: Impedisce lo scroll orizzontale su mobile */
-    overflow-x: hidden; 
 }
 .hidden{display:none!important}
 
@@ -169,7 +167,7 @@ html,body{
     border:3px solid transparent;
 }
 
-/* Dimensioni predefinite per video NON in focus (desktop) */
+/* Dimensioni predefinite per video NON in focus (restano 4:3) */
 .video-feed.ratio-4-3 {
     width: 240px; 
     height: 180px; 
@@ -186,13 +184,13 @@ html,body{
     order: -1; 
 }
 
-/* 1. Video in focus 4:3 (Webcam) - Dimensione standard in focus (desktop) */
+/* 1. Video in focus 4:3 (Webcam) - Dimensione standard in focus */
 .video-feed.is-focused.ratio-4-3 {
     width: 640px; 
     height: 480px; 
 }
 
-/* 2. Video in focus 16:9 (Screen Share) - Più largo per 16:9 (desktop) */
+/* 2. Video in focus 16:9 (Screen Share) - FIX: Più largo per 16:9 */
 .video-feed.is-focused.ratio-16-9 {
     width: 800px; 
     height: 450px; 
@@ -297,25 +295,6 @@ html,body{
     font-weight:bold;
 }
 
-/* Stile Messaggi Privati (DM) */
-.chat-message.private-message {
-    border-left: 3px solid var(--accent-color);
-    padding-left: 8px;
-    margin-left: -20px; 
-    padding-left: 17px;
-    padding-top: 2px;
-    padding-bottom: 2px;
-    background-color: rgba(255, 152, 0, 0.1); 
-    border-radius: 4px;
-}
-
-.chat-message.private-message .sender-me, 
-.chat-message.private-message .sender-remote {
-    color: var(--accent-color);
-    font-style: italic;
-}
-
-
 #chat-input-area{
     display:flex;
     padding:10px;
@@ -351,7 +330,7 @@ html,body{
 
 /* Main Controls Bar */
 #main-controls-bar{
-    position:absolute; 
+    position:absolute;
     bottom:20px;
     left:50%;
     transform:translateX(-50%);
@@ -395,7 +374,7 @@ html,body{
     background:#c62828;
 }
 
-/* --- MEDIA QUERIES/RESPONSIVE (CORREZIONE CRITICA) ----------------- */
+/* --- MEDIA QUERIES/RESPONSIVE ----------------- */
 @media (max-width: 768px) {
     /* Layout Mobile: Griglia Video */
     #videos-grid {
@@ -403,48 +382,19 @@ html,body{
         align-items: center;
         gap: 6px;
         justify-content: flex-start;
-        /* Assicura che la griglia possa scorrere verticalmente */
-        overflow-y: auto; 
-        width: 100vw; /* Importante per contenere i figli */
     }
     
-    /* FIX: Assicura che i video NON focalizzati usino la larghezza dello schermo */
-    .video-feed.ratio-4-3, 
-    .video-feed.ratio-16-9 {
-        width: 95vw; 
+    .video-feed.ratio-4-3, .video-feed.ratio-16-9 {
+        width: 95%;
         height: auto;
-        /* Aggiungo max-width per sicurezza */
-        max-width: 95vw;
     }
     
     .video-feed.is-focused {
         order: -1; 
-        /* FIX: Il video in focus usa la larghezza dello schermo */
-        width: 95vw !important; 
-        height: auto;
-        /* FIX: Limita l'altezza massima per lasciare spazio ai controlli */
-        max-height: 70vh !important; 
+        max-height: 45vh;
     }
 
-    /* FIX: Sovrascrivi le dimensioni fisse per i video focalizzati (rende responsive) */
-    /* Aggiungo !important per sovrascrivere le regole desktop forzate */
-    .video-feed.is-focused.ratio-4-3, 
-    .video-feed.is-focused.ratio-16-9 {
-        width: 95vw !important; 
-        height: auto;
-    }
-    
-    /* FIX: Controlli sempre visibili in basso e centrati */
-    #main-controls-bar {
-        position: fixed; /* Mantiene i pulsanti sempre in vista */
-        bottom: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: auto;
-        max-width: 95%; 
-    }
-    
-    /* Layout Mobile: Chat (funzionalità di overlay) */
+    /* Layout Mobile: Chat */
     #chat-panel {
         position: fixed;
         inset: 0;
@@ -462,4 +412,31 @@ html,body{
     #chat-input-area {padding: 8px;}
     #chat-message-input {font-size: 0.95rem; min-height: 36px;}
     #send-chat-button {height: 36px; padding: 0 12px;}
+
+    #main-controls-bar {
+        bottom: 10px;
+    }
+
 }
+
+/* ************************************** */
+/* NUOVO STILE: MESSAGGI PRIVATI (DM) */
+/* ************************************** */
+.chat-message.private-message {
+    border-left: 3px solid var(--accent-color);
+    padding-left: 8px;
+    /* Spostato per bilanciare l'aggiunta di padding-left: 17px */
+    margin-left: -20px; 
+    padding-left: 17px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    background-color: rgba(255, 152, 0, 0.1); 
+    border-radius: 4px;
+}
+
+.chat-message.private-message .sender-me, 
+.chat-message.private-message .sender-remote {
+    color: var(--accent-color);
+    font-style: italic;
+}
+/* ************************************** */
