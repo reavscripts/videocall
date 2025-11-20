@@ -41,7 +41,7 @@ io.on('connection', (socket) => {
     // Avvisa gli altri peer
     socket.to(roomId).emit('peer-joined', socket.id, nickname);
 
-    // Messaggi chat
+    // Messaggi chat (Pubblici)
     socket.on('send-message', (room, sender, message) => {
       io.to(room).emit('new-message', sender, message);
     });
@@ -54,6 +54,7 @@ io.on('connection', (socket) => {
         // 'io.to(recipientId)' invia l'evento 'new-private-message' solo al client destinatario.
         io.to(recipientId).emit('new-private-message', senderNickname, message);
         
+        // Log opzionale sul server
         console.log(`DM inviato da ${senderNickname} (stanza ${roomId}) a socket ${recipientId}`);
     });
     // ******************************************************
