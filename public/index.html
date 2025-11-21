@@ -9,13 +9,10 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon/favicon-16x16.png">
 <link rel="shortcut icon" href="/images/favicon/favicon.ico">
-
 <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon/apple-touch-icon.png">
-
 <link rel="manifest" href="/images/favicon/site.webmanifest">
 </head>
 <body>
-
 
 <div id="nickname-overlay">
 <img id="app-logo" src="images/logo.png" alt="Logo" />
@@ -26,9 +23,31 @@
 <div class="row">
 <button id="join-button">Entra nella Conferenza</button>
 </div>
+<div style="margin-top: 15px; font-size: 0.8em; color: #666; cursor: pointer;" id="open-admin-login">Admin Panel</div>
 </div>
 </div>
 
+<div id="admin-panel" class="hidden">
+    <div class="admin-header">
+        <h3>🛡️ Admin Dashboard</h3>
+        <button id="close-admin-btn"><span class="material-icons">close</span></button>
+    </div>
+    <div class="admin-content">
+        <div id="admin-login-view">
+            <input type="password" id="admin-password-input" placeholder="Password Admin" />
+            <button id="admin-login-btn">Login</button>
+            <p id="admin-msg" style="color: red; margin-top: 10px;"></p>
+        </div>
+        <div id="admin-dashboard-view" class="hidden">
+            <div class="stats-bar">
+                <span>Utenti Totali: <strong id="admin-total-users">0</strong></span>
+            </div>
+            <div id="admin-rooms-list">
+                </div>
+            <button id="admin-refresh-btn">Aggiorna Dati</button>
+        </div>
+    </div>
+</div>
 
 <div id="conference-container" class="hidden">
 <header id="room-header">
@@ -42,7 +61,6 @@
 </button>
 </div>
 </header>
-
 
 <main id="main-area">
 <section id="videos-grid">
@@ -72,6 +90,7 @@
     </div>
     <canvas id="whiteboard-canvas"></canvas>
 </div>
+
 <aside id="chat-panel" class="panel-column">
 <h3>💬 Chat</h3>
 <div id="messages-container"></div>
@@ -87,18 +106,17 @@
   <button id="transfer-file-button" title="Trasferisci File">
     <span class="material-icons">folder_open</span>
   </button>
-    
-    <button id="record-button" title="Avvia Registrazione" class="off"><span class="material-icons">fiber_manual_record</span></button>
-      <button id="share-screen-button" title="Condividi Schermo"><span class="material-icons">screen_share</span></button>
-	  <button id="toggle-whiteboard-button" title="Attiva/Disattiva Whiteboard">
+  <button id="record-button" title="Avvia Registrazione" class="off"><span class="material-icons">fiber_manual_record</span></button>
+  <button id="share-screen-button" title="Condividi Schermo"><span class="material-icons">screen_share</span></button>
+  <button id="toggle-whiteboard-button" title="Attiva/Disattiva Whiteboard">
     <span class="material-icons">draw</span>
-</button>
+  </button>
   <button id="disconnect-button" title="Disconnetti"><span class="material-icons">call_end</span></button>
 </div>
-
 </main>
 </div>
 
+<div id="file-transfer-container"></div>
 <input type="file" id="file-input" class="hidden" /> 
 
 <template id="remote-video-template">
@@ -113,7 +131,7 @@
     <button class="context-menu-trigger" title="Opzioni Utente">
         <span class="material-icons">more_vert</span>
     </button>
-    </div>
+</div>
 </template>
 
 <div id="remote-context-menu" class="hidden">

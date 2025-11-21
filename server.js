@@ -7,7 +7,9 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Configurazione Socket.IO
+// *** CONFIGURAZIONE ADMIN ***
+const ADMIN_PASSWORD = "admin123"; // <--- CAMBIA QUESTA PASSWORD!
+
 const io = new Server(server, {
  cors: {
   origin: '*', 
@@ -15,16 +17,12 @@ const io = new Server(server, {
  }
 });
 
-// Serve file statici (HTML/CSS/JS)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Rooms e nicknames
-const rooms = {}; // { roomId: { socketId: nickname, ... } }
+const rooms = {}; 
+const whiteboardHistory = {}; 
+const admins = new Set(); // Set di socket ID che sono admin loggati
 
-// *** CRONOLOGIA WHITEBOARD ***
-const whiteboardHistory = {}; // { roomId: [ { type: 'line', x0, y0, x1, y1, color, width }, ... ] }
-
-// Gestione connessione Socket.IO
 io.on('connection', (socket) => {
  console.log('Nuovo client connesso', socket.id);
 
@@ -32,11 +30,8 @@ io.on('connection', (socket) => {
   socket.join(roomId);
 
   if (!rooms[roomId]) rooms[roomId] = {};
-  
-  // Inizializza cronologia whiteboard se non esiste
   if (!whiteboardHistory[roomId]) whiteboardHistory[roomId] = [];
 
-  // Controllo unicità nickname
   const nicknameExists = Object.values(rooms[roomId]).some(existingNick => existingNick.toLowerCase() === nickname.toLowerCase());
 
   if (nicknameExists) {
@@ -53,14 +48,88 @@ io.on('connection', (socket) => {
 
   socket.emit('welcome', socket.id, nickname, peers);
 
-  // *** Invia lo stato attuale della whiteboard al nuovo utente ***
   if(whiteboardHistory[roomId] && whiteboardHistory[roomId].length > 0) {
       socket.emit('wb-history', whiteboardHistory[roomId]);
   }
 
   socket.to(roomId).emit('peer-joined', socket.id, nickname);
-  console.log(`${nickname} (${socket.id}) si è unito alla stanza ${roomId}`);
+  
+  // Aggiorna gli admin se ci sono cambiamenti
+  broadcastAdminUpdate();
  });
+
+  // **********************************************
+  // ***** INIZIO LOGICA ADMIN ********************
+  // **********************************************
+
+  socket.on('admin-login', (password) => {
+      if (password === ADMIN_PASSWORD) {
+          admins.add(socket.id);
+          socket.emit('admin-login-success');
+          sendAdminData(socket.id); // Invia dati iniziali
+      } else {
+          socket.emit('admin-login-fail');
+      }
+  });
+
+  socket.on('admin-kick-user', (targetSocketId) => {
+      if (!admins.has(socket.id)) return; // Sicurezza
+      
+      const targetSocket = io.sockets.sockets.get(targetSocketId);
+      if (targetSocket) {
+          targetSocket.emit('kicked-by-admin'); // Avvisa l'utente
+          targetSocket.disconnect(true); // Disconnetti forzatamente
+          console.log(`Admin ${socket.id} ha espulso ${targetSocketId}`);
+      }
+      broadcastAdminUpdate(); // Aggiorna la lista
+  });
+
+  socket.on('admin-close-room', (targetRoomId) => {
+      if (!admins.has(socket.id)) return;
+
+      // Disconnetti tutti nella stanza
+      io.in(targetRoomId).fetchSockets().then(sockets => {
+          sockets.forEach(s => {
+              s.emit('room-closed-by-admin');
+              s.disconnect(true);
+          });
+      });
+      
+      // Pulisci dati server
+      delete rooms[targetRoomId];
+      delete whiteboardHistory[targetRoomId];
+      
+      broadcastAdminUpdate();
+  });
+
+  socket.on('admin-refresh', () => {
+      if(admins.has(socket.id)) sendAdminData(socket.id);
+  });
+
+  // Helper: Manda i dati a un admin specifico
+  function sendAdminData(adminSocketId) {
+      const stats = {
+          totalUsers: io.engine.clientsCount,
+          rooms: rooms
+      };
+      io.to(adminSocketId).emit('admin-data-update', stats);
+  }
+
+  // Helper: Aggiorna tutti gli admin attivi
+  function broadcastAdminUpdate() {
+      if (admins.size === 0) return;
+      const stats = {
+          totalUsers: io.engine.clientsCount,
+          rooms: rooms
+      };
+      admins.forEach(adminId => {
+          io.to(adminId).emit('admin-data-update', stats);
+      });
+  }
+
+  // **********************************************
+  // ***** FINE LOGICA ADMIN **********************
+  // **********************************************
 
   socket.on('send-message', (roomId, senderNickname, message) => {
     socket.to(roomId).emit('new-message', senderNickname, message);
@@ -70,70 +139,40 @@ io.on('connection', (socket) => {
     io.to(recipientId).emit('new-private-message', senderNickname, message);
   });
 
-  // **********************************************
-  // ***** INIZIO LOGICA WHITEBOARD ***************
-  // **********************************************
-
   socket.on('wb-draw', (roomId, data) => {
       if (!whiteboardHistory[roomId]) whiteboardHistory[roomId] = [];
       whiteboardHistory[roomId].push(data);
-      // Inoltra il tratto a tutti gli altri
       socket.to(roomId).emit('wb-draw', data);
   });
 
   socket.on('wb-clear', (roomId) => {
-      console.log(`[Whiteboard] Clear requested for room ${roomId}`);
-      whiteboardHistory[roomId] = []; // Pulisci server
-      io.to(roomId).emit('wb-clear'); // Avvisa tutti
+      whiteboardHistory[roomId] = []; 
+      io.to(roomId).emit('wb-clear'); 
   });
 
   socket.on('wb-undo', (roomId) => {
-      console.log(`[Whiteboard] Undo requested for room ${roomId}`); // LOG DI DEBUG
-      
       if (whiteboardHistory[roomId] && whiteboardHistory[roomId].length > 0) {
-          whiteboardHistory[roomId].pop(); // Rimuovi l'ultima azione
-          
-          console.log(`[Whiteboard] Undo executed. Remaining strokes: ${whiteboardHistory[roomId].length}`);
-          
-          // Invia la nuova cronologia completa a tutti per ridisegnare
+          whiteboardHistory[roomId].pop(); 
           io.to(roomId).emit('wb-history', whiteboardHistory[roomId]);
-      } else {
-          console.log(`[Whiteboard] Undo ignored: History empty or room undefined`);
       }
   });
   
   socket.on('wb-request-history', (roomId) => {
       if (whiteboardHistory[roomId] && whiteboardHistory[roomId].length > 0) {
-          // Invia la history SOLO al richiedente (socket)
           socket.emit('wb-history', whiteboardHistory[roomId]);
       }
   });
 
-  // **********************************************
-  // ***** FINE LOGICA WHITEBOARD *****************
-  // **********************************************
-
-  socket.on('offer', (toId, offer) => {
-   io.to(toId).emit('offer', socket.id, offer);
-  });
-
-  socket.on('answer', (toId, answer) => {
-   io.to(toId).emit('answer', socket.id, answer);
-  });
-
-  socket.on('candidate', (toId, candidate) => {
-   io.to(toId).emit('candidate', socket.id, candidate);
-  });
-
-  socket.on('audio-status-changed', (room, isTalking) => {
-    socket.to(room).emit('audio-status-changed', socket.id, isTalking);
-  });
-  
-  socket.on('stream-type-changed', (room, newRatio) => {
-   socket.to(room).emit('remote-stream-type-changed', socket.id, newRatio);
-  });
+  socket.on('offer', (toId, offer) => { io.to(toId).emit('offer', socket.id, offer); });
+  socket.on('answer', (toId, answer) => { io.to(toId).emit('answer', socket.id, answer); });
+  socket.on('candidate', (toId, candidate) => { io.to(toId).emit('candidate', socket.id, candidate); });
+  socket.on('audio-status-changed', (room, isTalking) => { socket.to(room).emit('audio-status-changed', socket.id, isTalking); });
+  socket.on('stream-type-changed', (room, newRatio) => { socket.to(room).emit('remote-stream-type-changed', socket.id, newRatio); });
 
   socket.on('disconnect', () => {
+   // Rimuovi dagli admin se era un admin
+   if (admins.has(socket.id)) admins.delete(socket.id);
+
    let roomId = null;
    let disconnectedNickname = 'Un utente';
 
@@ -145,7 +184,7 @@ io.on('connection', (socket) => {
 
      if (Object.keys(rooms[id]).length === 0) {
       delete rooms[id];
-      delete whiteboardHistory[id]; // Pulisci whiteboard se la stanza è vuota
+      delete whiteboardHistory[id]; 
      }
      break;
     }
@@ -154,6 +193,7 @@ io.on('connection', (socket) => {
    if (roomId) {
     socket.to(roomId).emit('peer-left', socket.id, disconnectedNickname);
    }
+   broadcastAdminUpdate(); // Aggiorna admin
   });
 });
 
