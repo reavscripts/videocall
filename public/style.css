@@ -236,22 +236,7 @@ html,body{
     gap:5px;
 }
 
-.local-mute-toggle,.remote-mute-toggle{
-    position:absolute;
-    top:5px;
-    right:5px;
-    background:rgba(0,0,0,0.6);
-    color:#fff;
-    border:none;
-    border-radius:50%;
-    width:30px;
-    height:30px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    cursor:pointer;
-    font-size:1.2em;
-}
+/* RIMOSSI STILI .local-mute-toggle E .remote-mute-toggle */
 
 /* Context menu button */
 .context-menu-trigger {
@@ -449,7 +434,7 @@ html,body{
     font-weight: bold;
 }
 
-/* STILI WHITEBOARD (NUOVO) */
+/* STILI WHITEBOARD */
 #whiteboard-container {
     position: absolute;
     inset: 0;
@@ -518,10 +503,8 @@ html,body{
     cursor: crosshair;
     touch-action: none; /* Importante per disegnare su mobile */
 }
-/* FINE STILI WHITEBOARD */
 
-
-/* NUOVI STILI TRASFERIMENTO FILE */
+/* STILI TRASFERIMENTO FILE */
 .file-transfer-status {
     position: absolute;
     bottom: 0; 
@@ -580,8 +563,6 @@ html,body{
     50% { transform: scale(1.1); opacity: 1; }
     100% { transform: scale(0.95); opacity: 1; }
 }
-
-/* FINE NUOVI STILI */
 
 /* ---------------------------------------------- */
 /* -------- MOBILE PATCH (RICHIAMATO) ----------- */
@@ -643,6 +624,25 @@ html,body{
         overflow: hidden; 
     }
     #chat-panel.active {transform: translateY(0);}
+
+    /* *** FIX MOBILE CONTROLS BAR *** */
+    #main-controls-bar {
+        width: 95%; /* Occupa quasi tutta la larghezza */
+        padding: 10px 5px; /* Padding ridotto */
+        gap: 5px; /* Spazio tra i bottoni ridotto */
+        justify-content: space-between; /* Distribuisci uniformemente */
+        bottom: 10px; /* Più in basso */
+    }
+
+    #main-controls-bar button {
+        width: 38px; /* Bottoni più piccoli */
+        height: 38px;
+        flex-shrink: 0; /* Impedisce che si schiaccino */
+    }
+
+    #main-controls-bar button .material-icons {
+        font-size: 1.4em; /* Icone leggermente più piccole */
+    }
 }
 
 /* Extra fix per telefoni molto piccoli */

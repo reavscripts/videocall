@@ -242,22 +242,18 @@ function monitorLocalAudio(start = true) {
     }
 }
 
-// --- LOGICA MUTE/DM REMOTO ---
+// --- LOGICA MUTE/DM REMOTO (Aggiornata senza icona video) ---
 function toggleRemoteMute(peerId) {
     const isMuted = !manuallyMutedPeers[peerId];
     manuallyMutedPeers[peerId] = isMuted;
 
     const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
     const remoteVideo = feed ? feed.querySelector('video') : null;
-    const muteToggleIcon = feed ? feed.querySelector('.remote-mute-toggle .material-icons') : null;
-
+    
+    // Muta effettivamente l'elemento video
     if (remoteVideo) remoteVideo.muted = isMuted;
 
-    if (muteToggleIcon) {
-        muteToggleIcon.textContent = isMuted ? 'volume_off' : 'volume_up';
-        muteToggleIcon.closest('button').title = isMuted ? 'Riattiva Audio Locale' : 'Silenzia Audio Locale';
-    }
-    
+    // Aggiorna lo stato del menu contestuale se aperto per questo utente
     if(contextTargetPeerId === peerId) {
         updateContextMenuState(peerId);
     }
@@ -315,21 +311,16 @@ function setFocus(peerId, manual=false){
 
 function addRemoteControlListeners(feed){
     const peerId = feed.dataset.peerId;
-    const remoteMuteButton = feed.querySelector('.remote-mute-toggle');
+    // Rimosso riferimento a remote-mute-toggle
     const contextMenuTrigger = feed.querySelector('.context-menu-trigger'); 
     const remoteVideo = feed.querySelector('video');
 
-    remoteMuteButton.addEventListener('click', (e) => {
-        e.stopPropagation(); 
-        toggleRemoteMute(peerId);
-    });
+    // Rimosso listener click su remoteMuteButton
     
     if (manuallyMutedPeers[peerId]) {
         remoteVideo.muted = true;
-        remoteMuteButton.querySelector('.material-icons').textContent = 'volume_off';
     } else {
         remoteVideo.muted = false;
-        remoteMuteButton.querySelector('.material-icons').textContent = 'volume_up';
     }
     
     if (contextMenuTrigger) {
