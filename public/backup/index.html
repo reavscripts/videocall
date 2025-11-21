@@ -58,7 +58,23 @@
     </div>
 </section>
 
-
+<div id="whiteboard-container" class="hidden">
+    <div class="wb-toolbar">
+        <div class="wb-colors">
+            <div class="color-btn active" style="background: #ffffff;" data-color="#ffffff"></div>
+            <div class="color-btn" style="background: #ff5252;" data-color="#ff5252"></div>
+            <div class="color-btn" style="background: #448aff;" data-color="#448aff"></div>
+            <div class="color-btn" style="background: #69f0ae;" data-color="#69f0ae"></div>
+            <div class="color-btn" style="background: #ffd740;" data-color="#ffd740"></div>
+        </div>
+        <div class="wb-actions">
+            <button id="wb-undo-btn" title="Annulla Ultimo Tratto"><span class="material-icons">undo</span></button>
+            <button id="wb-clear-btn" title="Cancella Tutto"><span class="material-icons">delete</span></button>
+            <button id="wb-close-btn" title="Chiudi Lavagna"><span class="material-icons">close</span></button>
+        </div>
+    </div>
+    <canvas id="whiteboard-canvas"></canvas>
+</div>
 <aside id="chat-panel" class="panel-column">
 <h3>💬 Chat</h3>
 <div id="messages-container"></div>
@@ -68,17 +84,25 @@
 </div>
 </aside>
 
-
 <div id="main-controls-bar">
-    <button id="toggle-audio-button" title="Muta/Attiva Audio"><span class="material-icons">mic</span></button>
-    <button id="toggle-video-button" title="Disattiva/Attiva Video"><span class="material-icons">videocam</span></button>
-    <button id="share-screen-button" title="Condividi Schermo"><span class="material-icons">screen_share</span></button>
-    <button id="disconnect-button" title="Disconnetti"><span class="material-icons">call_end</span></button>
+  <button id="toggle-audio-button" title="Muta/Attiva Audio"><span class="material-icons">mic</span></button>
+  <button id="toggle-video-button" title="Disattiva/Attiva Video"><span class="material-icons">videocam</span></button>
+  <button id="transfer-file-button" title="Trasferisci File">
+    <span class="material-icons">folder_open</span>
+  </button>
+    
+    <button id="record-button" title="Avvia Registrazione" class="off"><span class="material-icons">fiber_manual_record</span></button>
+      <button id="share-screen-button" title="Condividi Schermo"><span class="material-icons">screen_share</span></button>
+	  <button id="toggle-whiteboard-button" title="Attiva/Disattiva Whiteboard">
+    <span class="material-icons">draw</span>
+</button>
+  <button id="disconnect-button" title="Disconnetti"><span class="material-icons">call_end</span></button>
 </div>
-
 
 </main>
 </div>
+
+<input type="file" id="file-input" class="hidden" /> 
 
 <template id="remote-video-template">
 <div class="video-feed ratio-4-3">
