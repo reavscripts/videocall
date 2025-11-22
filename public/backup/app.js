@@ -125,6 +125,76 @@ const iceConfiguration = {
   ]
 };
 
+const audioAssets = {
+    // Suono "Pop" leggero per la Chat
+    chat: new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"), // (Stringa accorciata per leggibilità, userò una versione funzionante sotto)
+    
+    // Suono "Ding" per File e Whiteboard
+    alert: new Audio("data:audio/mp3;base64,//uQxAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//uQxAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"),
+    
+    // Suono "Beep-Beep" per Registrazione
+    rec: new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU") 
+};
+
+// Carichiamo suoni reali (brevi beep di sistema)
+// Nota: Per brevità qui uso URL dummy. 
+// Sotto ti fornisco la funzione playSound con suoni generati al volo o URL stabili.
+// PER SEMPLICITÀ USEREMO UN GENERATORE WEB AUDIO API (Nessun file necessario)
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playNotificationSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    const now = audioCtx.currentTime;
+
+    if (type === 'chat') {
+        // Suono: "Pop" acuto e veloce
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+    } 
+    else if (type === 'file' || type === 'wb') {
+        // Suono: "Ding" cristallino
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1200, now);
+        gainNode.gain.setValueAtTime(0.2, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+    }
+    else if (type === 'rec') {
+        // Suono: Doppio Beep (REC start)
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(600, now);
+        gainNode.gain.setValueAtTime(0.1, now);
+        
+        // Beep 1
+        osc.start(now);
+        osc.stop(now + 0.1);
+        
+        // Beep 2
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'square';
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.frequency.setValueAtTime(600, now + 0.15);
+        gain2.gain.setValueAtTime(0.1, now + 0.15);
+        osc2.start(now + 0.15);
+        osc2.stop(now + 0.25);
+    }
+}
+
 // ---------- Helpers ----------
 function log(...args){ console.log('[APP]',...args); }
 
@@ -299,16 +369,47 @@ function showContextMenu(peerId, x, y) {
 }
 function hideContextMenu() { contextMenuEl.classList.add('hidden'); contextTargetPeerId = null; }
 
-function setFocus(peerId, manual=false){ 
-  videosGrid.querySelectorAll('.video-feed').forEach(feed => feed.classList.remove('is-focused'));
-  focusedPeerId = peerId;
-  isManualFocus = manual; 
-  if (manual && autoFocusTimer) { clearTimeout(autoFocusTimer); autoFocusTimer = null; }
-  if (peerId === 'local') localFeedEl.classList.add('is-focused');
-  else if (peerId) {
-      const newFocused = videosGrid.querySelector(`[data-peer-id="${focusedPeerId}"]`);
-      if(newFocused) newFocused.classList.add('is-focused');
-  }
+function setFocus(peerId, manual=false) { 
+    // 1. Reset stato precedente
+    videosGrid.classList.remove('has-fullscreen');
+    const allFeeds = videosGrid.querySelectorAll('.video-feed');
+    allFeeds.forEach(feed => {
+        feed.classList.remove('is-focused', 'fullscreen-active', 'pip-mode');
+    });
+
+    focusedPeerId = peerId;
+    isManualFocus = manual; 
+
+    if (manual && autoFocusTimer) { 
+        clearTimeout(autoFocusTimer); 
+        autoFocusTimer = null; 
+    }
+
+    // Se non c'è nessun focus (clic per deselezionare), abbiamo finito (torna griglia)
+    if (!peerId) return;
+
+    // 2. Attiva modalità Fullscreen sul contenitore
+    videosGrid.classList.add('has-fullscreen');
+
+    // 3. Identifica il video da ingrandire
+    let targetFeed = null;
+    if (peerId === 'local') {
+        targetFeed = localFeedEl;
+    } else {
+        targetFeed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
+    }
+
+    // 4. Applica classi
+    if (targetFeed) {
+        targetFeed.classList.add('fullscreen-active'); // Diventa grande
+    }
+
+    // 5. Trasforma TUTTI gli altri video in PiP (Picture in Picture)
+    allFeeds.forEach(feed => {
+        if (feed !== targetFeed) {
+            feed.classList.add('pip-mode');
+        }
+    });
 }
 
 function toggleFocus(peerId) {
@@ -372,6 +473,7 @@ function addRemoteControlListeners(feed){
 function ensureRemoteFeed(socketId, nickname='Utente'){
   let feed = videosGrid.querySelector(`[data-peer-id="${socketId}"]`);
   if(feed) return feed;
+  
   const template = document.getElementById('remote-video-template');
   const div = template.content.cloneNode(true).querySelector('.video-feed');
   div.dataset.peerId = socketId; 
@@ -387,7 +489,12 @@ function ensureRemoteFeed(socketId, nickname='Utente'){
   
   const placeholder = document.getElementById('remote-video-placeholder');
   if(placeholder) placeholder.remove();
-  videosGrid.insertBefore(div, localFeedEl);
+  
+  videosGrid.insertBefore(div, localFeedEl); // Aggiunge il video
+
+  if (focusedPeerId) {
+      setFocus(focusedPeerId);
+  }
   return div;
 }
 
@@ -495,23 +602,38 @@ async function sendFile(peerId, file) {
 
 function handleDataChannelMessage(peerId, event) {
     const data = event.data;
+    
+    // Gestione metadati (JSON)
     if (typeof data === 'string') {
         try {
             const msg = JSON.parse(data);
             if (msg.type === 'file-metadata') {
-                fileMetadata[peerId] = { name: msg.name, size: msg.size, type: msg.fileType, received: 0 };
+                // [NUOVO] Suono ricezione file
+                playNotificationSound('file');
+
+                fileMetadata[peerId] = { 
+                    name: msg.name, 
+                    size: msg.size, 
+                    type: msg.fileType, 
+                    received: 0 
+                };
                 fileChunks[peerId] = [];
                 fileMetadata[peerId].toast = createProgressToast(`Ricevendo: ${msg.name}`, false);
             }
         } catch (e) {}
         return;
     }
+
+    // Gestione dati binari (Chunk del file)
     if (fileMetadata[peerId]) {
         fileChunks[peerId].push(data);
         fileMetadata[peerId].received += data.byteLength;
+        
         const meta = fileMetadata[peerId];
         const percent = Math.min(100, Math.round((meta.received / meta.size) * 100));
+        
         updateProgressToast(meta.toast, percent);
+        
         if (meta.received >= meta.size) saveReceivedFile(peerId);
     }
 }
@@ -644,6 +766,7 @@ function startRecording() {
     }
 
     let streamToRecord = null;
+    // Decide quale stream registrare (locali o focus remoto)
     if (focusedPeerId === 'local') {
         streamToRecord = (localVideoEl.srcObject || localStream);
     } else {
@@ -673,6 +796,9 @@ function startRecording() {
 
     recordedChunks = [];
     try {
+        // [NUOVO] Suono di avvio registrazione
+        playNotificationSound('rec');
+
         mediaRecorder = new MediaRecorder(streamToRecord, { mimeType: selectedMimeType });
         
         mediaRecorder.ondataavailable = e => {
@@ -849,7 +975,39 @@ function copyRoomLink(){
         console.error('Errore copia:', err);
     }); 
 }
-function addChatMessage(sender, message, isLocal=false, type='public'){ const messageEl = document.createElement('div'); messageEl.classList.add('chat-message'); let cssClass; let senderText = sender; if (type === 'system') { cssClass = 'sender-system'; senderText = 'Sistema'; } else if (type === 'private') { cssClass = 'sender-private'; } else { cssClass = isLocal ? 'sender-me' : 'sender-remote'; } const prefix = isLocal ? `Tu${type === 'private' ? ` (DM a ${sender})` : ''}: ` : `${senderText}: `; messageEl.innerHTML = `<span class="${cssClass}">${prefix}</span>${message}`; messagesContainer.appendChild(messageEl); messagesContainer.scrollTop = messagesContainer.scrollHeight; }
+function addChatMessage(sender, message, isLocal = false, type = 'public') {
+    const messageEl = document.createElement('div');
+    messageEl.classList.add('chat-message');
+
+    let cssClass;
+    let senderText = sender;
+
+    // Determina lo stile in base al tipo di messaggio
+    if (type === 'system') {
+        cssClass = 'sender-system';
+        senderText = 'Sistema';
+    } else if (type === 'private') {
+        cssClass = 'sender-private';
+    } else {
+        cssClass = isLocal ? 'sender-me' : 'sender-remote';
+    }
+
+    // Costruisci il prefisso (es. "Tu:", "Mario:", "Sistema:")
+    const prefix = isLocal 
+        ? `Tu${type === 'private' ? ` (DM a ${sender})` : ''}: ` 
+        : `${senderText}: `;
+
+    messageEl.innerHTML = `<span class="${cssClass}">${prefix}</span>${message}`;
+    
+    messagesContainer.appendChild(messageEl);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // [NUOVO] Riproduci suono se il messaggio non è tuo e non è di sistema
+    if (!isLocal && type !== 'system') {
+        playNotificationSound('chat');
+    }
+}
+
 function clearChatInput(){ chatMessageInput.value = ''; }
 function sendMessage(){ const fullMessage = chatMessageInput.value.trim(); if (!fullMessage) return; const parts = fullMessage.split(' '); if (parts[0].toLowerCase() === '/dm' && parts.length >= 3) { const recipientNickname = parts[1]; const messageContent = parts.slice(2).join(' '); if (recipientNickname.toLowerCase() === userNickname.toLowerCase()) { addChatMessage('Sistema', 'No DM a te stesso.', true, 'system'); clearChatInput(); return; } const recipientId = Object.keys(remoteNicknames).find(key => remoteNicknames[key] && remoteNicknames[key].toLowerCase() === recipientNickname.toLowerCase()); if (recipientId) { sendPrivateMessage(recipientId, recipientNickname, messageContent); clearChatInput(); } else { addChatMessage('Sistema', `Utente "${recipientNickname}" non trovato.`, true, 'system'); } return; } if (socket && currentRoomId) { socket.emit('send-message', currentRoomId, userNickname, fullMessage); addChatMessage(userNickname, fullMessage, true, 'public'); clearChatInput(); } }
 function sendPrivateMessage(recipientId, recipientNickname, message) { if (!message || !recipientId) return; if (socket && currentRoomId) { socket.emit('send-private-message', currentRoomId, recipientId, userNickname, message); addChatMessage(recipientNickname, message, true, 'private'); } }
@@ -886,7 +1044,22 @@ function initializeSocket(){
   socket.on('welcome', (newPeerId, nickname, peers=[])=>{ remoteNicknames[newPeerId] = nickname; addChatMessage(userNickname, `Benvenuto in ${currentRoomId}!`, false, 'system'); peers.forEach(peer=>{ if(peer.id !== socket.id) { remoteNicknames[peer.id] = peer.nickname; createPeerConnection(peer.id); } }); setFocus('local', false); });
   
   // Whiteboard events
-  socket.on('wb-draw', (data) => { if (whiteboardContainer.classList.contains('hidden')) toggleWhiteboardButton.classList.add('has-notification'); drawRemote(data); });
+  socket.on('wb-draw', (data) => { 
+      // Se la lavagna è chiusa (hidden), mostra il pallino rosso e suona
+      if (whiteboardContainer.classList.contains('hidden')) {
+          toggleWhiteboardButton.classList.add('has-notification');
+          
+          // [NUOVO] Logica per non suonare troppo spesso (throttle)
+          const now = Date.now();
+          // Suona solo se sono passati almeno 3 secondi dall'ultimo suono
+          if (!window.lastWbSound || now - window.lastWbSound > 3000) { 
+              playNotificationSound('wb');
+              window.lastWbSound = now;
+          }
+      }
+      drawRemote(data); 
+  });
+  
   socket.on('wb-clear', () => { if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height); localWhiteboardHistory = []; });
   socket.on('wb-history', (history) => { 
       if(!ctx) initWhiteboard(); 

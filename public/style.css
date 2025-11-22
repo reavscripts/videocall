@@ -28,7 +28,7 @@ html,body{
     height:100%;
     margin:0;
     background:var(--bg);
-    color:var(--text-color); /* Aggiornato per usare variabile */
+    color:var(--text-color);
     font-family:Roboto,Arial,sans-serif;
     transition: background 0.3s ease, color 0.3s ease;
 }
@@ -38,7 +38,7 @@ html,body{
 #nickname-overlay{
     position:fixed;
     inset:0;
-    background:var(--bg); /* Usa variabile invece di hardcoded rgba */
+    background:var(--bg);
     display:flex;
     flex-direction:column;
     align-items:center;
@@ -89,7 +89,8 @@ html,body{
     margin-bottom:20px;
 }
 
-.card input[type="text"]{
+.card input[type="text"], 
+.card input[type="password"] {
     width:calc(100% - 20px);
     padding:12px;
     margin-bottom:15px;
@@ -101,13 +102,13 @@ html,body{
     outline:none;
 }
 
-.card input[type="text"]::placeholder{
+.card input::placeholder{
     color:var(--muted);
 }
 
 .card button{
     background:var(--primary-color);
-    color:#fff; /* Testo bottone sempre bianco o in contrasto */
+    color:#fff;
     padding:12px 25px;
     border:none;
     border-radius:6px;
@@ -299,40 +300,36 @@ input:checked + .slider:before { transform: translateX(26px); }
     box-shadow:0 2px 8px rgba(0,0,0,0.4);
     transition:width 0.3s ease, height 0.3s ease, border-color 0.2s ease, transform 0.2s ease;
     border:3px solid transparent;
-	cursor: pointer;
+    cursor: pointer;
 }
 
-/* Dimensioni predefinite */
+/* Dimensioni predefinite Desktop */
 .video-feed.ratio-4-3 {
     width: 240px; 
     height: 180px; 
-	cursor: pointer;
 }
 
 .video-feed.ratio-16-9 {
     width: 240px;
     height: 135px;
-	cursor: pointer;
 }
 
-/* Focus */
+/* Focus / Zoom-out cursor */
 .video-feed.is-focused{
     border-color:var(--primary-color);
     order: -1;
-	cursor: zoom-out; 
+    cursor: zoom-out; 
 }
 
 /* Focus desktop */
 .video-feed.is-focused.ratio-4-3 {
     width: 640px; 
     height: 480px; 
-	cursor: zoom-out; 
 }
 
 .video-feed.is-focused.ratio-16-9 {
     width: 800px; 
     height: 450px; 
-	cursor: zoom-out; 
 }
 
 /* Parlante */
@@ -384,15 +381,9 @@ input:checked + .slider:before { transform: translateX(26px); }
 }
 
 @keyframes pulseRecord {
-    0% {
-        box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.7);
-    }
-    70% {
-        box-shadow: 0 0 0 10px rgba(239, 83, 80, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(239, 83, 80, 0);
-    }
+    0% { box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 83, 80, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 83, 80, 0); }
 }
 
 /* Context menu button */
@@ -457,32 +448,12 @@ input:checked + .slider:before { transform: translateX(26px); }
     color: var(--text-color);
 }
 
-.sender-me{
-    color:var(--primary-color);
-    font-weight:bold;
-}
-
-.sender-remote{
-    color:var(--accent-color);
-    font-weight:bold;
-}
-
-.sender-system{
-    color: #FFEB3B;
-    font-weight: bold;
-}
-/* Fix contrast for light mode system msg if needed, but yellow is okay */
-body.light-theme .sender-system {
-    color: #dcb400; 
-}
-
-.sender-private{
-    color: #8BC34A;
-    font-weight: bold;
-}
-body.light-theme .sender-private {
-    color: #558b2f;
-}
+.sender-me{ color:var(--primary-color); font-weight:bold; }
+.sender-remote{ color:var(--accent-color); font-weight:bold; }
+.sender-system{ color: #FFEB3B; font-weight: bold; }
+body.light-theme .sender-system { color: #dcb400; }
+.sender-private{ color: #8BC34A; font-weight: bold; }
+body.light-theme .sender-private { color: #558b2f; }
 
 /* Input chat */
 #chat-input-area{
@@ -518,7 +489,7 @@ body.light-theme .sender-private {
     background:var(--accent-color);
 }
 
-/* Controls bar */
+/* Controls bar (Desktop default) */
 #main-controls-bar{
     position:fixed;
     bottom:20px;
@@ -571,11 +542,10 @@ body.light-theme .sender-private {
     background: var(--surface);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    z-index: 500;
+    z-index: 9999;
     overflow: hidden;
     padding: 5px 0;
     min-width: 180px;
-	z-index: 9999;
     border: 1px solid var(--border-color);
 }
 
@@ -603,7 +573,7 @@ body.light-theme .sender-private {
     font-weight: bold;
 }
 
-/* STILI WHITEBOARD - Invariati, overlay scuro sta bene */
+/* STILI WHITEBOARD */
 #whiteboard-container {
     position: absolute;
     inset: 0;
@@ -620,7 +590,7 @@ body.light-theme .sender-private {
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: #1e1e1e; /* Forziamo scuro per contrasto con lavagna */
+    background: #1e1e1e; 
     padding: 10px 20px;
     border-radius: 10px;
     display: flex;
@@ -649,28 +619,15 @@ body.light-theme .sender-private {
 .color-btn:hover { transform: scale(1.1); }
 .color-btn.active { border-color: #fff; transform: scale(1.2); box-shadow: 0 0 8px rgba(255,255,255,0.5); }
 
-.wb-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.wb-actions button {
-    background: transparent;
-    border: none;
-    color: #fff;
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 4px;
-    transition: background 0.2s;
-}
-
+.wb-actions { display: flex; gap: 10px; }
+.wb-actions button { background: transparent; border: none; color: #fff; cursor: pointer; padding: 5px; border-radius: 4px; transition: background 0.2s; }
 .wb-actions button:hover { background: rgba(255,255,255,0.1); }
 
 #whiteboard-canvas {
     width: 100%;
     height: 100%;
     cursor: crosshair;
-    touch-action: none; /* Importante per disegnare su mobile */
+    touch-action: none;
 }
 
 /* STILI TRASFERIMENTO FILE */
@@ -686,57 +643,6 @@ body.light-theme .sender-private {
     z-index: 10;
 }
 
-.progress-bar-container {
-    height: 5px;
-    background: #333;
-    border-radius: 3px;
-    margin-top: 3px;
-}
-
-.progress-bar {
-    height: 100%;
-    width: 0%;
-    background: var(--accent-color);
-    transition: width 0.1s linear;
-}
-
-.status-text {
-    display: block;
-    margin-top: 3px;
-    color: var(--muted);
-}
-
-#toggle-whiteboard-button.has-notification {
-    position: relative !important; 
-    background-color: #333; 
-    overflow: visible !important;
-}
-
-#toggle-whiteboard-button.has-notification::after {
-    content: '';
-    position: absolute;
-    top: 0px;      
-    right: 0px;    
-    width: 12px;
-    height: 12px;
-    background-color: #ff5252;
-    border-radius: 50%;
-    border: 2px solid var(--bg);
-    z-index: 10;
-    box-shadow: 0 0 4px rgba(0,0,0,0.5);
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(0.95); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 1; }
-    100% { transform: scale(0.95); opacity: 1; }
-}
-
-/* ---------------------------------------------- */
-/* -------- MOBILE PATCH (RICHIAMATO) ----------- */
-/* ---------------------------------------------- */
-
 #file-transfer-container {
     position: absolute;
     bottom: 100px; /* Sopra la control bar */
@@ -746,11 +652,11 @@ body.light-theme .sender-private {
     flex-direction: column;
     gap: 10px;
     z-index: 160;
-    pointer-events: none; /* Per cliccare attraverso se vuoto */
+    pointer-events: none; 
 }
 
 .file-toast {
-    background: var(--surface); /* Adatta al tema */
+    background: var(--surface); 
     color: var(--text-color);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -790,6 +696,33 @@ body.light-theme .sender-private {
     transition: width 0.2s;
 }
 
+#toggle-whiteboard-button.has-notification {
+    position: relative !important; 
+    background-color: #333; 
+    overflow: visible !important;
+}
+
+#toggle-whiteboard-button.has-notification::after {
+    content: '';
+    position: absolute;
+    top: 0px;      
+    right: 0px;    
+    width: 12px;
+    height: 12px;
+    background-color: #ff5252;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    z-index: 10;
+    box-shadow: 0 0 4px rgba(0,0,0,0.5);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 1; }
+}
+
 /* STILI ADMIN PANEL */
 #admin-panel {
     position: fixed;
@@ -802,7 +735,7 @@ body.light-theme .sender-private {
     border: 1px solid var(--border-color);
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-    z-index: 1300; /* Sopra settings */
+    z-index: 1300;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -810,7 +743,7 @@ body.light-theme .sender-private {
 }
 
 .admin-header {
-    background: #2c3e50; /* Manteniamo scuro per admin */
+    background: #2c3e50; 
     padding: 15px;
     display: flex;
     justify-content: space-between;
@@ -871,12 +804,7 @@ body.light-theme .sender-private {
     font-size: 0.8em;
 }
 
-.admin-user-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
+.admin-user-list { list-style: none; padding: 0; margin: 0; }
 .admin-user-item {
     display: flex;
     justify-content: space-between;
@@ -897,19 +825,6 @@ body.light-theme .sender-private {
 }
 .btn-kick:hover { background: var(--danger); }
 
-/* Input Password Login */
-#room-password-input {
-    width: calc(100% - 20px);
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background: var(--surface-2);
-    color: var(--text-color);
-    font-size: 1em;
-    outline: none;
-}
-
 /* Admin Logs Console */
 #admin-logs-console {
     background: #000;
@@ -927,11 +842,7 @@ body.light-theme .sender-private {
     gap: 4px;
 }
 
-.log-entry {
-    border-bottom: 1px solid #111;
-    padding-bottom: 2px;
-}
-
+.log-entry { border-bottom: 1px solid #111; padding-bottom: 2px; }
 .admin-section-title {
     font-weight: bold;
     color: var(--muted);
@@ -942,14 +853,6 @@ body.light-theme .sender-private {
 }
 
 /* Pulsanti Admin Stanza */
-.admin-room-controls {
-    display: flex;
-    gap: 5px;
-    margin-top: 5px;
-    padding-top: 5px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-}
-
 .btn-admin-action {
     border: none;
     border-radius: 4px;
@@ -961,56 +864,194 @@ body.light-theme .sender-private {
     color: white;
     font-size: 0.9em;
 }
-
 .btn-lock { background: #ff9800; }
-.btn-lock.locked { background: #d32f2f; } /* Rosso quando bloccato */
+.btn-lock.locked { background: #d32f2f; } 
 .btn-pass { background: #2196f3; }
 .btn-ban { background: #b71c1c; color: #fff; font-weight: bold; font-size: 0.7em; padding: 2px 5px; margin-left: 5px;}
 
-/* Modale prompt password admin */
-.prompt-overlay {
-    /* Semplice stile se usi prompt nativo js, altrimenti personalizza */
+/* --- MODALITÀ SCHERMO INTERO / SPEAKER VIEW (DESKTOP) --- */
+
+/* 1. Contenitore griglia quando c'è un focus attivo */
+#videos-grid.has-fullscreen {
+    display: block; 
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    overflow: hidden;
 }
 
+/* 2. Il video a Schermo Intero */
+.video-feed.fullscreen-active {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 10; 
+    border-radius: 0;
+    border: none;
+}
+
+.video-feed.fullscreen-active video {
+    object-fit: contain; 
+    background: #000;
+}
+
+/* 3. I video "Piccoli" (PiP) in basso a sinistra */
+.video-feed.pip-mode {
+    position: absolute;
+    bottom: 100px; 
+    left: 20px;
+    width: 180px !important;
+    height: 135px !important;
+    z-index: 20; 
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.video-feed.pip-mode:nth-of-type(1) { left: 20px; }
+.video-feed.pip-mode:nth-of-type(2) { left: 210px; }
+.video-feed.pip-mode:nth-of-type(3) { left: 400px; }
+
+.video-feed.pip-mode .video-label {
+    font-size: 0.7em;
+    padding: 2px 5px;
+}
+
+
+/* --- OTTIMIZZAZIONE MOBILE VERTICALE COMPLETA --- */
 @media (max-width: 768px) {
 
-    /* Griglia dinamica — tutte le webcam visibili */
+    /* 1. Intestazione Flottante (Overlay) */
+    #room-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 150; /* Sopra il video */
+        background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%); 
+        border-bottom: none;
+        padding-top: 15px; 
+    }
+
+    #room-header h3 {
+        font-size: 0.9em;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.8); 
+    }
+
+    /* 2. Area Principale Espansa */
+    #conference-container {
+        height: 100dvh; /* dynamic viewport height */
+    }
+    
+    #main-area {
+        height: 100%;
+        padding: 0;
+    }
+
+    /* 3. Griglia Video Mobile */
     #videos-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         gap: 6px;
         width: 100%;
-        height: auto;
-        overflow-y: hidden !important;
-        padding-bottom: 80px;
+        height: 100%;
+        padding: 0; 
+        padding-bottom: 0;
+        background: #000; 
     }
-
-    /* Riquadri webcam standard */
+    
+    /* Stili webcam normale in griglia mobile */
     .video-feed {
         width: 100% !important;
         height: auto !important;
         max-height: 22vh;
-		cursor: pointer; /* Fa capire che è cliccabile */
     }
 
-    .video-feed video {
+    /* Mostra sempre il pulsante menu su mobile */
+    .context-menu-trigger { opacity: 1 !important; }
+
+    /* --- STATO FULLSCREEN MOBILE (Video Chiamata Attiva) --- */
+    #videos-grid.has-fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw !important;
+        height: 100dvh !important;
+        z-index: 50; 
+        background: #000;
+    }
+
+    /* Il Video Remoto (Grande) */
+    .video-feed.fullscreen-active {
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 0 !important; 
+        max-height: none !important;
+    }
+    
+    .video-feed.fullscreen-active video {
+        object-fit: cover !important; /* RIEMPIE TUTTO LO SCHERMO */
         width: 100%;
         height: 100%;
-        object-fit: cover;
     }
 
-    /* Webcam in focus (leggermente più grande) */
-    .video-feed.is-focused {
-        grid-column: span 2;
-        max-height: 40vh !important;
-        transform: scale(1.02);
-        order: -1;
-		cursor: zoom-out; 
+    /* Il Video Locale (PiP - Tu) */
+    .video-feed.pip-mode {
+        width: 100px !important;
+        height: 140px !important;
+        
+        /* POSIZIONAMENTO: Sotto i pulsanti dell'header */
+        top: 70px !important;  
+        right: 15px !important;
+        left: auto !important;
+        bottom: auto !important;
+        
+        border: 1px solid rgba(255,255,255,0.3);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        z-index: 160; 
+        border-radius: 12px;
+    }
+    
+    .video-feed.pip-mode:nth-of-type(2) { top: 220px !important; right: 15px !important; left: auto !important; }
+
+    /* 4. Barra Controlli Inferiore (Glass Effect) */
+    #main-controls-bar {
+        bottom: 25px;
+        background: rgba(20, 20, 20, 0.6); 
+        backdrop-filter: blur(10px); 
+        border: 1px solid rgba(255,255,255,0.1);
+        width: 90%;
+        max-width: 350px;
+        padding: 10px 15px;
+        z-index: 200;
+        border-radius: 50px; 
     }
 
-    /* Mostra sempre il pulsante menu */
-    .context-menu-trigger {
-        opacity: 1 !important;
+    #main-controls-bar button {
+        width: 42px;
+        height: 42px;
+        background: transparent; 
+        box-shadow: none;
+    }
+    
+    #main-controls-bar button:hover,
+    #main-controls-bar button.active {
+        background: rgba(255,255,255,0.2);
+    }
+    
+    #disconnect-button {
+        background: var(--danger) !important;
+        box-shadow: 0 4px 10px rgba(239, 83, 80, 0.4) !important;
+    }
+
+    /* Pulizia Interfaccia PiP */
+    .video-feed.pip-mode .video-label, 
+    .video-feed.pip-mode .context-menu-trigger {
+        display: none !important;
     }
 
     /* Chat mobile */
@@ -1027,37 +1068,12 @@ body.light-theme .sender-private {
         flex-direction: column; 
         border-radius: 0;
         box-shadow: none;
-        overflow: hidden; 
     }
-    #chat-panel.active {transform: translateY(0);}
-
-    /* *** FIX MOBILE CONTROLS BAR *** */
-    #main-controls-bar {
-        width: 95%; /* Occupa quasi tutta la larghezza */
-        padding: 10px 5px; /* Padding ridotto */
-        gap: 5px; /* Spazio tra i bottoni ridotto */
-        justify-content: space-between; /* Distribuisci uniformemente */
-        bottom: 10px; /* Più in basso */
-    }
-
-    #main-controls-bar button {
-        width: 38px; /* Bottoni più piccoli */
-        height: 38px;
-        flex-shrink: 0; /* Impedisce che si schiaccino */
-    }
-
-    #main-controls-bar button .material-icons {
-        font-size: 1.4em; /* Icone leggermente più piccole */
-    }
+    #chat-panel.active { transform: translateY(0); }
 }
-
 
 /* Extra fix per telefoni molto piccoli */
 @media (max-width: 480px) {
-    .video-feed.is-focused {
-        max-height: 35vh !important;
-		cursor: zoom-out; 
-    }
     .wb-toolbar {
         top: 10px;
         padding: 8px 12px;
