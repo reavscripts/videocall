@@ -1,9 +1,9 @@
 // app.js 
 
 // URL del Server Signaling (Render)
-const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
+//const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
 // Se stai testando in locale, de-commenta la riga sotto:
-//const RENDER_SERVER_URL = "http://localhost:3000";
+const RENDER_SERVER_URL = "http://localhost:3000";
 
 // ==========================================
 // 🌍 MULTI-LANGUAGE SYSTEM (i18n)
@@ -466,10 +466,15 @@ const availableBackgrounds = [
     { id: 'default', name: 'Default', value: '' }, 
     { id: 'grad1', name: 'Sunset', value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
     { id: 'grad2', name: 'Night', value: 'linear-gradient(to top, #09203f 0%, #537895 100%)' },
+    { id: 'img5', name: 'Snow Muntain', value: 'url("https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=1920&q=80")' },
+    { id: 'img4', name: 'Abstract', value: 'url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80")' },
+    { id: 'img_space', name: 'Space', value: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80")'},
     { id: 'img1', name: 'Mountain', value: 'url("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80")' },
-    { id: 'img2', name: 'Cyberpunk', value: 'url("https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1920&q=80")' },
-    { id: 'img3', name: 'Office', value: 'url("https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80")' },
-    { id: 'img4', name: 'Abstract', value: 'url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80")' }
+	{ id: 'img', name: 'Mongolfiere', value: 'url("https://images.unsplash.com/photo-1507608869274-d3177c8bb4c7?auto=format&fit=crop&w=1920&q=80")' },
+	{ id: 'space_galaxy', name: 'Milky Way', value: 'url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1920&q=80")' },
+	{ id: 'space_nebula', name: 'Deep Nebula', value: 'url("https://images.unsplash.com/photo-1528722828814-77b9b83aafb2?auto=format&fit=crop&w=1920&q=80")' },
+	{ id: 'space_moon', name: 'Moon Surface', value: 'url("https://images.unsplash.com/photo-1522030299830-16b8d3d049fe?auto=format&fit=crop&w=1920&q=80")' },
+	{ id: 'earth', name: 'Planet earth', value: 'url("https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?auto=format&fit=crop&w=1920&q=80")' }
 ];
 
 const bgOptionsContainer = document.getElementById('background-options');

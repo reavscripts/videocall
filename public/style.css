@@ -427,7 +427,7 @@ input:checked + .slider:before {
     font-size: 1em;
     font-weight: bold;
     cursor: pointer;
-    width: 100%; /* Lo facciamo largo quanto il pannello per comodità */
+    width: 100%;
     margin-top: 15px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     transition: transform 0.1s, background 0.2s;
@@ -443,7 +443,7 @@ input:checked + .slider:before {
 }
 
 .admin-user-item {
-    padding: 8px 0; /* Più spazio verticale tra gli utenti */
+    padding: 8px 0;
 }
 
 .btn-kick {
@@ -528,7 +528,7 @@ input:checked + .slider:before {
 }
 
 .btn-ban {
-    background: var(--danger); /* Rosso */
+    background: var(--danger); 
     color: #fff;
     border: none;
     padding: 6px 12px;
@@ -541,7 +541,7 @@ input:checked + .slider:before {
 }
 
 .btn-ban:hover {
-    background: #d32f2f; /* Rosso più scuro */
+    background: #d32f2f; 
 }
 
 #conference-container {
@@ -617,9 +617,8 @@ input:checked + .slider:before {
 }
 
 .video-feed {
-    background: #000; /* Sfondo nero essenziale per i video verticali */
+    background: #000;
     position: relative;
-    /* Assicuriamo che il contenitore non forzi il taglio */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -659,7 +658,6 @@ input:checked + .slider:before {
 .video-feed video {
     width: 100%;
     height: 100%;
-    /* contain: Mostra tutto il video, aggiungendo bande nere se necessario */
     object-fit: contain !important; 
     display: block;
 }
@@ -799,7 +797,7 @@ body.light-theme .sender-private {
 
 #chat-input-area {
     display: flex;
-    align-items: center; /* <--- AGGIUNTO: centra verticalmente input e bottone */
+    align-items: center; 
     padding: 10px;
     border-top: 1px solid var(--border-color);
     gap: 8px;
@@ -819,13 +817,13 @@ body.light-theme .sender-private {
 #send-chat-button {
     background: var(--primary-color);
     color: #fff;
-    border: 1px solid transparent; /* <--- AGGIUNTO: compensa il bordo dell'input per uguale altezza */
+    border: 1px solid transparent; 
     border-radius: 6px;
     padding: 10px 15px;
     font-size: 1em;
     font-weight: bold;
     cursor: pointer;
-    transition: background-color 0.2s; /* <--- Opzionale: rende più fluido l'hover */
+    transition: background-color 0.2s; 
 }
 
 #send-chat-button:hover {
@@ -1136,13 +1134,14 @@ body.light-theme .sender-private {
 }
 
 .video-feed.fullscreen-active .context-menu-trigger {
-        top: 80px !important;  /* Scende sotto l'header (che occupa circa 60-70px) */
-        right: 15px !important; /* Posizione destra sicura */
-        z-index: 160 !important; /* Assicura che sia sopra il video e cliccabile */
+        top: 80px !important; 
+        right: 15px !important;
+        z-index: 160 !important;
         background-color: rgba(0, 0, 0, 0.7);
         width: 40px;
         height: 40px;
     }
+
 
     .video-feed.fullscreen-active .context-menu-trigger .material-icons {
         font-size: 1.5em;
@@ -1183,20 +1182,9 @@ body.light-theme .sender-private {
     position: relative; /* Necessario per posizionare il badge */
 }
 
-Certamente! Per implementare queste due funzionalità (Notifiche di messaggi non letti e Ricevute di lettura con lista visualizzabile), dobbiamo toccare tutti e tre i file principali: style.css, server.js e app.js.
-
-Ecco come procedere passo dopo passo.
-
-1. Modifiche allo Stile (style.css)
-Dobbiamo aggiungere lo stile per il "pallino rosso" (badge) sopra il pulsante della chat e per l'indicatore di lettura dentro i messaggi.
-
-Aggiungi questo codice alla fine del file style.css:
-
-CSS
-
 /* --- NOTIFICHE CHAT --- */
 #show-chat-btn {
-    position: relative; /* Necessario per posizionare il badge */
+    position: relative; 
 }
 
 .notification-badge {
@@ -1222,8 +1210,8 @@ CSS
 /* --- RICEVUTE DI LETTURA --- */
 .chat-message {
     position: relative;
-    padding-bottom: 15px; /* Spazio per l'icona di lettura */
-    cursor: pointer; /* Indica che è cliccabile */
+    padding-bottom: 15px; 
+    cursor: pointer;
     transition: background 0.2s;
     border-radius: 4px;
     padding: 5px;
@@ -1249,7 +1237,7 @@ CSS
 }
 
 .read-status.seen {
-    color: var(--primary-color); /* Diventa blu/ciano quando letto */
+    color: var(--primary-color);
 }
 
 /* Modale semplice per lista letture */
@@ -1285,7 +1273,7 @@ CSS
     display: none !important;
 }
 
-/* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
+/* --- OTTIMIZZAZIONE MOBILE --- */
 @media (max-width: 768px) {
 
     /* 1. Header (Intestazione) */
@@ -1324,7 +1312,7 @@ CSS
         height: 100%;
         padding: 0;
         padding-top: 90px !important;
-        padding-bottom: 100px !important; /* Spazio per la barra in basso */
+        padding-bottom: 100px !important;
         padding-left: 10px;
         padding-right: 10px;
         background: transparent;
@@ -1347,10 +1335,10 @@ CSS
 
     /* Fullscreen Mobile */
 	#videos-grid.has-fullscreen {
-        display: flex !important;        /* Usa Flexbox per gestire il layout */
-        flex-direction: column;          /* Impila gli elementi verticalmente */
-        align-items: flex-end;           /* Allinea tutto a DESTRA */
-        justify-content: flex-start;     /* Inizia dall'alto */
+        display: flex !important;      
+        flex-direction: column;        
+        align-items: flex-end;           
+        justify-content: flex-start;    
         
         position: fixed;
         top: 0;
@@ -1362,19 +1350,19 @@ CSS
         
         /* Padding superiore per non finire sotto l'header e iniziare la lista PIP */
         padding-top: 80px !important; 
-        padding-right: 10px !important;  /* Margine destro per i PIP */
-        padding-bottom: 100px !important; /* Spazio per i controlli in basso */
+        padding-right: 10px !important;  
+        padding-bottom: 100px !important; 
         
-        overflow-y: auto; /* Permette di scrollare se ci sono troppe webcam PIP */
+        overflow-y: auto; 
     }
 
 	.video-feed.fullscreen-active {
-        position: absolute !important; /* Toglilo dal flusso flex */
+        position: absolute !important; 
         top: 0;
         left: 0;
         width: 100% !important;
         height: 100% !important;
-        z-index: 10; /* Livello base (sfondo) */
+        z-index: 10; 
         border-radius: 0 !important;
         margin: 0 !important;
     }
@@ -1387,20 +1375,16 @@ CSS
 
     /* PIP Mode (Tu in piccolo) */
 	.video-feed.pip-mode {
-        /* Reset posizionamento assoluto precedente */
         position: relative !important; 
         left: auto !important;
         right: auto !important;
         top: auto !important;
         bottom: auto !important;
-        
-        /* Dimensioni e stile */
         width: 100px !important;
-        height: 135px !important; /* Aspect ratio circa 3:4 */
-        flex-shrink: 0;           /* Impedisce che si schiaccino */
-        margin-bottom: 10px;      /* Spazio tra un PIP e l'altro */
-        
-        z-index: 20;              /* Sopra il video fullscreen */
+        height: 135px !important; 
+        flex-shrink: 0;           
+        margin-bottom: 10px;    
+        z-index: 20;        
         border: 1px solid rgba(255, 255, 255, 0.3);
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
         border-radius: 8px;
@@ -1418,33 +1402,23 @@ CSS
         background: rgba(20, 20, 20, 0.85);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.15);
-        
-        /* Larghezza sicura: 92% dello schermo, ma mai più di 400px */
         width: 92%;
         max-width: 400px; 
-        
-        /* Spaziatura interna minima */
         padding: 8px 5px;
-        
-        /* Distribuzione Flexbox */
         display: flex;
-        justify-content: space-between; /* Spinge i pulsanti agli estremi in modo equo */
-        gap: 2px; /* Gap minimo */
-        
+        justify-content: space-between;
+        gap: 2px;      
         z-index: 200;
-        border-radius: 50px;
-        
-        /* Centratura orizzontale */
+        border-radius: 50px;        
         left: 50%;
         transform: translateX(-50%);
     }
 
     #main-controls-bar button {
-        /* Ridotti a 36px per farne entrare 7 comodamente */
         width: 36px;
         height: 36px;
-        min-width: 36px; /* Impedisce lo schiacciamento */
-        flex-shrink: 0;  /* Impedisce lo schiacciamento */
+        min-width: 36px; 
+        flex-shrink: 0; 
         
         background: transparent;
         box-shadow: none;
@@ -1458,7 +1432,7 @@ CSS
     }
 
     #main-controls-bar button .material-icons {
-        font-size: 1.3em; /* Icone ridimensionate proporzionalmente */
+        font-size: 1.3em; 
     }
 
     #main-controls-bar button:hover,
@@ -1476,17 +1450,17 @@ CSS
         position: fixed;
         top: 0;
         left: 0;
-        width: 100% !important;    /* Forza la larghezza totale */
-        min-width: 0 !important;   /* Annulla il vincolo dei 300px desktop */
-        height: 100dvh;            /* Usa l'altezza dinamica del viewport (meglio per mobile) */
+        width: 100% !important;    
+        min-width: 0 !important;  
+        height: 100dvh;           
         background: var(--surface);
         transform: translateY(100%);
         transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-        z-index: 2000 !important;  /* Z-INDEX ALITISSIMO: Deve coprire header, video e tutto */
+        z-index: 2000 !important;  
         display: flex;
         flex-direction: column;
         border-left: none;
-        padding-top: env(safe-area-inset-top); /* Rispetta il notch degli iPhone */
+        padding-top: env(safe-area-inset-top); 
     }
 
     #chat-panel.active {
