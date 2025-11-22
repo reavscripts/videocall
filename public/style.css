@@ -569,14 +569,13 @@ input:checked + .slider:before {
 }
 
 .video-feed {
-    background: #000; /* Sfondo nero per le bande laterali */
-    border-radius: 8px;
-    overflow: hidden;
+    background: #000; /* Sfondo nero essenziale per i video verticali */
     position: relative;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    transition: width 0.3s ease, height 0.3s ease, border-color 0.2s ease, transform 0.2s ease;
-    border: 3px solid transparent;
-    cursor: pointer;
+    /* Assicuriamo che il contenitore non forzi il taglio */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
 .video-feed.ratio-4-3 {
@@ -589,10 +588,9 @@ input:checked + .slider:before {
     height: 135px;
 }
 
-.video-feed.is-focused {
-    border-color: var(--primary-color);
-    order: -1;
-    cursor: zoom-out;
+.video-feed.is-focused video {
+    object-fit: contain !important;
+    background: #000;
 }
 
 .video-feed.is-focused.ratio-4-3 {
@@ -613,7 +611,8 @@ input:checked + .slider:before {
 .video-feed video {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* <--- QUESTA È LA CHIAVE: mostra tutto il video senza zoomare/tagliare */
+    /* contain: Mostra tutto il video, aggiungendo bande nere se necessario */
+    object-fit: contain !important; 
     display: block;
 }
 
@@ -1081,8 +1080,9 @@ body.light-theme .sender-private {
 }
 
 .video-feed.fullscreen-active video {
-    object-fit: contain;
-    background: #000;
+    object-fit: contain !important;
+    width: 100%;
+    height: 100%;
 }
 
 .video-feed.pip-mode {
