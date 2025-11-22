@@ -973,8 +973,37 @@ function initWhiteboard() {
 }
 
 function resizeCanvas() { 
-    canvas.width = canvas.offsetWidth || window.innerWidth; 
-    canvas.height = canvas.offsetHeight || window.innerHeight;
+    // 1. Determiniamo lo spazio disponibile
+    const containerW = window.innerWidth;
+    const containerH = window.innerHeight;
+
+    // 2. Definiamo il rapporto d'aspetto fisso (16:9) per evitare distorsioni
+    const targetRatio = 16 / 9;
+    
+    let finalW, finalH;
+
+    // 3. Calcoliamo le dimensioni massime mantenendo il rapporto 16:9 (Logica "Contain")
+    if (containerW / containerH > targetRatio) {
+        // Lo schermo è più largo del 16:9 (es. monitor ultrawide o barre laterali)
+        finalH = containerH;
+        finalW = finalH * targetRatio;
+    } else {
+        // Lo schermo è più stretto del 16:9 (es. Mobile o 4:3)
+        finalW = containerW;
+        finalH = finalW / targetRatio;
+    }
+
+    // 4. Applichiamo le dimensioni al canvas
+    canvas.width = finalW; 
+    canvas.height = finalH;
+
+    // 5. Stiliamo il canvas per centrarlo visivamente
+    canvas.style.width = `${finalW}px`;
+    canvas.style.height = `${finalH}px`;
+    canvas.style.boxShadow = "0 0 0 9999px rgba(0,0,0,1)"; // Trucco per rendere nerissimo lo spazio vuoto attorno
+    canvas.style.background = "#1e1e1e"; // Colore di sfondo area disegnabile
+
+    // 6. Ridisegniamo la cronologia se presente
     if(localWhiteboardHistory.length > 0) {
         localWhiteboardHistory.forEach(data => drawRemote(data, false));
     }
@@ -989,13 +1018,13 @@ function onTouchMove(e) { if (!isDrawing) return; e.preventDefault(); const rect
 function draw(x0, y0, x1, y1, color, emit){
     if(!ctx) initWhiteboard(); 
     ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
-    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); ctx.closePath();
+    ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke(); ctx.closePath();
     
     const drawData = { 
-        x0: x0 / (canvas.width||window.innerWidth), 
-        y0: y0 / (canvas.height||window.innerHeight), 
-        x1: x1 / (canvas.width||window.innerWidth), 
-        y1: y1 / (canvas.height||window.innerHeight), 
+        x0: x0 / canvas.width, 
+        y0: y0 / canvas.height, 
+        x1: x1 / canvas.width, 
+        y1: y1 / canvas.height, 
         color: color 
     };
 
@@ -1007,14 +1036,14 @@ function draw(x0, y0, x1, y1, color, emit){
 
 function drawRemote(data, saveToHistory = true){
     if(!ctx) initWhiteboard();
-    const w = canvas.width || window.innerWidth; 
-    const h = canvas.height || window.innerHeight;
+    const w = canvas.width; 
+    const h = canvas.height;
     
     ctx.beginPath(); 
     ctx.moveTo(data.x0 * w, data.y0 * h); 
     ctx.lineTo(data.x1 * w, data.y1 * h);
     ctx.strokeStyle = data.color; 
-    ctx.lineWidth = 2; 
+    ctx.lineWidth = 3; 
     ctx.lineCap = 'round'; 
     ctx.stroke(); 
     ctx.closePath();
