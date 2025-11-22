@@ -1217,6 +1217,10 @@ CSS
     overflow-y: auto;
 }
 
+#switch-camera-button {
+    display: none !important;
+}
+
 /* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
 @media (max-width: 768px) {
 
@@ -1449,6 +1453,10 @@ CSS
         text-transform: uppercase;
         letter-spacing: 1px;
         font-weight: bold;
+    }
+
+	#switch-camera-button {
+        display: flex !important;
     }
     
     /* Mobile Whiteboard Adjustments */
