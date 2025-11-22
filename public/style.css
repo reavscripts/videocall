@@ -569,7 +569,7 @@ input:checked + .slider:before {
 }
 
 .video-feed {
-    background: var(--surface);
+    background: #000; /* Sfondo nero per le bande laterali */
     border-radius: 8px;
     overflow: hidden;
     position: relative;
@@ -613,7 +613,7 @@ input:checked + .slider:before {
 .video-feed video {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain; /* <--- QUESTA È LA CHIAVE: mostra tutto il video senza zoomare/tagliare */
     display: block;
 }
 

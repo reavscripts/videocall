@@ -7,7 +7,7 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "cambiami_subito_123";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "reav_123";
 
 const io = new Server(server, {
     cors: { origin: '*', methods: ['GET', 'POST'] }
