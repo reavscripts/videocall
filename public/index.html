@@ -209,7 +209,16 @@
             <span>Mute Audio</span>
         </div>
     </div>
-
+	
+	<script>
+		if ('serviceWorker' in navigator) {
+			window.addEventListener('load', () => {
+				navigator.serviceWorker.register('/service-worker.js')
+					.then((reg) => console.log('Service Worker registrato!', reg))
+					.catch((err) => console.log('Errore Service Worker:', err));
+			});
+		}
+	</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
     <script src="app.js"></script>
 </body>
