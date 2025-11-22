@@ -1,9 +1,292 @@
 // app.js 
 
+// URL del Server Signaling (Render)
 const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
+// Se stai testando in locale, de-commenta la riga sotto:
 //const RENDER_SERVER_URL = "http://localhost:3000";
 
-// ---------- DOM & Controlli ----------
+// ==========================================
+// 🌍 MULTI-LANGUAGE SYSTEM (i18n)
+// ==========================================
+
+// 1. Rilevamento lingua (Default fallback: 'en')
+const userLang = navigator.language.slice(0, 2); // es. "it", "en", "es", "zh"
+
+// 2. Dizionario Completo
+const translations = {
+    // --- INGLESE (Default) ---
+    en: {
+        enter_conference: "Join Conference",
+        room_name: "Room Name",
+        room_pass: "Room Password (Optional)",
+        your_nickname: "Your Nickname",
+        join_btn: "Join Conference",
+        settings_title: "Settings",
+        theme_label: "Dark / Light Theme",
+        bg_label: "App Background",
+        server_mgmt: "Server Management",
+        login_admin: "Admin Login",
+        room_label: "Room",
+        chat_title: "💬 Chat",
+        type_message: "Type a message...",
+        send_btn: "Send",
+        mute_unmute: "Mute/Unmute Audio",
+        video_toggle: "Enable/Disable Video",
+        switch_cam: "Switch Camera",
+        transfer_file: "Transfer File",
+        start_rec: "Start Recording",
+        stop_rec: "Stop Recording",
+        share_screen: "Share Screen",
+        toggle_wb: "Toggle Whiteboard",
+        disconnect: "Disconnect",
+        wait_peers: "Waiting for other participants...",
+        guest: "Guest",
+        you: "You",
+        system: "System",
+        welcome: "Welcome to",
+        joined: "joined.",
+        left: "left.",
+        kicked: "You have been kicked.",
+        room_closed: "Room closed.",
+        download: "DOWNLOAD",
+        private_msg_to: "Private Message to",
+        send_file_to: "Send File to User",
+        mute_user: "Mute Audio",
+        unmute_user: "Unmute Audio"
+    },
+    // --- ITALIANO ---
+    it: {
+        enter_conference: "Entra nella Conferenza",
+        room_name: "Nome della Stanza",
+        room_pass: "Password Stanza (Opzionale)",
+        your_nickname: "Il tuo Nickname",
+        join_btn: "Entra",
+        settings_title: "Impostazioni",
+        theme_label: "Tema Scuro / Chiaro",
+        bg_label: "Sfondo Applicazione",
+        server_mgmt: "Gestione Server",
+        login_admin: "Login Admin",
+        room_label: "Stanza",
+        chat_title: "💬 Chat",
+        type_message: "Scrivi un messaggio...",
+        send_btn: "Invia",
+        mute_unmute: "Muta/Attiva Audio",
+        video_toggle: "Attiva/Disattiva Video",
+        switch_cam: "Cambia Fotocamera",
+        transfer_file: "Trasferisci File",
+        start_rec: "Avvia Registrazione",
+        stop_rec: "Ferma Registrazione",
+        share_screen: "Condividi Schermo",
+        toggle_wb: "Lavagna",
+        disconnect: "Disconnetti",
+        wait_peers: "In attesa di altri partecipanti...",
+        guest: "Ospite",
+        you: "Tu",
+        system: "Sistema",
+        welcome: "Benvenuto in",
+        joined: "è entrato.",
+        left: "è uscito.",
+        kicked: "Sei stato espulso.",
+        room_closed: "La stanza è stata chiusa.",
+        download: "SCARICA",
+        private_msg_to: "Messaggio Privato a",
+        send_file_to: "Invia File a Utente",
+        mute_user: "Silenzia Audio",
+        unmute_user: "Riattiva Audio"
+    },
+    // --- SPAGNOLO ---
+    es: {
+        enter_conference: "Unirse a la Conferencia",
+        room_name: "Nombre de la Sala",
+        room_pass: "Contraseña (Opcional)",
+        your_nickname: "Tu Apodo",
+        join_btn: "Unirse",
+        settings_title: "Configuración",
+        theme_label: "Tema Oscuro / Claro",
+        bg_label: "Fondo de la App",
+        server_mgmt: "Gestión del Servidor",
+        login_admin: "Acceso Admin",
+        room_label: "Sala",
+        chat_title: "💬 Chat",
+        type_message: "Escribe un mensaje...",
+        send_btn: "Enviar",
+        mute_unmute: "Silenciar/Activar Audio",
+        video_toggle: "Activar/Desactivar Video",
+        switch_cam: "Cambiar Cámara",
+        transfer_file: "Transferir Archivo",
+        start_rec: "Iniciar Grabación",
+        stop_rec: "Detener Grabación",
+        share_screen: "Compartir Pantalla",
+        toggle_wb: "Pizarra",
+        disconnect: "Desconectar",
+        wait_peers: "Esperando a otros participantes...",
+        guest: "Invitado",
+        you: "Tú",
+        system: "Sistema",
+        welcome: "Bienvenido a",
+        joined: "se ha unido.",
+        left: "ha salido.",
+        kicked: "Has sido expulsado.",
+        room_closed: "Sala cerrada.",
+        download: "DESCARGAR",
+        private_msg_to: "Mensaje Privado a",
+        send_file_to: "Enviar Archivo a Usuario",
+        mute_user: "Silenciar Audio",
+        unmute_user: "Reactivar Audio"
+    },
+    // --- FRANCESE ---
+    fr: {
+        enter_conference: "Rejoindre la Conférence",
+        room_name: "Nom de la Salle",
+        room_pass: "Mot de passe (Optionnel)",
+        your_nickname: "Votre Pseudo",
+        join_btn: "Rejoindre",
+        settings_title: "Paramètres",
+        theme_label: "Thème Sombre / Clair",
+        bg_label: "Arrière-plan de l'App",
+        server_mgmt: "Gestion Serveur",
+        login_admin: "Connexion Admin",
+        room_label: "Salle",
+        chat_title: "💬 Chat",
+        type_message: "Écrivez un message...",
+        send_btn: "Envoyer",
+        mute_unmute: "Couper/Activer Audio",
+        video_toggle: "Activer/Désactiver Vidéo",
+        switch_cam: "Changer de Caméra",
+        transfer_file: "Transférer Fichier",
+        start_rec: "Démarrer Enregistrement",
+        stop_rec: "Arrêter Enregistrement",
+        share_screen: "Partager Écran",
+        toggle_wb: "Tableau Blanc",
+        disconnect: "Déconnecter",
+        wait_peers: "En attente d'autres participants...",
+        guest: "Invité",
+        you: "Vous",
+        system: "Système",
+        welcome: "Bienvenue dans",
+        joined: "a rejoint.",
+        left: "a quitté.",
+        kicked: "Vous avez été expulsé.",
+        room_closed: "Salle fermée.",
+        download: "TÉLÉCHARGER",
+        private_msg_to: "Message Privé à",
+        send_file_to: "Envoyer Fichier à",
+        mute_user: "Couper Audio",
+        unmute_user: "Activer Audio"
+    },
+    // --- TEDESCO ---
+    de: {
+        enter_conference: "Konferenz beitreten",
+        room_name: "Raumname",
+        room_pass: "Raumpasswort (Optional)",
+        your_nickname: "Dein Spitzname",
+        join_btn: "Beitreten",
+        settings_title: "Einstellungen",
+        theme_label: "Dunkles / Helles Design",
+        bg_label: "App-Hintergrund",
+        server_mgmt: "Serververwaltung",
+        login_admin: "Admin-Login",
+        room_label: "Raum",
+        chat_title: "💬 Chat",
+        type_message: "Nachricht schreiben...",
+        send_btn: "Senden",
+        mute_unmute: "Stummschalten/Aufheben",
+        video_toggle: "Video An/Aus",
+        switch_cam: "Kamera wechseln",
+        transfer_file: "Datei übertragen",
+        start_rec: "Aufnahme starten",
+        stop_rec: "Aufnahme stoppen",
+        share_screen: "Bildschirm teilen",
+        toggle_wb: "Whiteboard",
+        disconnect: "Trennen",
+        wait_peers: "Warte auf andere Teilnehmer...",
+        guest: "Gast",
+        you: "Du",
+        system: "System",
+        welcome: "Willkommen in",
+        joined: "ist beigetreten.",
+        left: "hat verlassen.",
+        kicked: "Du wurdest rausgeworfen.",
+        room_closed: "Raum geschlossen.",
+        download: "HERUNTERLADEN",
+        private_msg_to: "Privatnachricht an",
+        send_file_to: "Datei senden an",
+        mute_user: "Stummschalten",
+        unmute_user: "Stumm. aufheben"
+    },
+    // --- CINESE (Semplificato) ---
+    zh: {
+        enter_conference: "加入会议",
+        room_name: "房间名称",
+        room_pass: "房间密码 (可选)",
+        your_nickname: "你的昵称",
+        join_btn: "加入会议",
+        settings_title: "设置",
+        theme_label: "深色 / 浅色 主题",
+        bg_label: "应用背景",
+        server_mgmt: "服务器管理",
+        login_admin: "管理员登录",
+        room_label: "房间",
+        chat_title: "💬 聊天",
+        type_message: "输入消息...",
+        send_btn: "发送",
+        mute_unmute: "静音/取消静音",
+        video_toggle: "开启/关闭 视频",
+        switch_cam: "切换摄像头",
+        transfer_file: "传输文件",
+        start_rec: "开始录制",
+        stop_rec: "停止录制",
+        share_screen: "共享屏幕",
+        toggle_wb: "白板",
+        disconnect: "断开连接",
+        wait_peers: "等待其他参与者...",
+        guest: "访客",
+        you: "你",
+        system: "系统",
+        welcome: "欢迎来到",
+        joined: "已加入。",
+        left: "已离开。",
+        kicked: "你已被踢出。",
+        room_closed: "房间已关闭。",
+        download: "下载",
+        private_msg_to: "私信给",
+        send_file_to: "发送文件给",
+        mute_user: "静音用户",
+        unmute_user: "取消静音"
+    }
+};
+
+// 3. Funzione Helper 't' (Translate)
+function t(key) {
+    const langData = translations[userLang] || translations['en']; 
+    return langData[key] || key; 
+}
+
+// 4. Applica traduzioni al DOM
+function applyTranslations() {
+    // Testo normale
+    document.querySelectorAll('[data-lang]').forEach(el => {
+        el.textContent = t(el.getAttribute('data-lang'));
+    });
+    // Placeholder (Input)
+    document.querySelectorAll('[data-lang-placeholder]').forEach(el => {
+        el.placeholder = t(el.getAttribute('data-lang-placeholder'));
+    });
+    // Title (Tooltip)
+    document.querySelectorAll('[data-lang-title]').forEach(el => {
+        el.title = t(el.getAttribute('data-lang-title'));
+    });
+}
+
+// Esegui subito al caricamento
+document.addEventListener('DOMContentLoaded', applyTranslations);
+
+// ==========================================
+// END i18n SYSTEM
+// ==========================================
+
+
+// ---------- DOM & Controls ----------
 const nicknameOverlay = document.getElementById('nickname-overlay');
 const joinButton = document.getElementById('join-button');
 const nicknameInput = document.getElementById('nickname-input');
@@ -12,7 +295,7 @@ const videosGrid = document.getElementById('videos-grid');
 const localVideoEl = document.getElementById('local-video');
 const localFeedEl = document.getElementById('local-feed'); 
 
-// Controlli Media (Globali)
+// Media Controls (Global)
 const toggleAudioButton = document.getElementById('toggle-audio-button');
 const toggleVideoButton = document.getElementById('toggle-video-button');
 const disconnectButton = document.getElementById('disconnect-button');
@@ -21,12 +304,12 @@ const shareScreenButton = document.getElementById('share-screen-button');
 const shareRoomLinkButton = document.getElementById('share-room-link'); 
 const recordButton = document.getElementById('record-button'); 
 
-// ** CONTROLLI FILE TRANSFER **
+// ** FILE TRANSFER CONTROLS **
 const transferFileButton = document.getElementById('transfer-file-button');
 const fileInput = document.getElementById('file-input');
 const fileTransferContainer = document.getElementById('file-transfer-container');
 
-// ** CONTROLLI WHITEBOARD **
+// ** WHITEBOARD CONTROLS **
 const toggleWhiteboardButton = document.getElementById('toggle-whiteboard-button');
 const whiteboardContainer = document.getElementById('whiteboard-container');
 const canvas = document.getElementById('whiteboard-canvas');
@@ -35,27 +318,27 @@ const wbClearBtn = document.getElementById('wb-clear-btn');
 const wbCloseBtn = document.getElementById('wb-close-btn');
 const wbColors = document.querySelectorAll('.color-btn');
 
-// Controlli Chat
+// Chat Controls
 const chatPanel = document.getElementById('chat-panel');
 const messagesContainer = document.getElementById('messages-container');
 const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
 const showChatBtn = document.getElementById('show-chat-btn');
 
-// Controlli Menu Contestuale
+// Context Menu Controls
 const contextMenuEl = document.getElementById('remote-context-menu');
 const menuDmUser = document.getElementById('menu-dm-user');
 const menuMuteUser = document.getElementById('menu-mute-user');
 const menuSendFile = document.getElementById('menu-send-file');
 
-// ** CONTROLLI IMPOSTAZIONI (NUOVI) **
+// ** SETTINGS CONTROLS **
 const settingsModal = document.getElementById('settings-modal');
 const settingsBtnOverlay = document.getElementById('settings-btn-overlay');
 const settingsBtnRoom = document.getElementById('settings-btn-room');
 const closeSettingsBtn = document.getElementById('close-settings-btn');
 const themeToggle = document.getElementById('theme-toggle');
 
-// ** CONTROLLI ADMIN **
+// ** ADMIN CONTROLS **
 const openAdminLoginBtn = document.getElementById('open-admin-login');
 const adminPanel = document.getElementById('admin-panel');
 const closeAdminBtn = document.getElementById('close-admin-btn');
@@ -73,7 +356,7 @@ const adminBannedCount = document.getElementById('admin-banned-count');
 
 let socket = null;
 let localStream = null;
-let userNickname = 'Ospite';
+let userNickname = t('guest');
 let currentRoomId = null;
 let currentRoomPassword = '';
 const peerConnections = {};
@@ -86,12 +369,12 @@ let isVideoEnabled = true;
 const iceCandidateQueues = {};
 let unreadMessagesCount = 0;
 
-// Variabili Registrazione
+// Recording Variables
 let mediaRecorder = null;
 let recordedChunks = [];
 let isRecording = false; 
 
-// ** VARIABILI WHITEBOARD **
+// ** WHITEBOARD VARIABLES **
 let isDrawing = false;
 let currentX = 0;
 let currentY = 0;
@@ -99,14 +382,14 @@ let currentColor = '#ffffff';
 let ctx = null;
 let localWhiteboardHistory = []; 
 
-// ** VARIABILI FILE TRANSFER **
+// ** FILE TRANSFER VARIABLES **
 const dataChannels = {}; 
 const fileChunks = {}; 
 const fileMetadata = {}; 
 const CHUNK_SIZE = 16384; 
 let targetFileRecipientId = null;
 
-// Variabili Focus/Parlato
+// Focus/Speaking Variables
 let isManualFocus = false; 
 let currentSpeakerId = null; 
 const AUTO_FOCUS_COOLDOWN = 3000; 
@@ -117,7 +400,7 @@ let talkingInterval = null;
 const AUDIO_THRESHOLD = -40; 
 let isLocalTalking = false; 
 
-// Variabile Mute Remoto
+// Remote Mute Variable
 const manuallyMutedPeers = {}; 
 let contextTargetPeerId = null; 
 
@@ -128,22 +411,7 @@ const iceConfiguration = {
   ]
 };
 
-const audioAssets = {
-    // Suono "Pop" leggero per la Chat
-    chat: new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"), // (Stringa accorciata per leggibilità, userò una versione funzionante sotto)
-    
-    // Suono "Ding" per File e Whiteboard
-    alert: new Audio("data:audio/mp3;base64,//uQxAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//uQxAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"),
-    
-    // Suono "Beep-Beep" per Registrazione
-    rec: new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU") 
-};
-
-// Carichiamo suoni reali (brevi beep di sistema)
-// Nota: Per brevità qui uso URL dummy. 
-// Sotto ti fornisco la funzione playSound con suoni generati al volo o URL stabili.
-// PER SEMPLICITÀ USEREMO UN GENERATORE WEB AUDIO API (Nessun file necessario)
-
+// AUDIO CONTEXT FOR NOTIFICATIONS
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playNotificationSound(type) {
@@ -157,7 +425,6 @@ function playNotificationSound(type) {
     const now = audioCtx.currentTime;
 
     if (type === 'chat') {
-        // Suono: "Pop" acuto e veloce
         osc.type = 'sine';
         osc.frequency.setValueAtTime(800, now);
         osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
@@ -167,7 +434,6 @@ function playNotificationSound(type) {
         osc.stop(now + 0.1);
     } 
     else if (type === 'file' || type === 'wb') {
-        // Suono: "Ding" cristallino
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(1200, now);
         gainNode.gain.setValueAtTime(0.2, now);
@@ -176,16 +442,13 @@ function playNotificationSound(type) {
         osc.stop(now + 0.3);
     }
     else if (type === 'rec') {
-        // Suono: Doppio Beep (REC start)
         osc.type = 'square';
         osc.frequency.setValueAtTime(600, now);
         gainNode.gain.setValueAtTime(0.1, now);
         
-        // Beep 1
         osc.start(now);
         osc.stop(now + 0.1);
         
-        // Beep 2
         const osc2 = audioCtx.createOscillator();
         const gain2 = audioCtx.createGain();
         osc2.type = 'square';
@@ -198,24 +461,23 @@ function playNotificationSound(type) {
     }
 }
 
+// --- BACKGROUND SETTINGS ---
 const availableBackgrounds = [
-    { id: 'default', name: 'Default', value: '' }, // Valore vuoto = usa colore tema CSS
-    { id: 'grad1', name: 'Tramonto', value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
-    { id: 'grad2', name: 'Notte', value: 'linear-gradient(to top, #09203f 0%, #537895 100%)' },
-    { id: 'img1', name: 'Montagna', value: 'url("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80")' },
+    { id: 'default', name: 'Default', value: '' }, 
+    { id: 'grad1', name: 'Sunset', value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+    { id: 'grad2', name: 'Night', value: 'linear-gradient(to top, #09203f 0%, #537895 100%)' },
+    { id: 'img1', name: 'Mountain', value: 'url("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80")' },
     { id: 'img2', name: 'Cyberpunk', value: 'url("https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1920&q=80")' },
-    { id: 'img3', name: 'Ufficio', value: 'url("https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80")' },
-    { id: 'img4', name: 'Astratto', value: 'url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80")' }
+    { id: 'img3', name: 'Office', value: 'url("https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80")' },
+    { id: 'img4', name: 'Abstract', value: 'url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80")' }
 ];
 
 const bgOptionsContainer = document.getElementById('background-options');
 
 function initBackgroundSettings() {
-    // 1. Carica sfondo salvato o usa default
     const savedBg = localStorage.getItem('appBackground') || 'default';
     applyBackground(savedBg);
 
-    // 2. Genera le opzioni nel modale
     if(!bgOptionsContainer) return;
     bgOptionsContainer.innerHTML = '';
 
@@ -225,7 +487,6 @@ function initBackgroundSettings() {
         div.title = bg.name;
         div.dataset.bgId = bg.id;
 
-        // Anteprima visiva
         if (bg.id === 'default') {
             div.classList.add('default-bg');
             div.innerHTML = '<span class="material-icons" style="font-size:1.5em; color:var(--muted)">block</span>';
@@ -234,7 +495,6 @@ function initBackgroundSettings() {
             div.style.backgroundSize = 'cover';
         }
 
-        // Gestione Click
         div.addEventListener('click', () => {
             applyBackground(bg.id);
             saveBackgroundPreference(bg.id);
@@ -244,7 +504,6 @@ function initBackgroundSettings() {
         bgOptionsContainer.appendChild(div);
     });
 
-    // Segna quello attivo visivamente
     updateSelectedVisual(savedBg);
 }
 
@@ -253,13 +512,10 @@ function applyBackground(bgId) {
     if (!bgObj) return;
 
     if (bgObj.id === 'default') {
-        // Rimuovi immagine inline per lasciare il colore del tema CSS
         document.body.style.backgroundImage = '';
         document.body.style.background = ''; 
     } else {
-        // Applica immagine o gradiente
         document.body.style.background = bgObj.value;
-        // Re-imposta le proprietà chiave perché lo shorthand 'background' potrebbe sovrascriverle
         document.body.style.backgroundSize = 'cover';
         document.body.style.backgroundPosition = 'center';
         document.body.style.backgroundAttachment = 'fixed';
@@ -280,20 +536,17 @@ function updateSelectedVisual(bgId) {
 
 document.addEventListener('DOMContentLoaded', initBackgroundSettings);
 
-// ---------- Helpers ----------
 function log(...args){ console.log('[APP]',...args); }
 
-// --- GESTIONE NOTIFICHE E LETTURA ---
+// --- NOTIFICATIONS & READ RECEIPT MANAGEMENT ---
 
 function updateUnreadBadge() {
-    // Rimuoviamo eventuali badge vecchi
     const oldBadge = showChatBtn.querySelector('.notification-badge');
     if (oldBadge) oldBadge.remove();
 
     if (unreadMessagesCount > 0) {
         const badge = document.createElement('span');
         badge.className = 'notification-badge';
-        // Mostriamo "9+" se ci sono molti messaggi
         badge.textContent = unreadMessagesCount > 9 ? '9+' : unreadMessagesCount;
         showChatBtn.appendChild(badge);
         showChatBtn.classList.add('has-notification'); 
@@ -303,24 +556,20 @@ function updateUnreadBadge() {
 }
 
 function markAllAsRead() {
-    // Resetta il contatore visivo
     unreadMessagesCount = 0;
     updateUnreadBadge();
 
     if (!socket || !currentRoomId) return;
 
-    // Trova tutti i messaggi non ancora marcati come "letti" (processed-read)
-    // Escludiamo i miei messaggi (.sender-me) e quelli di sistema
     const unreadMsgs = messagesContainer.querySelectorAll('.chat-message:not(.processed-read)');
 
     unreadMsgs.forEach(msg => {
         const msgId = msg.dataset.messageId;
-        // Verifica ulteriore per sicurezza: non mandare lettura per i propri messaggi
         const isMyMessage = msg.querySelector('.sender-me');
 
         if (msgId && !isMyMessage) {
             socket.emit('msg-read', currentRoomId, msgId, userNickname);
-            msg.classList.add('processed-read'); // Evita invii doppi
+            msg.classList.add('processed-read'); 
         }
     });
 }
@@ -329,22 +578,19 @@ function showReadersDialog(msgId) {
     const msgEl = document.querySelector(`.chat-message[data-message-id="${msgId}"]`);
     if (!msgEl) return;
 
-    // Recupera la lista dal dataset (aggiornata via socket)
     const readers = JSON.parse(msgEl.dataset.readers || "[]");
 
-    // Crea l'overlay scuro
     const overlay = document.createElement('div');
-    overlay.className = 'readers-dialog-overlay'; // Definito nel CSS
+    overlay.className = 'readers-dialog-overlay'; 
     
-    // Crea il box del dialog
     const dialog = document.createElement('div');
-    dialog.className = 'readers-dialog'; // Definito nel CSS
+    dialog.className = 'readers-dialog'; 
     
     let contentHtml = '';
     if (readers.length === 0) {
-        contentHtml = '<p style="color:var(--muted);">Nessuno ha ancora visualizzato questo messaggio.</p>';
+        contentHtml = '<p style="color:var(--muted);">No one has viewed this message yet.</p>';
     } else {
-        contentHtml = '<p style="margin-bottom:10px; font-weight:bold;">Letto da:</p><ul class="readers-list">';
+        contentHtml = '<p style="margin-bottom:10px; font-weight:bold;">Read by:</p><ul class="readers-list">';
         readers.forEach(nick => {
             contentHtml += `<li>${nick}</li>`;
         });
@@ -352,17 +598,16 @@ function showReadersDialog(msgId) {
     }
 
     dialog.innerHTML = `
-        <h3 style="margin-top:0; color:var(--primary-color);">Info Messaggio</h3>
+        <h3 style="margin-top:0; color:var(--primary-color);">Message Info</h3>
         ${contentHtml}
         <div style="text-align:right; margin-top:15px; border-top:1px solid var(--border-color); padding-top:10px;">
-            <button id="close-readers-btn" style="background:var(--surface-2); border:1px solid var(--border-color); color:var(--text-color); padding:6px 12px; border-radius:4px; cursor:pointer;">Chiudi</button>
+            <button id="close-readers-btn" style="background:var(--surface-2); border:1px solid var(--border-color); color:var(--text-color); padding:6px 12px; border-radius:4px; cursor:pointer;">Close</button>
         </div>
     `;
 
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
 
-    // Funzione di chiusura
     const closeDialog = () => overlay.remove();
     
     dialog.querySelector('#close-readers-btn').onclick = closeDialog;
@@ -374,11 +619,11 @@ function showReadersDialog(msgId) {
 function showOverlay(show){
   if(show){
     nicknameOverlay.classList.remove('hidden');
-    settingsBtnOverlay.classList.remove('hidden'); // Mostra il tasto impostazioni
+    settingsBtnOverlay.classList.remove('hidden'); 
     document.getElementById('conference-container').classList.add('hidden');
   } else {
     nicknameOverlay.classList.add('hidden');
-    settingsBtnOverlay.classList.add('hidden'); // Nascondi il tasto overlay quando sei in stanza
+    settingsBtnOverlay.classList.add('hidden'); 
     document.getElementById('conference-container').classList.remove('hidden');
   }
 }
@@ -390,7 +635,7 @@ function resetAndShowOverlay() {
     document.getElementById('room-name-display').textContent = '';
 
     showOverlay(true);
-    userNickname = 'Ospite';
+    userNickname = t('guest'); // Translated guest
     currentRoomId = null;
     
     if (localStream) localStream.getTracks().forEach(track => track.stop());
@@ -409,7 +654,7 @@ function resetAndShowOverlay() {
     toggleWhiteboardButton.classList.remove('active');
     toggleWhiteboardButton.classList.remove('has-notification'); 
     if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-    localWhiteboardHistory = []; // Reset history
+    localWhiteboardHistory = []; 
 
     if(fileTransferContainer) fileTransferContainer.innerHTML = '';
     for(const k in dataChannels) delete dataChannels[k];
@@ -437,7 +682,7 @@ function resetAndShowOverlay() {
     const placeholder = document.createElement('div');
     placeholder.id = 'remote-video-placeholder';
     placeholder.className = 'video-placeholder';
-    placeholder.textContent = 'In attesa di altri partecipanti...';
+    placeholder.textContent = t('wait_peers'); // Translated
     videosGrid.insertBefore(placeholder, localFeedEl);
     
     localFeedEl.classList.remove('is-focused', 'is-talking');
@@ -456,7 +701,7 @@ async function startLocalMedia(){
     monitorLocalAudio(true); 
   }catch(err){ 
     console.error('getUserMedia error',err); 
-    alert('Controlla webcam/microfono'); 
+    alert('Check webcam/microphone.'); 
   }
 }
 
@@ -522,9 +767,9 @@ function updateContextMenuState(peerId) {
     const isMuted = !!manuallyMutedPeers[peerId]; 
     menuMuteUser.classList.toggle('active-toggle', isMuted);
     menuMuteUser.querySelector('.material-icons').textContent = isMuted ? 'volume_up' : 'volume_off';
-    menuMuteUser.querySelector('span:last-child').textContent = isMuted ? 'Riattiva Audio' : 'Silenzia Audio';
-    const nickname = remoteNicknames[peerId] || 'Utente';
-    menuDmUser.querySelector('span:last-child').textContent = `Messaggio Privato a ${nickname}`;
+    menuMuteUser.querySelector('span:last-child').textContent = isMuted ? t('unmute_user') : t('mute_user');
+    const nickname = remoteNicknames[peerId] || 'User';
+    menuDmUser.querySelector('span:last-child').textContent = `${t('private_msg_to')} ${nickname}`;
 }
 
 function showContextMenu(peerId, x, y) {
@@ -543,7 +788,6 @@ function showContextMenu(peerId, x, y) {
 function hideContextMenu() { contextMenuEl.classList.add('hidden'); contextTargetPeerId = null; }
 
 function setFocus(peerId, manual=false) { 
-    // 1. Reset stato precedente
     videosGrid.classList.remove('has-fullscreen');
     const allFeeds = videosGrid.querySelectorAll('.video-feed');
     allFeeds.forEach(feed => {
@@ -558,13 +802,10 @@ function setFocus(peerId, manual=false) {
         autoFocusTimer = null; 
     }
 
-    // Se non c'è nessun focus (clic per deselezionare), abbiamo finito (torna griglia)
     if (!peerId) return;
 
-    // 2. Attiva modalità Fullscreen sul contenitore
     videosGrid.classList.add('has-fullscreen');
 
-    // 3. Identifica il video da ingrandire
     let targetFeed = null;
     if (peerId === 'local') {
         targetFeed = localFeedEl;
@@ -572,12 +813,10 @@ function setFocus(peerId, manual=false) {
         targetFeed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
     }
 
-    // 4. Applica classi
     if (targetFeed) {
-        targetFeed.classList.add('fullscreen-active'); // Diventa grande
+        targetFeed.classList.add('fullscreen-active'); 
     }
 
-    // 5. Trasforma TUTTI gli altri video in PiP (Picture in Picture)
     allFeeds.forEach(feed => {
         if (feed !== targetFeed) {
             feed.classList.add('pip-mode');
@@ -643,7 +882,7 @@ function addRemoteControlListeners(feed){
     feed.addEventListener('touchcancel', () => clearTimeout(touchTimer));
 }
 
-function ensureRemoteFeed(socketId, nickname='Utente'){
+function ensureRemoteFeed(socketId, nickname='User'){
   let feed = videosGrid.querySelector(`[data-peer-id="${socketId}"]`);
   if(feed) return feed;
   
@@ -663,7 +902,7 @@ function ensureRemoteFeed(socketId, nickname='Utente'){
   const placeholder = document.getElementById('remote-video-placeholder');
   if(placeholder) placeholder.remove();
   
-  videosGrid.insertBefore(div, localFeedEl); // Aggiunge il video
+  videosGrid.insertBefore(div, localFeedEl); 
 
   if (focusedPeerId) {
       setFocus(focusedPeerId);
@@ -686,11 +925,10 @@ function removeRemoteFeed(socketId){
     const placeholder = document.createElement('div');
     placeholder.id = 'remote-video-placeholder';
     placeholder.className = 'video-placeholder';
-    placeholder.textContent = 'In attesa di altri partecipanti...';
+    placeholder.textContent = t('wait_peers');
     videosGrid.insertBefore(placeholder, localFeedEl);
   }
 }
-// app.js - PARTE 2
 
 function toggleAudio(){
   isAudioEnabled = !isAudioEnabled;
@@ -717,7 +955,7 @@ function disconnect(){
 }
 
 async function toggleScreenShare() {
-    if( /Mobi|Android/i.test(navigator.userAgent) ) { alert("Non supportato su mobile."); return; }
+    if( /Mobi|Android/i.test(navigator.userAgent) ) { alert("Not supported on mobile."); return; }
     if (screenStream) {
         screenStream.getTracks().forEach(track => track.stop()); screenStream = null;
         updateLocalVideo(); 
@@ -746,54 +984,47 @@ async function toggleScreenShare() {
                 });
                 stream.getVideoTracks()[0].onended = () => toggleScreenShare();
             }
-        } catch (err) { console.error('Errore condivisione schermo:', err); }
+        } catch (err) { console.error('Error sharing screen:', err); }
     }
 }
 
 // ** FILE TRANSFER LOGIC **
 transferFileButton.addEventListener('click', () => { 
-    if(Object.keys(peerConnections).length === 0) { alert("Nessun partecipante."); return; } 
-    targetFileRecipientId = null; // Resetta: invio broadcast
+    if(Object.keys(peerConnections).length === 0) { alert("No participants."); return; } 
+    targetFileRecipientId = null; 
     fileInput.click(); 
 });
 
-// 2. Voce Menu Contestuale: Invia a UNO SPECIFICO
 menuSendFile.addEventListener('click', () => {
     if (contextTargetPeerId) {
-        targetFileRecipientId = contextTargetPeerId; // Imposta il destinatario
+        targetFileRecipientId = contextTargetPeerId; 
         hideContextMenu();
-        // Verifica se il canale dati è aperto per quell'utente
         if(!dataChannels[targetFileRecipientId] || dataChannels[targetFileRecipientId].readyState !== 'open'){
-            alert("Impossibile inviare file: connessione dati non stabile con questo utente.");
+            alert("Cannot send file: connection unstable with this user.");
             return;
         }
-        fileInput.click(); // Apre la selezione file
+        fileInput.click(); 
     }
 });
 
-// 3. Gestione Selezione File (Logica modificata)
 fileInput.addEventListener('change', (e) => { 
     const file = e.target.files[0]; 
     if (!file) return; 
 
     if (targetFileRecipientId) {
-        // CASO A: Invio Singolo
         sendFile(targetFileRecipientId, file);
     } else {
-        // CASO B: Invio Broadcast (a tutti)
         Object.keys(dataChannels).forEach(peerId => sendFile(peerId, file)); 
     }
     
     fileInput.value = ''; 
-    targetFileRecipientId = null; // Reset sicurezza
+    targetFileRecipientId = null; 
 });
-
-fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; Object.keys(dataChannels).forEach(peerId => sendFile(peerId, file)); fileInput.value = ''; });
 
 async function sendFile(peerId, file) {
     const dc = dataChannels[peerId];
-    if (!dc || dc.readyState !== 'open') { console.warn(`Channel chiuso ${peerId}`); return; }
-    const toast = createProgressToast(`Inviando: ${file.name}`, true);
+    if (!dc || dc.readyState !== 'open') { console.warn(`Channel closed ${peerId}`); return; }
+    const toast = createProgressToast(`Sending: ${file.name}`, true);
     const metadata = { type: 'file-metadata', name: file.name, size: file.size, fileType: file.type };
     dc.send(JSON.stringify(metadata));
     const arrayBuffer = await file.arrayBuffer();
@@ -812,12 +1043,10 @@ async function sendFile(peerId, file) {
 function handleDataChannelMessage(peerId, event) {
     const data = event.data;
     
-    // Gestione metadati (JSON)
     if (typeof data === 'string') {
         try {
             const msg = JSON.parse(data);
             if (msg.type === 'file-metadata') {
-                // [NUOVO] Suono ricezione file
                 playNotificationSound('file');
 
                 fileMetadata[peerId] = { 
@@ -827,13 +1056,12 @@ function handleDataChannelMessage(peerId, event) {
                     received: 0 
                 };
                 fileChunks[peerId] = [];
-                fileMetadata[peerId].toast = createProgressToast(`Ricevendo: ${msg.name}`, false);
+                fileMetadata[peerId].toast = createProgressToast(`Receiving: ${msg.name}`, false);
             }
         } catch (e) {}
         return;
     }
 
-    // Gestione dati binari (Chunk del file)
     if (fileMetadata[peerId]) {
         fileChunks[peerId].push(data);
         fileMetadata[peerId].received += data.byteLength;
@@ -850,21 +1078,15 @@ function handleDataChannelMessage(peerId, event) {
 function saveReceivedFile(peerId) {
     const meta = fileMetadata[peerId];
     
-    // Creiamo il Blob dai chunk ricevuti
     const blob = new Blob(fileChunks[peerId], { type: meta.type });
     const url = URL.createObjectURL(blob);
 
-    // Rileviamo se l'utente è su Mobile (iPhone, iPad, Android)
-    // Questo regex copre la maggior parte dei dispositivi mobili moderni
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     if (isMobile) {
-        // SU MOBILE: Creiamo un pulsante visibile.
-        // iOS blocca i download automatici non generati da un tocco diretto dell'utente.
         const btn = document.createElement('button');
-        btn.innerText = `📥 SCARICA: ${meta.name}`;
+        btn.innerText = `📥 ${t('download')}: ${meta.name}`;
         
-        // Stili inline per centrarlo e renderlo ben visibile sopra tutto
         btn.style.cssText = `
             position: fixed; 
             top: 50%; 
@@ -882,18 +1104,16 @@ function saveReceivedFile(peerId) {
             cursor: pointer;
         `;
 
-        // Al click dell'utente, scateniamo il download
         btn.onclick = () => {
             const a = document.createElement('a');
             a.href = url;
-            a.download = meta.name; // Nota: iOS potrebbe ignorare il nome e usare "document"
-            a.target = '_blank';    // Fondamentale per iOS per aprire l'anteprima
+            a.download = meta.name; 
+            a.target = '_blank'; 
             
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             
-            // Rimuoviamo il pulsante e puliamo
             btn.remove();
             cleanupTransferData(peerId, url);
         };
@@ -901,7 +1121,6 @@ function saveReceivedFile(peerId) {
         document.body.appendChild(btn);
 
     } else {
-        // SU DESKTOP: Download automatico (comportamento classico)
         const a = document.createElement('a');
         a.href = url;
         a.download = meta.name;
@@ -911,31 +1130,25 @@ function saveReceivedFile(peerId) {
         a.click();
         document.body.removeChild(a);
         
-        // Pulizia immediata (con leggero ritardo per sicurezza browser)
         setTimeout(() => {
             cleanupTransferData(peerId, url);
         }, 100);
     }
 }
 
-// Funzione helper per pulire la memoria e aggiornare la UI
 function cleanupTransferData(peerId, url) {
-    // Rilasciamo l'URL del blob per liberare memoria
     window.URL.revokeObjectURL(url);
 
-    // Aggiorniamo il Toast per dire "Completato"
     if (fileMetadata[peerId] && fileMetadata[peerId].toast) {
         const toast = fileMetadata[peerId].toast;
-        toast.querySelector('.file-name').textContent = `Completato: ${fileMetadata[peerId].name}`;
-        toast.querySelector('.progress-bar-fill').style.backgroundColor = '#4caf50'; // Verde successo
+        toast.querySelector('.file-name').textContent = `Completed: ${fileMetadata[peerId].name}`;
+        toast.querySelector('.progress-bar-fill').style.backgroundColor = '#4caf50'; 
         
-        // Rimuoviamo il toast dopo 3 secondi
         setTimeout(() => {
             if (toast) toast.remove();
         }, 3000);
     }
 
-    // Cancelliamo i dati dalla memoria RAM
     delete fileChunks[peerId];
     delete fileMetadata[peerId];
 }
@@ -973,37 +1186,29 @@ function initWhiteboard() {
 }
 
 function resizeCanvas() { 
-    // 1. Determiniamo lo spazio disponibile
     const containerW = window.innerWidth;
     const containerH = window.innerHeight;
 
-    // 2. Definiamo il rapporto d'aspetto fisso (16:9) per evitare distorsioni
     const targetRatio = 16 / 9;
     
     let finalW, finalH;
 
-    // 3. Calcoliamo le dimensioni massime mantenendo il rapporto 16:9 (Logica "Contain")
     if (containerW / containerH > targetRatio) {
-        // Lo schermo è più largo del 16:9 (es. monitor ultrawide o barre laterali)
         finalH = containerH;
         finalW = finalH * targetRatio;
     } else {
-        // Lo schermo è più stretto del 16:9 (es. Mobile o 4:3)
         finalW = containerW;
         finalH = finalW / targetRatio;
     }
 
-    // 4. Applichiamo le dimensioni al canvas
     canvas.width = finalW; 
     canvas.height = finalH;
 
-    // 5. Stiliamo il canvas per centrarlo visivamente
     canvas.style.width = `${finalW}px`;
     canvas.style.height = `${finalH}px`;
-    canvas.style.boxShadow = "0 0 0 9999px rgba(0,0,0,1)"; // Trucco per rendere nerissimo lo spazio vuoto attorno
-    canvas.style.background = "#1e1e1e"; // Colore di sfondo area disegnabile
+    canvas.style.boxShadow = "0 0 0 9999px rgba(0,0,0,1)"; 
+    canvas.style.background = "#1e1e1e"; 
 
-    // 6. Ridisegniamo la cronologia se presente
     if(localWhiteboardHistory.length > 0) {
         localWhiteboardHistory.forEach(data => drawRemote(data, false));
     }
@@ -1061,7 +1266,7 @@ toggleWhiteboardButton.addEventListener('click', () => {
 wbCloseBtn.addEventListener('click', () => { whiteboardContainer.classList.add('hidden'); toggleWhiteboardButton.classList.remove('active'); });
 
 wbClearBtn.addEventListener('click', () => { 
-    if(confirm("Cancellare lavagna?")){ 
+    if(confirm("Clear whiteboard?")){ 
         ctx.clearRect(0, 0, canvas.width, canvas.height); 
         localWhiteboardHistory = [];
         if(socket && currentRoomId) socket.emit('wb-clear', currentRoomId); 
@@ -1076,12 +1281,11 @@ function stopRecording() { if (mediaRecorder && mediaRecorder.state !== 'inactiv
 function saveRecording() { isRecording = false; recordButton.classList.remove('active'); if (recordedChunks.length === 0) return; const blob = new Blob(recordedChunks, { type: 'video/webm' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'rec.webm'; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); document.body.removeChild(a); }
 function startRecording() {
     if (!window.MediaRecorder) {
-        alert('Il tuo browser non supporta la registrazione.');
+        alert('Your browser does not support recording.');
         return;
     }
 
     let streamToRecord = null;
-    // Decide quale stream registrare (locali o focus remoto)
     if (focusedPeerId === 'local') {
         streamToRecord = (localVideoEl.srcObject || localStream);
     } else {
@@ -1090,7 +1294,7 @@ function startRecording() {
     }
 
     if (!streamToRecord) {
-        alert("Nessun flusso video attivo da registrare.");
+        alert("No active video stream to record.");
         return;
     }
 
@@ -1105,13 +1309,12 @@ function startRecording() {
     let selectedMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));
 
     if (!selectedMimeType) {
-        alert("Nessun codec supportato trovato per la registrazione su questo dispositivo.");
+        alert("No supported recording codec found on this device.");
         return;
     }
 
     recordedChunks = [];
     try {
-        // [NUOVO] Suono di avvio registrazione
         playNotificationSound('rec');
 
         mediaRecorder = new MediaRecorder(streamToRecord, { mimeType: selectedMimeType });
@@ -1125,17 +1328,17 @@ function startRecording() {
         mediaRecorder.start(1000); 
         isRecording = true;
         recordButton.classList.add('active');
-        console.log(`Registrazione avviata con codec: ${selectedMimeType}`);
+        console.log(`Recording started with codec: ${selectedMimeType}`);
 
     } catch (e) {
-        console.error("Errore avvio registrazione:", e);
-        alert("Errore durante l'avvio della registrazione: " + e.message);
+        console.error("Error starting recording:", e);
+        alert("Error starting recording: " + e.message);
         isRecording = false;
         recordButton.classList.remove('active');
     }
 }
 
-// ** IMPOSTAZIONI UI LOGIC **
+// ** SETTINGS UI LOGIC **
 function openSettings() { settingsModal.classList.remove('hidden'); }
 function closeSettings() { settingsModal.classList.add('hidden'); }
 
@@ -1143,7 +1346,7 @@ settingsBtnOverlay.addEventListener('click', openSettings);
 settingsBtnRoom.addEventListener('click', openSettings);
 closeSettingsBtn.addEventListener('click', closeSettings);
 
-// Cambio Tema
+// Theme Toggle
 themeToggle.addEventListener('change', (e) => {
     if(e.target.checked) {
         document.body.classList.add('light-theme');
@@ -1153,18 +1356,16 @@ themeToggle.addEventListener('change', (e) => {
 });
 
 // ** ADMIN PANEL UI **
-// La logica "openAdminLoginBtn" è stata spostata dentro settings, quindi:
-// 1. Apri settings -> 2. Clicca "Admin Login" -> Chiude settings, apre Admin Panel
 openAdminLoginBtn.addEventListener('click', () => { 
-    closeSettings(); // Chiudi modale impostazioni
-    adminPanel.classList.remove('hidden'); // Apri modale admin
+    closeSettings(); 
+    adminPanel.classList.remove('hidden'); 
 });
 
 closeAdminBtn.addEventListener('click', () => { adminPanel.classList.add('hidden'); });
 adminLoginBtn.addEventListener('click', () => { const pwd = adminPasswordInput.value; if(!socket) initializeSocket(); socket.emit('admin-login', pwd); });
 adminRefreshBtn.addEventListener('click', () => { if(socket) socket.emit('admin-refresh'); });
 
-// ** RENDER DASHBOARD ADMIN AGGIORNATO **
+// ** RENDER ADMIN DASHBOARD **
 function renderAdminDashboard(data) {
     adminTotalUsers.textContent = data.totalUsers;
     adminBannedCount.textContent = data.bannedCount || 0;
@@ -1173,55 +1374,51 @@ function renderAdminDashboard(data) {
     list.innerHTML = '';
     
     if (Object.keys(data.rooms).length === 0) { 
-        list.innerHTML = '<p style="color:var(--muted); text-align:center;">Nessuna stanza attiva.</p>'; 
+        list.innerHTML = '<p style="color:var(--muted); text-align:center;">No active rooms.</p>'; 
         return; 
     }
 
-    // Iteriamo le stanze
     for (const [roomId, users] of Object.entries(data.rooms)) {
-        const config = data.configs[roomId] || { isLocked: false, password: "" }; // Leggi config
+        const config = data.configs[roomId] || { isLocked: false, password: "" }; 
         
         const roomCard = document.createElement('div'); 
         roomCard.className = 'admin-room-card';
         
-        // Header Stanza
         const header = document.createElement('div'); 
         header.className = 'room-header';
         
-        // Icone stato stanza
         let statusIcons = '';
         if (config.isLocked) statusIcons += '🔒 ';
         if (config.password) statusIcons += '🔑 ';
 
         header.innerHTML = `<span class="room-name">${statusIcons}${roomId}</span>`;
         
-        // Container Controlli Stanza
         const controlsDiv = document.createElement('div');
         controlsDiv.style.display = 'flex';
         controlsDiv.style.gap = '5px';
 
-        // 1. Tasto Lock/Unlock
+        // Lock/Unlock Button
         const lockBtn = document.createElement('button');
         lockBtn.className = `btn-admin-action btn-lock ${config.isLocked ? 'locked' : ''}`;
         lockBtn.innerHTML = `<span class="material-icons" style="font-size:1.2em;">${config.isLocked ? 'lock' : 'lock_open'}</span>`;
-        lockBtn.title = config.isLocked ? "Sblocca Stanza" : "Blocca Stanza";
+        lockBtn.title = config.isLocked ? "Unlock Room" : "Lock Room";
         lockBtn.onclick = () => socket.emit('admin-toggle-lock', roomId);
 
-        // 2. Tasto Password
+        // Password Button
         const passBtn = document.createElement('button');
         passBtn.className = 'btn-admin-action btn-pass';
         passBtn.innerHTML = '<span class="material-icons" style="font-size:1.2em;">vpn_key</span>';
-        passBtn.title = config.password ? `Cambia Pass (Attuale: ${config.password})` : "Imposta Password";
+        passBtn.title = config.password ? `Change Pass (Current: ${config.password})` : "Set Password";
         passBtn.onclick = () => {
-            const newPass = prompt("Imposta password stanza (lascia vuoto per rimuovere):", config.password);
+            const newPass = prompt("Set room password (leave empty to remove):", config.password);
             if (newPass !== null) socket.emit('admin-set-password', roomId, newPass);
         };
 
-        // 3. Tasto Chiudi Stanza
+        // Close Room Button
         const closeBtn = document.createElement('button'); 
         closeBtn.className = 'btn-close-room'; 
-        closeBtn.textContent = 'Chiudi';
-        closeBtn.onclick = () => { if(confirm('Chiudere stanza e disconnettere tutti?')) socket.emit('admin-close-room', roomId); };
+        closeBtn.textContent = 'Close';
+        closeBtn.onclick = () => { if(confirm('Close room and disconnect everyone?')) socket.emit('admin-close-room', roomId); };
 
         controlsDiv.appendChild(lockBtn);
         controlsDiv.appendChild(passBtn);
@@ -1230,7 +1427,6 @@ function renderAdminDashboard(data) {
         
         roomCard.appendChild(header);
 
-        // Lista Utenti con BAN
         const userList = document.createElement('ul'); 
         userList.className = 'admin-user-list';
         for (const [socketId, nickname] of Object.entries(users)) {
@@ -1242,18 +1438,18 @@ function renderAdminDashboard(data) {
             
             const actionsSpan = document.createElement('div');
             
-            // Tasto Kick
+            // Kick Button
             const kickBtn = document.createElement('button'); 
             kickBtn.className = 'btn-kick'; 
             kickBtn.textContent = 'Kick';
             kickBtn.onclick = () => { if(confirm(`Kick ${nickname}?`)) socket.emit('admin-kick-user', socketId); };
             
-            // Tasto BAN IP
+            // BAN Button
             const banBtn = document.createElement('button'); 
             banBtn.className = 'btn-admin-action btn-ban'; 
             banBtn.textContent = 'BAN IP';
-            banBtn.title = "Banna IP Permanentemente";
-            banBtn.onclick = () => { if(confirm(`ATTENZIONE: Bannare l'IP di ${nickname}? Non potrà più rientrare.`)) socket.emit('admin-ban-ip', socketId); };
+            banBtn.title = "Ban IP Permanently";
+            banBtn.onclick = () => { if(confirm(`WARNING: Ban IP of ${nickname}? They won't be able to join again.`)) socket.emit('admin-ban-ip', socketId); };
 
             actionsSpan.appendChild(kickBtn);
             actionsSpan.appendChild(banBtn);
@@ -1270,62 +1466,48 @@ function renderAdminDashboard(data) {
 // ** UTILS & CHAT **
 function getRoomIdFromUrl(){ const urlParams = new URLSearchParams(window.location.search); return urlParams.get('room'); }
 function copyRoomLink(){ 
-    // Costruiamo l'URL base con la stanza
     let url = `${window.location.protocol}//${window.location.host}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
     
-    // Se c'è una password, la aggiungiamo all'URL
     if (currentRoomPassword) {
         url += `&pass=${encodeURIComponent(currentRoomPassword)}`;
     }
 
     navigator.clipboard.writeText(url).then(() => { 
-        const originalText = shareRoomLinkButton.querySelector('.material-icons').textContent; // O il testo se non usi icone
-        shareRoomLinkButton.classList.add('active'); // Feedback visivo opzionale
-        
-        // Mostra feedback "Copiato!"
-        // Nota: nel tuo codice originale modificavi .value, ma il bottone contiene un'icona span. 
-        // Meglio usare un tooltip o un alert temporaneo, ma qui adattiamo la logica esistente:
-        alert("Link copiato negli appunti! " + (currentRoomPassword ? "(Include la password)" : ""));
+        alert("Link copied to clipboard! " + (currentRoomPassword ? "(Includes password)" : ""));
     }).catch(err => {
-        console.error('Errore copia:', err);
+        console.error('Copy error:', err);
     }); 
 }
 function addChatMessage(sender, message, isLocal = false, type = 'public', msgId = null) {
     const messageEl = document.createElement('div');
     messageEl.classList.add('chat-message');
 
-    // Se abbiamo un ID messaggio (quindi non è di sistema), configuriamo i dati per la lettura
     if (msgId && type !== 'system') {
         messageEl.dataset.messageId = msgId;
-        messageEl.dataset.readers = JSON.stringify([]); // Inizializziamo array vuoto
+        messageEl.dataset.readers = JSON.stringify([]); 
         
-        // Aggiungiamo l'evento click per vedere chi ha letto
         messageEl.addEventListener('click', () => showReadersDialog(msgId));
-        messageEl.style.cursor = 'pointer'; // Feedback visivo
+        messageEl.style.cursor = 'pointer'; 
     }
 
-    // Determina le classi CSS in base al tipo
     let cssClass;
     let senderText = sender;
 
     if (type === 'system') {
         cssClass = 'sender-system';
-        senderText = 'Sistema';
+        senderText = t('system'); // Translated System
     } else if (type === 'private') {
         cssClass = 'sender-private';
     } else {
         cssClass = isLocal ? 'sender-me' : 'sender-remote';
     }
 
-    // Costruzione del testo del mittente
     const prefix = isLocal 
-        ? `Tu${type === 'private' ? ` (DM a ${sender})` : ''}: ` 
+        ? `${t('you')}${type === 'private' ? ` (DM to ${sender})` : ''}: ` 
         : `${senderText}: `;
 
-    // Costruzione HTML del messaggio
     let htmlContent = `<span class="${cssClass}">${prefix}</span>${message}`;
 
-    // Aggiungiamo l'indicatore di lettura (spunte) solo se c'è un ID e non è di sistema
     if (msgId && type !== 'system') {
         htmlContent += `
             <div class="read-status" id="status-${msgId}">
@@ -1339,25 +1521,18 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
     messagesContainer.appendChild(messageEl);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    // --- Logica Suoni e Notifiche ---
     if (!isLocal && type !== 'system') {
-        // Suono di notifica
         playNotificationSound('chat');
 
-        // Controllo se la chat è visibile
-        // Consideriamo la chat aperta se il pannello è attivo (mobile) o non nascosto (desktop)
         const isChatVisible = (!chatPanel.classList.contains('hidden') && window.innerWidth > 768) || 
                               (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden'));
 
         if (isChatVisible) {
-            // Se la vedo, invio subito la conferma di lettura
             if (socket && currentRoomId && msgId) {
                 socket.emit('msg-read', currentRoomId, msgId, userNickname);
-                // Segniamo localmente come processato per non reinviarlo dopo
                 messageEl.classList.add('processed-read'); 
             }
         } else {
-            // Se la chat è chiusa, incremento il contatore badge
             unreadMessagesCount++;
             updateUnreadBadge();
         }
@@ -1371,13 +1546,13 @@ function sendMessage() {
 
     const parts = fullMessage.split(' ');
 
-    // --- Gestione Messaggi Privati (/dm) ---
+    // --- DM Handling (/dm) ---
     if (parts[0].toLowerCase() === '/dm' && parts.length >= 3) {
         const recipientNickname = parts[1];
         const messageContent = parts.slice(2).join(' ');
 
         if (recipientNickname.toLowerCase() === userNickname.toLowerCase()) {
-            addChatMessage('Sistema', 'No DM a te stesso.', true, 'system');
+            addChatMessage(t('system'), 'Cannot DM yourself.', true, 'system');
             clearChatInput();
             return;
         }
@@ -1390,20 +1565,16 @@ function sendMessage() {
             sendPrivateMessage(recipientId, recipientNickname, messageContent);
             clearChatInput();
         } else {
-            addChatMessage('Sistema', `Utente "${recipientNickname}" non trovato.`, true, 'system');
+            addChatMessage(t('system'), `User "${recipientNickname}" not found.`, true, 'system');
         }
         return;
     }
 
-    // --- Gestione Messaggi Pubblici (Aggiornata con ID) ---
     if (socket && currentRoomId) {
-        // Generiamo un ID univoco lato client
         const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-        // Inviamo al server: Stanza, Nick, Messaggio, ID
         socket.emit('send-message', currentRoomId, userNickname, fullMessage, messageId);
         
-        // Aggiungiamo alla nostra chat passando l'ID
         addChatMessage(userNickname, fullMessage, true, 'public', messageId);
         
         clearChatInput();
@@ -1411,20 +1582,20 @@ function sendMessage() {
 }
 
 function sendPrivateMessage(recipientId, recipientNickname, message) { if (!message || !recipientId) return; if (socket && currentRoomId) { socket.emit('send-private-message', currentRoomId, recipientId, userNickname, message); addChatMessage(recipientNickname, message, true, 'private'); } }
-function openChatPanelMobile(callback) { if (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden')) { if (callback) callback(); return; } chatPanel.classList.remove('hidden'); setTimeout(() => { chatPanel.classList.add('active'); let closeBtn = document.getElementById('close-chat-btn'); if (!closeBtn) { closeBtn = document.createElement('button'); closeBtn.textContent = '← Torna alle webcam'; closeBtn.id = 'close-chat-btn'; closeBtn.style.cssText = `position: relative; width: calc(100% - 20px); padding: 10px; margin: 10px; border: none; background: var(--primary-color); color: #fff; font-weight: bold; cursor: pointer; border-radius: 6px;`; const chatHeader = chatPanel.querySelector('h3'); if(chatHeader) chatPanel.insertBefore(closeBtn, chatHeader); closeBtn.addEventListener('click', () => { chatPanel.classList.remove('active'); setTimeout(() => { chatPanel.classList.add('hidden'); closeBtn.remove(); }, 300); }); } setTimeout(callback, 350); }, 10); }
+function openChatPanelMobile(callback) { if (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden')) { if (callback) callback(); return; } chatPanel.classList.remove('hidden'); setTimeout(() => { chatPanel.classList.add('active'); let closeBtn = document.getElementById('close-chat-btn'); if (!closeBtn) { closeBtn = document.createElement('button'); closeBtn.textContent = '← Back to video'; closeBtn.id = 'close-chat-btn'; closeBtn.style.cssText = `position: relative; width: calc(100% - 20px); padding: 10px; margin: 10px; border: none; background: var(--primary-color); color: #fff; font-weight: bold; cursor: pointer; border-radius: 6px;`; const chatHeader = chatPanel.querySelector('h3'); if(chatHeader) chatPanel.insertBefore(closeBtn, chatHeader); closeBtn.addEventListener('click', () => { chatPanel.classList.remove('active'); setTimeout(() => { chatPanel.classList.add('hidden'); closeBtn.remove(); }, 300); }); } setTimeout(callback, 350); }, 10); }
 
 // ** SOCKET IO **
 function initializeSocket(){
   if(socket) return; 
   socket = io(RENDER_SERVER_URL);
   socket.on('error-message', (msg) => {
-      alert("ERRORE: " + msg);
-      resetAndShowOverlay(); // Torna alla home
+      alert("ERROR: " + msg);
+      resetAndShowOverlay(); 
       if(socket) socket.disconnect();
       socket = null;
   });
   socket.on('kicked-by-admin', (msg) => {
-      alert(msg); // Messaggio personalizzato (es. "Sei bannato")
+      alert(msg); 
       location.reload();
   });
 
@@ -1438,20 +1609,23 @@ function initializeSocket(){
   });
 
   socket.on('admin-data-update', (data) => { renderAdminDashboard(data); });
-  socket.on('connect', ()=> log('Connesso', socket.id));
+  socket.on('connect', ()=> log('Connected', socket.id));
 
   socket.on('nickname-in-use', (msg) => { alert(msg); resetAndShowOverlay(); if (socket) socket.disconnect(); socket = null; });
-  socket.on('welcome', (newPeerId, nickname, peers=[])=>{ remoteNicknames[newPeerId] = nickname; addChatMessage(userNickname, `Benvenuto in ${currentRoomId}!`, false, 'system'); peers.forEach(peer=>{ if(peer.id !== socket.id) { remoteNicknames[peer.id] = peer.nickname; createPeerConnection(peer.id); } }); setFocus('local', false); });
+  
+  socket.on('welcome', (newPeerId, nickname, peers=[])=>{ 
+      remoteNicknames[newPeerId] = nickname; 
+      addChatMessage(t('system'), `${t('welcome')} ${currentRoomId}!`, false, 'system'); 
+      peers.forEach(peer=>{ if(peer.id !== socket.id) { remoteNicknames[peer.id] = peer.nickname; createPeerConnection(peer.id); } }); 
+      setFocus('local', false); 
+  });
   
   // Whiteboard events
   socket.on('wb-draw', (data) => { 
-      // Se la lavagna è chiusa (hidden), mostra il pallino rosso e suona
       if (whiteboardContainer.classList.contains('hidden')) {
           toggleWhiteboardButton.classList.add('has-notification');
           
-          // [NUOVO] Logica per non suonare troppo spesso (throttle)
           const now = Date.now();
-          // Suona solo se sono passati almeno 3 secondi dall'ultimo suono
           if (!window.lastWbSound || now - window.lastWbSound > 3000) { 
               playNotificationSound('wb');
               window.lastWbSound = now;
@@ -1470,44 +1644,41 @@ function initializeSocket(){
   });
   
   socket.on('new-message', (sender, message, msgId) => {
-      // Passiamo l'ID ricevuto dal server alla funzione di visualizzazione
       addChatMessage(sender, message, false, 'public', msgId);
   });
 
   socket.on('msg-read-update', (msgId, readerNickname) => {
-      // Trova il messaggio corrispondente nel DOM
       const msgEl = document.querySelector(`.chat-message[data-message-id="${msgId}"]`);
       
       if (msgEl) {
-          // 1. Recupera l'array attuale dei lettori
           let readers = [];
           try {
               readers = JSON.parse(msgEl.dataset.readers || "[]");
           } catch (e) { readers = []; }
 
-          // 2. Aggiungi il nuovo lettore se non c'è già
           if (!readers.includes(readerNickname)) {
               readers.push(readerNickname);
-              
-              // Salva il nuovo array nel dataset HTML
               msgEl.dataset.readers = JSON.stringify(readers);
-
-              // 3. Aggiorna la grafica (spunte blu)
               const statusEl = msgEl.querySelector('.read-status');
               if (statusEl) {
-                  statusEl.classList.add('seen'); // Classe CSS per colorare di blu
-                  
-                  // Opzionale: Se vuoi mostrare il numero (es. "+3")
-                  // const countSpan = statusEl.querySelector('.read-count');
-                  // if(countSpan) countSpan.textContent = readers.length > 0 ? readers.length : '';
+                  statusEl.classList.add('seen'); 
               }
           }
       }
   });
-  // Standard events
-  socket.on('peer-joined', (peerId,nickname)=>{ remoteNicknames[peerId] = nickname; createPeerConnection(peerId); addChatMessage('Sistema', `${nickname} entrato.`, false, 'system'); });
-  socket.on('peer-left', (peerId)=>{ removeRemoteFeed(peerId); addChatMessage('Sistema', `Utente uscito.`, false, 'system'); });
-  socket.on('new-private-message', (s, m) => { addChatMessage(`Privato da ${s}`, m, false, 'private'); });
+
+  socket.on('peer-joined', (peerId,nickname)=>{ 
+      remoteNicknames[peerId] = nickname; 
+      createPeerConnection(peerId); 
+      addChatMessage(t('system'), `${nickname} ${t('joined')}`, false, 'system'); 
+  });
+  
+  socket.on('peer-left', (peerId)=>{ 
+      removeRemoteFeed(peerId); 
+      addChatMessage(t('system'), t('left'), false, 'system'); 
+  });
+  
+  socket.on('new-private-message', (s, m) => { addChatMessage(`${t('private_msg_to')} ${s}`, m, false, 'private'); });
   socket.on('audio-status-changed', (pid, talk) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f) { f.classList.toggle('is-talking', talk); f.querySelector('.remote-mic-status').textContent = talk ? 'mic' : 'mic_off'; } });
   socket.on('remote-stream-type-changed', (pid, ratio) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f){ f.classList.remove('ratio-4-3', 'ratio-16-9'); f.classList.add(`ratio-${ratio}`); } });
   
@@ -1518,10 +1689,10 @@ function initializeSocket(){
 
   // Admin events
   socket.on('admin-login-success', () => { adminLoginView.classList.add('hidden'); adminDashboardView.classList.remove('hidden'); adminMsg.textContent = ''; });
-  socket.on('admin-login-fail', () => { adminMsg.textContent = 'Password errata.'; });
+  socket.on('admin-login-fail', () => { adminMsg.textContent = 'Wrong Password.'; });
   socket.on('admin-data-update', (data) => { renderAdminDashboard(data); });
-  socket.on('kicked-by-admin', () => { alert("Sei stato espulso."); location.reload(); });
-  socket.on('room-closed-by-admin', () => { alert("Stanza chiusa."); location.reload(); });
+  socket.on('kicked-by-admin', () => { alert(t('kicked')); location.reload(); });
+  socket.on('room-closed-by-admin', () => { alert(t('room_closed')); location.reload(); });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1529,19 +1700,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const roomParam = params.get('room');
     const passParam = params.get('pass');
 
-    // Se c'è il parametro ?room=... nell'URL
     if (roomParam) {
         roomIdInput.value = roomParam;
-        // Disabilita o rendi readonly l'input se vuoi che non lo cambino, oppure lascialo modificabile
-        // roomIdInput.readOnly = true; 
     }
 
-    // Se c'è il parametro &pass=... nell'URL
     if (passParam) {
         roomPasswordInput.value = passParam;
     }
 
-    // Se abbiamo la stanza, spostiamo il focus direttamente sul Nickname per velocizzare
     if (roomParam) {
         nicknameInput.focus();
     }
@@ -1554,7 +1720,6 @@ function createPeerConnection(socketId){
   iceCandidateQueues[socketId] = []; 
   if(localStream) { localStream.getTracks().forEach(track => { const sender = pc.addTrack(track, localStream); if(track.kind === 'video') videoSenders[socketId] = sender; }); }
   
-  // Data Channel logic
   const shouldCreateOffer = (socket.id < socketId); 
   if (shouldCreateOffer) { const dc = pc.createDataChannel("fileTransfer"); setupDataChannel(dc, socketId); } 
   else { pc.ondatachannel = (event) => { setupDataChannel(event.channel, socketId); }; }
@@ -1573,16 +1738,15 @@ joinButton.addEventListener('click', async ()=>{
   const roomId = roomIdInput.value.trim();
   const password = document.getElementById('room-password-input').value.trim();
 
-  if(!nickname || !roomId){ alert('Dati mancanti'); return; }
+  if(!nickname || !roomId){ alert('Missing data'); return; }
   
   userNickname = nickname; 
   currentRoomId = roomId;
-  currentRoomPassword = password; // <--- SALVIAMO LA PASSWORD QUI
+  currentRoomPassword = password; 
   
   await startLocalMedia(); 
   initializeSocket();
   
-  // INVIAMO ANCHE LA PASSWORD
   socket.emit('join-room', currentRoomId, userNickname, password); 
   
   document.getElementById('room-name-display').textContent = roomId;
@@ -1595,10 +1759,9 @@ localFeedEl.addEventListener('click', () => {
 });
 
 // --------------------------------------------------------
-// LISTENERS UI & CONTROLLI
+// LISTENERS UI & CONTROLS
 // --------------------------------------------------------
 
-// Controlli Media
 toggleAudioButton.addEventListener('click', toggleAudio);
 toggleVideoButton.addEventListener('click', toggleVideo);
 disconnectButton.addEventListener('click', disconnect);
@@ -1612,21 +1775,17 @@ if (recordButton) {
     });
 }
 
-// Controlli Chat (Aggiornato con Logica Notifiche)
 showChatBtn.addEventListener('click', () => {
     if (window.innerWidth <= 768) {
-        // Mobile: usa la funzione dedicata e passa il callback per resettare le notifiche
         openChatPanelMobile(() => {
             markAllAsRead();
         });
     } else {
-        // Desktop: Toggle visibilità
         chatPanel.classList.toggle('hidden');
         
-        // Se il pannello è stato appena aperto (non è hidden), segna tutto come letto
         if (!chatPanel.classList.contains('hidden')) {
             markAllAsRead();
-            setTimeout(() => chatMessageInput.focus(), 50); // Focus automatico
+            setTimeout(() => chatMessageInput.focus(), 50); 
         }
     }
 });
@@ -1637,7 +1796,6 @@ chatMessageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') sendMessage();
 });
 
-// Gestione chiusura menu contestuale (click fuori)
 document.addEventListener('click', (e) => {
     if (!contextMenuEl.classList.contains('hidden') && 
         !contextMenuEl.contains(e.target) && 
@@ -1646,7 +1804,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Prevenzione menu browser default se non sui video
 document.addEventListener('contextmenu', (e) => {
     if (contextMenuEl && 
         !e.target.closest('.video-feed') && 
@@ -1655,7 +1812,6 @@ document.addEventListener('contextmenu', (e) => {
     }
 });
 
-// Azioni Menu Contestuale
 menuMuteUser.addEventListener('click', () => {
     if (contextTargetPeerId) {
         toggleRemoteMute(contextTargetPeerId);
@@ -1665,14 +1821,13 @@ menuMuteUser.addEventListener('click', () => {
 
 menuDmUser.addEventListener('click', () => {
     if (contextTargetPeerId) {
-        // Controllo anti-self DM
         if (contextTargetPeerId === socket.id) {
             hideContextMenu();
-            addChatMessage('Sistema', 'No DM a te stesso.', true, 'system');
+            addChatMessage(t('system'), 'Cannot DM yourself.', true, 'system');
             return;
         }
 
-        const nickname = remoteNicknames[contextTargetPeerId] || 'Utente';
+        const nickname = remoteNicknames[contextTargetPeerId] || 'User';
         hideContextMenu();
 
         const focusAndSetDM = () => {
@@ -1685,48 +1840,39 @@ menuDmUser.addEventListener('click', () => {
             }
         };
 
-        // Se mobile apre il pannello, altrimenti setta solo l'input
         if (window.innerWidth <= 768) openChatPanelMobile(focusAndSetDM);
         else focusAndSetDM();
     }
 });
 
 const switchCameraBtn = document.getElementById('switch-camera-button');
-let currentFacingMode = 'user'; // 'user' = frontale, 'environment' = posteriore
+let currentFacingMode = 'user'; 
 
 async function switchCamera() {
-    // Se non c'è video attivo o stream locale, esci
     if (!localStream || !isVideoEnabled) return;
 
-    // 1. Determina la nuova modalità
     currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
     
-    // 2. Definisci i vincoli per il nuovo video
     const constraints = {
         video: { 
-            facingMode: { exact: currentFacingMode } // 'exact' forza il cambio su mobile
+            facingMode: { exact: currentFacingMode } 
         },
-        audio: false // Non chiediamo audio, manteniamo quello esistente
+        audio: false 
     };
 
     try {
-        // 3. Richiedi il nuovo stream video
         const newStream = await navigator.mediaDevices.getUserMedia(constraints);
         const newVideoTrack = newStream.getVideoTracks()[0];
 
-        // 4. Sostituisci la traccia nel flusso locale (per farti vedere il cambiamento)
         const oldVideoTrack = localStream.getVideoTracks()[0];
         if (oldVideoTrack) {
             localStream.removeTrack(oldVideoTrack);
-            oldVideoTrack.stop(); // Spegni la vecchia camera
+            oldVideoTrack.stop(); 
         }
         localStream.addTrack(newVideoTrack);
         
-        // Aggiorna l'elemento video locale
         localVideoEl.srcObject = localStream;
 
-        // 5. IMPORTANTE: Sostituisci la traccia video in TUTTE le connessioni P2P attive
-        // Questo permette agli altri di vedere il cambio senza caduta di connessione
         for (const peerId in peerConnections) {
             const pc = peerConnections[peerId];
             const sender = pc.getSenders().find(s => s.track.kind === 'video');
@@ -1735,7 +1881,6 @@ async function switchCamera() {
             }
         }
         
-        // Specchia il video locale solo se è la camera frontale ('user')
         if (currentFacingMode === 'user') {
             localVideoEl.style.transform = 'scaleX(-1)';
         } else {
@@ -1743,21 +1888,17 @@ async function switchCamera() {
         }
 
     } catch (err) {
-        console.error("Errore cambio camera:", err);
-        // Fallback: se 'exact' fallisce (es. su PC), prova senza 'exact'
+        console.error("Switch camera error:", err);
         if (constraints.video.facingMode.exact) {
             delete constraints.video.facingMode.exact;
             constraints.video.facingMode = currentFacingMode;
             try {
-                // Riprova con vincoli più leggeri
-                // ... (ripetere logica semplificata se necessario) ...
-                alert("Impossibile cambiare fotocamera su questo dispositivo.");
+                alert("Cannot switch camera on this device.");
             } catch(e) {}
         }
     }
 }
 
-// 6. Aggiungi il Listener al bottone
 if (switchCameraBtn) {
     switchCameraBtn.addEventListener('click', switchCamera);
 }

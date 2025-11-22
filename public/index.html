@@ -1,200 +1,212 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Conferenza Video - WebRTC</title>
-<link rel="stylesheet" href="style.css" />
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/images/favicon/favicon-16x16.png">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Video Conference - WebRTC</title>
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon/favicon-16x16.png">
 </head>
 <body>
 
-<button id="settings-btn-overlay" class="settings-floating-btn" title="Impostazioni">
-    <span class="material-icons">settings</span>
-</button>
+    <button id="settings-btn-overlay" class="settings-floating-btn" data-lang-title="settings_title" title="Settings">
+        <span class="material-icons">settings</span>
+    </button>
 
-<div id="nickname-overlay">
-    <img id="app-logo" src="images/logo.png" alt="Logo" />
-    <div class="card">
-        <h2>Entra nella Conferenza</h2>
-        <input type="text" id="room-id-input" placeholder="Nome della Stanza" required />
-        <input type="password" id="room-password-input" placeholder="Password Stanza (Opzionale)" />
-        <input type="text" id="nickname-input" placeholder="Il tuo Nickname" required />
-        <div class="row">
-            <button id="join-button">Entra nella Conferenza</button>
-        </div>
-    </div>
-</div>
-
-<div id="settings-modal" class="hidden">
-    <div class="settings-content">
-        <div class="settings-header">
-            <h3>Impostazioni</h3>
-            <button id="close-settings-btn"><span class="material-icons">close</span></button>
-        </div>
-        <div class="settings-body">
-            <div class="setting-item">
-                <span>Tema Scuro / Chiaro</span>
-                <label class="switch">
-                    <input type="checkbox" id="theme-toggle">
-                    <span class="slider round"></span>
-                </label>
-            </div>
-			<hr class="separator">
-			<div class="setting-item" style="display:block;">
-				<span style="display:block; margin-bottom:10px;">Sfondo Applicazione</span>
-				<div id="background-options" class="bg-selection-grid"></div>
-			</div>
-            <hr class="separator">
-            <div class="setting-item">
-                <span>Gestione Server</span>
-                <button id="open-admin-login" class="btn-secondary">Login Admin</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="admin-panel" class="hidden">
-    <div class="admin-header">
-        <h3>🛡️ Admin Dashboard</h3>
-        <button id="close-admin-btn"><span class="material-icons">close</span></button>
-    </div>
-    <div class="admin-content">
-        <div id="admin-login-view">
-            <input type="password" id="admin-password-input" placeholder="Password Admin" />
-            <button id="admin-login-btn">Login</button>
-            <p id="admin-msg" style="color: red; margin-top: 10px;"></p>
-        </div>
-        <div id="admin-dashboard-view" class="hidden">
-            <div class="stats-bar">
-                <span>Utenti: <strong id="admin-total-users">0</strong></span>
-                <span style="margin-left:15px;">IP Bannati: <strong id="admin-banned-count" style="color:red;">0</strong></span>
-            </div>
+    <div id="nickname-overlay">
+        <img id="app-logo" src="images/logo.png" alt="Logo" />
+        <div class="card">
+            <h2 data-lang="enter_conference">Join Conference</h2>
             
-            <div class="admin-section-title">📜 Live Server Logs</div>
-            <div id="admin-logs-console">
-                <div class="log-entry system">In attesa di eventi...</div>
+            <input type="text" id="room-id-input" data-lang-placeholder="room_name" placeholder="Room Name" required />
+            <input type="password" id="room-password-input" data-lang-placeholder="room_pass" placeholder="Room Password (Optional)" />
+            <input type="text" id="nickname-input" data-lang-placeholder="your_nickname" placeholder="Your Nickname" required />
+            
+            <div class="row">
+                <button id="join-button" data-lang="join_btn">Join Conference</button>
             </div>
-
-            <div class="admin-section-title">🎛️ Gestione Stanze</div>
-            <div id="admin-rooms-list">
-                </div>
-            <button id="admin-refresh-btn">Aggiorna Dati</button>
         </div>
     </div>
-</div>
 
-<div id="conference-container" class="hidden">
-    <header id="room-header">
-        <div class="header-left">
-            <h3>Stanza: <span id="room-name-display"></span></h3>
-        </div>
-        <div class="header-controls">
-            <button id="show-chat-btn" title="Apri Chat">
-                <span class="material-icons">chat</span>
-            </button>
-            <button id="share-room-link" title="Condividi Link Stanza">
-                <span class="material-icons">link</span>
-            </button>
-            <button id="settings-btn-room" title="Impostazioni">
-                <span class="material-icons">settings</span>
-            </button>
-        </div>
-    </header>
-
-    <main id="main-area">
-        <section id="videos-grid">
-            <div id="local-feed" class="video-feed ratio-4-3 hidden is-focused" data-peer-id="local">
-                <video id="local-video" autoplay playsinline muted></video>
-                <div class="video-label">
-                    <span id="local-mic-status" class="material-icons">mic</span>
-                    Tu
+    <div id="settings-modal" class="hidden">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h3 data-lang="settings_title">Settings</h3>
+                <button id="close-settings-btn"><span class="material-icons">close</span></button>
+            </div>
+            <div class="settings-body">
+                <div class="setting-item">
+                    <span data-lang="theme_label">Dark / Light Theme</span>
+                    <label class="switch">
+                        <input type="checkbox" id="theme-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <hr class="separator">
+                <div class="setting-item" style="display:block;">
+                    <span data-lang="bg_label" style="display:block; margin-bottom:10px;">App Background</span>
+                    <div id="background-options" class="bg-selection-grid"></div>
+                </div>
+                <hr class="separator">
+                <div class="setting-item">
+                    <span data-lang="server_mgmt">Server Management</span>
+                    <button id="open-admin-login" class="btn-secondary" data-lang="login_admin">Admin Login</button>
                 </div>
             </div>
-        </section>
+        </div>
+    </div>
 
-        <div id="whiteboard-container" class="hidden">
-            <div class="wb-toolbar">
-                <div class="wb-colors">
-                    <div class="color-btn active" style="background: #ffffff;" data-color="#ffffff"></div>
-                    <div class="color-btn" style="background: #ff5252;" data-color="#ff5252"></div>
-                    <div class="color-btn" style="background: #448aff;" data-color="#448aff"></div>
-                    <div class="color-btn" style="background: #69f0ae;" data-color="#69f0ae"></div>
-                    <div class="color-btn" style="background: #ffd740;" data-color="#ffd740"></div>
-                </div>
-                <div class="wb-actions">
-                    <button id="wb-undo-btn" title="Annulla Ultimo Tratto"><span class="material-icons">undo</span></button>
-                    <button id="wb-clear-btn" title="Cancella Tutto"><span class="material-icons">delete</span></button>
-                    <button id="wb-close-btn" title="Chiudi Lavagna"><span class="material-icons">close</span></button>
-                </div>
+    <div id="admin-panel" class="hidden">
+        <div class="admin-header">
+            <h3>🛡️ Admin Dashboard</h3>
+            <button id="close-admin-btn"><span class="material-icons">close</span></button>
+        </div>
+        <div class="admin-content">
+            <div id="admin-login-view">
+                <input type="password" id="admin-password-input" placeholder="Admin Password" />
+                <button id="admin-login-btn">Login</button>
+                <p id="admin-msg" style="color: red; margin-top: 10px;"></p>
             </div>
-            <canvas id="whiteboard-canvas"></canvas>
-        </div>
+            <div id="admin-dashboard-view" class="hidden">
+                <div class="stats-bar">
+                    <span>Users: <strong id="admin-total-users">0</strong></span>
+                    <span style="margin-left:15px;">Banned IPs: <strong id="admin-banned-count" style="color:red;">0</strong></span>
+                </div>
+                
+                <div class="admin-section-title">📜 Live Server Logs</div>
+                <div id="admin-logs-console">
+                    <div class="log-entry system">Waiting for events...</div>
+                </div>
 
-        <aside id="chat-panel" class="panel-column">
-            <h3>💬 Chat</h3>
-            <div id="messages-container"></div>
-            <div id="chat-input-area">
-                <input type="text" id="chat-message-input" placeholder="Scrivi un messaggio..." />
-                <button id="send-chat-button">Invia</button>
+                <div class="admin-section-title">🎛️ Room Management</div>
+                <div id="admin-rooms-list">
+                    </div>
+                <button id="admin-refresh-btn">Refresh Data</button>
             </div>
-        </aside>
+        </div>
+    </div>
 
-        <div id="main-controls-bar">
-            <button id="toggle-audio-button" title="Muta/Attiva Audio"><span class="material-icons">mic</span></button>
-            <button id="toggle-video-button" title="Disattiva/Attiva Video"><span class="material-icons">videocam</span></button>
-            <button id="switch-camera-button" class="mobile-only" title="Cambia Fotocamera">
-				<span class="material-icons">flip_camera_ios</span>
-			</button>
-			<button id="transfer-file-button" title="Trasferisci File">
-                <span class="material-icons">folder_open</span>
+    <div id="conference-container" class="hidden">
+        <header id="room-header">
+            <div class="header-left">
+                <h3><span data-lang="room_label">Room</span>: <span id="room-name-display"></span></h3>
+            </div>
+            <div class="header-controls">
+                <button id="show-chat-btn" data-lang-title="chat_title" title="Open Chat">
+                    <span class="material-icons">chat</span>
+                </button>
+                <button id="share-room-link" title="Share Room Link">
+                    <span class="material-icons">link</span>
+                </button>
+                <button id="settings-btn-room" data-lang-title="settings_title" title="Settings">
+                    <span class="material-icons">settings</span>
+                </button>
+            </div>
+        </header>
+
+        <main id="main-area">
+            <section id="videos-grid">
+                <div id="local-feed" class="video-feed ratio-4-3 hidden is-focused" data-peer-id="local">
+                    <video id="local-video" autoplay playsinline muted></video>
+                    <div class="video-label">
+                        <span id="local-mic-status" class="material-icons">mic</span>
+                        <span data-lang="you">You</span>
+                    </div>
+                </div>
+            </section>
+
+            <div id="whiteboard-container" class="hidden">
+                <div class="wb-toolbar">
+                    <div class="wb-colors">
+                        <div class="color-btn active" style="background: #ffffff;" data-color="#ffffff"></div>
+                        <div class="color-btn" style="background: #ff5252;" data-color="#ff5252"></div>
+                        <div class="color-btn" style="background: #448aff;" data-color="#448aff"></div>
+                        <div class="color-btn" style="background: #69f0ae;" data-color="#69f0ae"></div>
+                        <div class="color-btn" style="background: #ffd740;" data-color="#ffd740"></div>
+                    </div>
+                    <div class="wb-actions">
+                        <button id="wb-undo-btn" title="Undo"><span class="material-icons">undo</span></button>
+                        <button id="wb-clear-btn" title="Clear"><span class="material-icons">delete</span></button>
+                        <button id="wb-close-btn" title="Close"><span class="material-icons">close</span></button>
+                    </div>
+                </div>
+                <canvas id="whiteboard-canvas"></canvas>
+            </div>
+
+            <aside id="chat-panel" class="panel-column">
+                <h3 data-lang="chat_title">💬 Chat</h3>
+                <div id="messages-container"></div>
+                <div id="chat-input-area">
+                    <input type="text" id="chat-message-input" data-lang-placeholder="type_message" placeholder="Type a message..." />
+                    <button id="send-chat-button" data-lang="send_btn">Send</button>
+                </div>
+            </aside>
+
+            <div id="main-controls-bar">
+                <button id="toggle-audio-button" data-lang-title="mute_unmute" title="Mute/Unmute Audio">
+                    <span class="material-icons">mic</span>
+                </button>
+                <button id="toggle-video-button" data-lang-title="video_toggle" title="Enable/Disable Video">
+                    <span class="material-icons">videocam</span>
+                </button>
+                <button id="switch-camera-button" class="mobile-only" data-lang-title="switch_cam" title="Switch Camera">
+                    <span class="material-icons">flip_camera_ios</span>
+                </button>
+                <button id="transfer-file-button" data-lang-title="transfer_file" title="Transfer File">
+                    <span class="material-icons">folder_open</span>
+                </button>
+                <button id="record-button" class="off" data-lang-title="start_rec" title="Start Recording">
+                    <span class="material-icons">fiber_manual_record</span>
+                </button>
+                <button id="share-screen-button" data-lang-title="share_screen" title="Share Screen">
+                    <span class="material-icons">screen_share</span>
+                </button>
+                <button id="toggle-whiteboard-button" data-lang-title="toggle_wb" title="Toggle Whiteboard">
+                    <span class="material-icons">draw</span>
+                </button>
+                <button id="disconnect-button" data-lang-title="disconnect" title="Disconnect">
+                    <span class="material-icons">call_end</span>
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <div id="file-transfer-container"></div>
+    <input type="file" id="file-input" class="hidden" /> 
+
+    <template id="remote-video-template">
+        <div class="video-feed ratio-4-3">
+            <div class="video-content-wrapper">
+                <video autoplay playsinline></video>
+            </div>
+            <div class="video-label">
+                <span class="remote-mic-status material-icons">mic</span>
+                <span class="remote-nickname"></span>
+            </div>
+            <button class="context-menu-trigger" title="Options">
+                <span class="material-icons">more_vert</span>
             </button>
-            <button id="record-button" title="Avvia Registrazione" class="off"><span class="material-icons">fiber_manual_record</span></button>
-            <button id="share-screen-button" title="Condividi Schermo"><span class="material-icons">screen_share</span></button>
-            <button id="toggle-whiteboard-button" title="Attiva/Disattiva Whiteboard">
-                <span class="material-icons">draw</span>
-            </button>
-            <button id="disconnect-button" title="Disconnetti"><span class="material-icons">call_end</span></button>
         </div>
-    </main>
-</div>
+    </template>
 
-<div id="file-transfer-container"></div>
-<input type="file" id="file-input" class="hidden" /> 
-
-<template id="remote-video-template">
-    <div class="video-feed ratio-4-3">
-        <div class="video-content-wrapper">
-            <video autoplay playsinline></video>
+    <div id="remote-context-menu" class="hidden">
+        <div id="menu-dm-user" class="menu-item">
+            <span class="material-icons">message</span> 
+            <span>Private Message</span>
         </div>
-        <div class="video-label">
-            <span class="remote-mic-status material-icons">mic</span>
-            <span class="remote-nickname"></span>
+        <div id="menu-send-file" class="menu-item">
+            <span class="material-icons">attach_file</span>
+            <span data-lang="send_file_to">Send File to User</span>
         </div>
-        <button class="context-menu-trigger" title="Opzioni Utente">
-            <span class="material-icons">more_vert</span>
-        </button>
+        <div id="menu-mute-user" class="menu-item">
+            <span class="material-icons">volume_off</span> 
+            <span>Mute Audio</span>
+        </div>
     </div>
-</template>
 
-<div id="remote-context-menu" class="hidden">
-    <div id="menu-dm-user" class="menu-item">
-        <span class="material-icons">message</span> 
-        <span>Messaggio Privato a Utente</span>
-    </div>
-    <div id="menu-send-file" class="menu-item">
-        <span class="material-icons">attach_file</span>
-        <span>Invia File a Utente</span>
-    </div>
-    <div id="menu-mute-user" class="menu-item">
-        <span class="material-icons">volume_off</span> 
-        <span>Silenzia Audio</span>
-    </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
-<script src="app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
