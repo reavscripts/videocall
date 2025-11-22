@@ -1135,6 +1135,20 @@ body.light-theme .sender-private {
     height: 100%;
 }
 
+.video-feed.fullscreen-active .context-menu-trigger {
+        top: 80px !important;  /* Scende sotto l'header (che occupa circa 60-70px) */
+        right: 15px !important; /* Posizione destra sicura */
+        z-index: 160 !important; /* Assicura che sia sopra il video e cliccabile */
+        background-color: rgba(0, 0, 0, 0.7);
+        width: 40px;
+        height: 40px;
+    }
+
+    .video-feed.fullscreen-active .context-menu-trigger .material-icons {
+        font-size: 1.5em;
+        line-height: 40px;
+    }
+
 .video-feed.pip-mode {
     position: absolute;
     bottom: 100px;
