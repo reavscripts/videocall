@@ -398,10 +398,18 @@ input:checked + .slider:before {
     background: var(--danger);
     color: white;
     border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 0.8em;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-left: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.btn-close-room:hover {
+    background: #c62828;
 }
 
 .admin-user-list {
@@ -410,27 +418,50 @@ input:checked + .slider:before {
     margin: 0;
 }
 
+#admin-refresh-btn {
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%; /* Lo facciamo largo quanto il pannello per comodità */
+    margin-top: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    transition: transform 0.1s, background 0.2s;
+}
+
+#admin-refresh-btn:hover {
+    background: var(--accent-color);
+    transform: translateY(-1px);
+}
+
+#admin-refresh-btn:active {
+    transform: translateY(1px);
+}
+
 .admin-user-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 5px 0;
-    font-size: 0.9em;
-    border-bottom: 1px solid var(--border-color);
+    padding: 8px 0; /* Più spazio verticale tra gli utenti */
 }
 
 .btn-kick {
-    background: #555;
-    color: #fff;
-    border: none;
-    padding: 2px 6px;
-    border-radius: 3px;
+    background: var(--surface-2);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 0.8em;
+    font-size: 0.85em;
+    font-weight: 500;
+    transition: all 0.2s;
+    margin-right: 5px;
 }
 
 .btn-kick:hover {
-    background: var(--danger);
+    background: var(--muted);
+    color: #fff;
 }
 
 #admin-logs-console {
@@ -464,15 +495,24 @@ input:checked + .slider:before {
 }
 
 .btn-admin-action {
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    display: flex;
+    height: 32px;
+    min-width: 32px;
+    padding: 0 8px;
+    border-radius: 6px;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-size: 0.9em;
+    margin-left: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: opacity 0.2s;
+}
+
+.btn-admin-action:hover {
+    opacity: 0.9;
+}
+
+.btn-admin-action .material-icons {
+    font-size: 1.1em;
 }
 
 .btn-lock {
@@ -488,12 +528,20 @@ input:checked + .slider:before {
 }
 
 .btn-ban {
-    background: #b71c1c;
+    background: var(--danger); /* Rosso */
     color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85em;
     font-weight: bold;
-    font-size: 0.7em;
-    padding: 2px 5px;
-    margin-left: 5px;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.btn-ban:hover {
+    background: #d32f2f; /* Rosso più scuro */
 }
 
 #conference-container {
