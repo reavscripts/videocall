@@ -751,6 +751,7 @@ body.light-theme .sender-private {
 
 #chat-input-area {
     display: flex;
+    align-items: center; /* <--- AGGIUNTO: centra verticalmente input e bottone */
     padding: 10px;
     border-top: 1px solid var(--border-color);
     gap: 8px;
@@ -770,12 +771,13 @@ body.light-theme .sender-private {
 #send-chat-button {
     background: var(--primary-color);
     color: #fff;
-    border: none;
+    border: 1px solid transparent; /* <--- AGGIUNTO: compensa il bordo dell'input per uguale altezza */
     border-radius: 6px;
     padding: 10px 15px;
     font-size: 1em;
     font-weight: bold;
     cursor: pointer;
+    transition: background-color 0.2s; /* <--- Opzionale: rende più fluido l'hover */
 }
 
 #send-chat-button:hover {
