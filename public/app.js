@@ -84,6 +84,7 @@ const videoSenders = {};
 let isAudioEnabled = true;
 let isVideoEnabled = true;
 const iceCandidateQueues = {};
+let unreadMessagesCount = 0;
 
 // Variabili Registrazione
 let mediaRecorder = null;
@@ -197,8 +198,178 @@ function playNotificationSound(type) {
     }
 }
 
+const availableBackgrounds = [
+    { id: 'default', name: 'Default', value: '' }, // Valore vuoto = usa colore tema CSS
+    { id: 'grad1', name: 'Tramonto', value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+    { id: 'grad2', name: 'Notte', value: 'linear-gradient(to top, #09203f 0%, #537895 100%)' },
+    { id: 'img1', name: 'Montagna', value: 'url("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80")' },
+    { id: 'img2', name: 'Cyberpunk', value: 'url("https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1920&q=80")' },
+    { id: 'img3', name: 'Ufficio', value: 'url("https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80")' },
+    { id: 'img4', name: 'Astratto', value: 'url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80")' }
+];
+
+const bgOptionsContainer = document.getElementById('background-options');
+
+function initBackgroundSettings() {
+    // 1. Carica sfondo salvato o usa default
+    const savedBg = localStorage.getItem('appBackground') || 'default';
+    applyBackground(savedBg);
+
+    // 2. Genera le opzioni nel modale
+    if(!bgOptionsContainer) return;
+    bgOptionsContainer.innerHTML = '';
+
+    availableBackgrounds.forEach(bg => {
+        const div = document.createElement('div');
+        div.className = 'bg-option';
+        div.title = bg.name;
+        div.dataset.bgId = bg.id;
+
+        // Anteprima visiva
+        if (bg.id === 'default') {
+            div.classList.add('default-bg');
+            div.innerHTML = '<span class="material-icons" style="font-size:1.5em; color:var(--muted)">block</span>';
+        } else {
+            div.style.background = bg.value;
+            div.style.backgroundSize = 'cover';
+        }
+
+        // Gestione Click
+        div.addEventListener('click', () => {
+            applyBackground(bg.id);
+            saveBackgroundPreference(bg.id);
+            updateSelectedVisual(bg.id);
+        });
+
+        bgOptionsContainer.appendChild(div);
+    });
+
+    // Segna quello attivo visivamente
+    updateSelectedVisual(savedBg);
+}
+
+function applyBackground(bgId) {
+    const bgObj = availableBackgrounds.find(b => b.id === bgId);
+    if (!bgObj) return;
+
+    if (bgObj.id === 'default') {
+        // Rimuovi immagine inline per lasciare il colore del tema CSS
+        document.body.style.backgroundImage = '';
+        document.body.style.background = ''; 
+    } else {
+        // Applica immagine o gradiente
+        document.body.style.background = bgObj.value;
+        // Re-imposta le proprietà chiave perché lo shorthand 'background' potrebbe sovrascriverle
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundAttachment = 'fixed';
+    }
+}
+
+function saveBackgroundPreference(bgId) {
+    localStorage.setItem('appBackground', bgId);
+}
+
+function updateSelectedVisual(bgId) {
+    const options = document.querySelectorAll('.bg-option');
+    options.forEach(opt => {
+        if (opt.dataset.bgId === bgId) opt.classList.add('selected');
+        else opt.classList.remove('selected');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initBackgroundSettings);
+
 // ---------- Helpers ----------
 function log(...args){ console.log('[APP]',...args); }
+
+// --- GESTIONE NOTIFICHE E LETTURA ---
+
+function updateUnreadBadge() {
+    // Rimuoviamo eventuali badge vecchi
+    const oldBadge = showChatBtn.querySelector('.notification-badge');
+    if (oldBadge) oldBadge.remove();
+
+    if (unreadMessagesCount > 0) {
+        const badge = document.createElement('span');
+        badge.className = 'notification-badge';
+        // Mostriamo "9+" se ci sono molti messaggi
+        badge.textContent = unreadMessagesCount > 9 ? '9+' : unreadMessagesCount;
+        showChatBtn.appendChild(badge);
+        showChatBtn.classList.add('has-notification'); 
+    } else {
+        showChatBtn.classList.remove('has-notification');
+    }
+}
+
+function markAllAsRead() {
+    // Resetta il contatore visivo
+    unreadMessagesCount = 0;
+    updateUnreadBadge();
+
+    if (!socket || !currentRoomId) return;
+
+    // Trova tutti i messaggi non ancora marcati come "letti" (processed-read)
+    // Escludiamo i miei messaggi (.sender-me) e quelli di sistema
+    const unreadMsgs = messagesContainer.querySelectorAll('.chat-message:not(.processed-read)');
+
+    unreadMsgs.forEach(msg => {
+        const msgId = msg.dataset.messageId;
+        // Verifica ulteriore per sicurezza: non mandare lettura per i propri messaggi
+        const isMyMessage = msg.querySelector('.sender-me');
+
+        if (msgId && !isMyMessage) {
+            socket.emit('msg-read', currentRoomId, msgId, userNickname);
+            msg.classList.add('processed-read'); // Evita invii doppi
+        }
+    });
+}
+
+function showReadersDialog(msgId) {
+    const msgEl = document.querySelector(`.chat-message[data-message-id="${msgId}"]`);
+    if (!msgEl) return;
+
+    // Recupera la lista dal dataset (aggiornata via socket)
+    const readers = JSON.parse(msgEl.dataset.readers || "[]");
+
+    // Crea l'overlay scuro
+    const overlay = document.createElement('div');
+    overlay.className = 'readers-dialog-overlay'; // Definito nel CSS
+    
+    // Crea il box del dialog
+    const dialog = document.createElement('div');
+    dialog.className = 'readers-dialog'; // Definito nel CSS
+    
+    let contentHtml = '';
+    if (readers.length === 0) {
+        contentHtml = '<p style="color:var(--muted);">Nessuno ha ancora visualizzato questo messaggio.</p>';
+    } else {
+        contentHtml = '<p style="margin-bottom:10px; font-weight:bold;">Letto da:</p><ul class="readers-list">';
+        readers.forEach(nick => {
+            contentHtml += `<li>${nick}</li>`;
+        });
+        contentHtml += '</ul>';
+    }
+
+    dialog.innerHTML = `
+        <h3 style="margin-top:0; color:var(--primary-color);">Info Messaggio</h3>
+        ${contentHtml}
+        <div style="text-align:right; margin-top:15px; border-top:1px solid var(--border-color); padding-top:10px;">
+            <button id="close-readers-btn" style="background:var(--surface-2); border:1px solid var(--border-color); color:var(--text-color); padding:6px 12px; border-radius:4px; cursor:pointer;">Chiudi</button>
+        </div>
+    `;
+
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    // Funzione di chiusura
+    const closeDialog = () => overlay.remove();
+    
+    dialog.querySelector('#close-readers-btn').onclick = closeDialog;
+    overlay.onclick = (e) => {
+        if (e.target === overlay) closeDialog();
+    };
+}
 
 function showOverlay(show){
   if(show){
@@ -1090,14 +1261,24 @@ function copyRoomLink(){
         console.error('Errore copia:', err);
     }); 
 }
-function addChatMessage(sender, message, isLocal = false, type = 'public') {
+function addChatMessage(sender, message, isLocal = false, type = 'public', msgId = null) {
     const messageEl = document.createElement('div');
     messageEl.classList.add('chat-message');
 
+    // Se abbiamo un ID messaggio (quindi non è di sistema), configuriamo i dati per la lettura
+    if (msgId && type !== 'system') {
+        messageEl.dataset.messageId = msgId;
+        messageEl.dataset.readers = JSON.stringify([]); // Inizializziamo array vuoto
+        
+        // Aggiungiamo l'evento click per vedere chi ha letto
+        messageEl.addEventListener('click', () => showReadersDialog(msgId));
+        messageEl.style.cursor = 'pointer'; // Feedback visivo
+    }
+
+    // Determina le classi CSS in base al tipo
     let cssClass;
     let senderText = sender;
 
-    // Determina lo stile in base al tipo di messaggio
     if (type === 'system') {
         cssClass = 'sender-system';
         senderText = 'Sistema';
@@ -1107,24 +1288,99 @@ function addChatMessage(sender, message, isLocal = false, type = 'public') {
         cssClass = isLocal ? 'sender-me' : 'sender-remote';
     }
 
-    // Costruisci il prefisso (es. "Tu:", "Mario:", "Sistema:")
+    // Costruzione del testo del mittente
     const prefix = isLocal 
         ? `Tu${type === 'private' ? ` (DM a ${sender})` : ''}: ` 
         : `${senderText}: `;
 
-    messageEl.innerHTML = `<span class="${cssClass}">${prefix}</span>${message}`;
-    
+    // Costruzione HTML del messaggio
+    let htmlContent = `<span class="${cssClass}">${prefix}</span>${message}`;
+
+    // Aggiungiamo l'indicatore di lettura (spunte) solo se c'è un ID e non è di sistema
+    if (msgId && type !== 'system') {
+        htmlContent += `
+            <div class="read-status" id="status-${msgId}">
+                <span class="read-count"></span>
+                <span class="material-icons" style="font-size: 14px;">done_all</span>
+            </div>
+        `;
+    }
+
+    messageEl.innerHTML = htmlContent;
     messagesContainer.appendChild(messageEl);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    // [NUOVO] Riproduci suono se il messaggio non è tuo e non è di sistema
+    // --- Logica Suoni e Notifiche ---
     if (!isLocal && type !== 'system') {
+        // Suono di notifica
         playNotificationSound('chat');
+
+        // Controllo se la chat è visibile
+        // Consideriamo la chat aperta se il pannello è attivo (mobile) o non nascosto (desktop)
+        const isChatVisible = (!chatPanel.classList.contains('hidden') && window.innerWidth > 768) || 
+                              (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden'));
+
+        if (isChatVisible) {
+            // Se la vedo, invio subito la conferma di lettura
+            if (socket && currentRoomId && msgId) {
+                socket.emit('msg-read', currentRoomId, msgId, userNickname);
+                // Segniamo localmente come processato per non reinviarlo dopo
+                messageEl.classList.add('processed-read'); 
+            }
+        } else {
+            // Se la chat è chiusa, incremento il contatore badge
+            unreadMessagesCount++;
+            updateUnreadBadge();
+        }
     }
 }
 
 function clearChatInput(){ chatMessageInput.value = ''; }
-function sendMessage(){ const fullMessage = chatMessageInput.value.trim(); if (!fullMessage) return; const parts = fullMessage.split(' '); if (parts[0].toLowerCase() === '/dm' && parts.length >= 3) { const recipientNickname = parts[1]; const messageContent = parts.slice(2).join(' '); if (recipientNickname.toLowerCase() === userNickname.toLowerCase()) { addChatMessage('Sistema', 'No DM a te stesso.', true, 'system'); clearChatInput(); return; } const recipientId = Object.keys(remoteNicknames).find(key => remoteNicknames[key] && remoteNicknames[key].toLowerCase() === recipientNickname.toLowerCase()); if (recipientId) { sendPrivateMessage(recipientId, recipientNickname, messageContent); clearChatInput(); } else { addChatMessage('Sistema', `Utente "${recipientNickname}" non trovato.`, true, 'system'); } return; } if (socket && currentRoomId) { socket.emit('send-message', currentRoomId, userNickname, fullMessage); addChatMessage(userNickname, fullMessage, true, 'public'); clearChatInput(); } }
+function sendMessage() {
+    const fullMessage = chatMessageInput.value.trim();
+    if (!fullMessage) return;
+
+    const parts = fullMessage.split(' ');
+
+    // --- Gestione Messaggi Privati (/dm) ---
+    if (parts[0].toLowerCase() === '/dm' && parts.length >= 3) {
+        const recipientNickname = parts[1];
+        const messageContent = parts.slice(2).join(' ');
+
+        if (recipientNickname.toLowerCase() === userNickname.toLowerCase()) {
+            addChatMessage('Sistema', 'No DM a te stesso.', true, 'system');
+            clearChatInput();
+            return;
+        }
+
+        const recipientId = Object.keys(remoteNicknames).find(key => 
+            remoteNicknames[key] && remoteNicknames[key].toLowerCase() === recipientNickname.toLowerCase()
+        );
+
+        if (recipientId) {
+            sendPrivateMessage(recipientId, recipientNickname, messageContent);
+            clearChatInput();
+        } else {
+            addChatMessage('Sistema', `Utente "${recipientNickname}" non trovato.`, true, 'system');
+        }
+        return;
+    }
+
+    // --- Gestione Messaggi Pubblici (Aggiornata con ID) ---
+    if (socket && currentRoomId) {
+        // Generiamo un ID univoco lato client
+        const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+        // Inviamo al server: Stanza, Nick, Messaggio, ID
+        socket.emit('send-message', currentRoomId, userNickname, fullMessage, messageId);
+        
+        // Aggiungiamo alla nostra chat passando l'ID
+        addChatMessage(userNickname, fullMessage, true, 'public', messageId);
+        
+        clearChatInput();
+    }
+}
+
 function sendPrivateMessage(recipientId, recipientNickname, message) { if (!message || !recipientId) return; if (socket && currentRoomId) { socket.emit('send-private-message', currentRoomId, recipientId, userNickname, message); addChatMessage(recipientNickname, message, true, 'private'); } }
 function openChatPanelMobile(callback) { if (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden')) { if (callback) callback(); return; } chatPanel.classList.remove('hidden'); setTimeout(() => { chatPanel.classList.add('active'); let closeBtn = document.getElementById('close-chat-btn'); if (!closeBtn) { closeBtn = document.createElement('button'); closeBtn.textContent = '← Torna alle webcam'; closeBtn.id = 'close-chat-btn'; closeBtn.style.cssText = `position: relative; width: calc(100% - 20px); padding: 10px; margin: 10px; border: none; background: var(--primary-color); color: #fff; font-weight: bold; cursor: pointer; border-radius: 6px;`; const chatHeader = chatPanel.querySelector('h3'); if(chatHeader) chatPanel.insertBefore(closeBtn, chatHeader); closeBtn.addEventListener('click', () => { chatPanel.classList.remove('active'); setTimeout(() => { chatPanel.classList.add('hidden'); closeBtn.remove(); }, 300); }); } setTimeout(callback, 350); }, 10); }
 
@@ -1183,7 +1439,42 @@ function initializeSocket(){
       history.forEach(item => drawRemote(item)); 
       if (whiteboardContainer.classList.contains('hidden') && history.length > 0) toggleWhiteboardButton.classList.add('has-notification'); 
   });
+  
+  socket.on('new-message', (sender, message, msgId) => {
+      // Passiamo l'ID ricevuto dal server alla funzione di visualizzazione
+      addChatMessage(sender, message, false, 'public', msgId);
+  });
 
+  socket.on('msg-read-update', (msgId, readerNickname) => {
+      // Trova il messaggio corrispondente nel DOM
+      const msgEl = document.querySelector(`.chat-message[data-message-id="${msgId}"]`);
+      
+      if (msgEl) {
+          // 1. Recupera l'array attuale dei lettori
+          let readers = [];
+          try {
+              readers = JSON.parse(msgEl.dataset.readers || "[]");
+          } catch (e) { readers = []; }
+
+          // 2. Aggiungi il nuovo lettore se non c'è già
+          if (!readers.includes(readerNickname)) {
+              readers.push(readerNickname);
+              
+              // Salva il nuovo array nel dataset HTML
+              msgEl.dataset.readers = JSON.stringify(readers);
+
+              // 3. Aggiorna la grafica (spunte blu)
+              const statusEl = msgEl.querySelector('.read-status');
+              if (statusEl) {
+                  statusEl.classList.add('seen'); // Classe CSS per colorare di blu
+                  
+                  // Opzionale: Se vuoi mostrare il numero (es. "+3")
+                  // const countSpan = statusEl.querySelector('.read-count');
+                  // if(countSpan) countSpan.textContent = readers.length > 0 ? readers.length : '';
+              }
+          }
+      }
+  });
   // Standard events
   socket.on('peer-joined', (peerId,nickname)=>{ remoteNicknames[peerId] = nickname; createPeerConnection(peerId); addChatMessage('Sistema', `${nickname} entrato.`, false, 'system'); });
   socket.on('peer-left', (peerId)=>{ removeRemoteFeed(peerId); addChatMessage('Sistema', `Utente uscito.`, false, 'system'); });
@@ -1275,4 +1566,99 @@ localFeedEl.addEventListener('click', () => {
     toggleFocus('local');
 });
 
-toggleAudioButton.addEventListener('click', toggleAudio); toggleVideoButton.addEventListener('click', toggleVideo); disconnectButton.addEventListener('click', disconnect); shareScreenButton.addEventListener('click', toggleScreenShare); shareRoomLinkButton.addEventListener('click', copyRoomLink); if (recordButton) recordButton.addEventListener('click', () => { if (isRecording) stopRecording(); else startRecording(); }); showChatBtn.addEventListener('click', () => { if(window.innerWidth <= 768){ openChatPanelMobile(); } else { chatPanel.classList.toggle('hidden'); } }); sendChatButton.addEventListener('click', sendMessage); chatMessageInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); }); document.addEventListener('click', (e) => { if (!contextMenuEl.classList.contains('hidden') && !contextMenuEl.contains(e.target) && !e.target.closest('.video-feed')) { hideContextMenu(); } }); document.addEventListener('contextmenu', (e) => { if (contextMenuEl && !e.target.closest('.video-feed') && !contextMenuEl.contains(e.target)) { hideContextMenu(); } }); menuMuteUser.addEventListener('click', () => { if (contextTargetPeerId) { toggleRemoteMute(contextTargetPeerId); hideContextMenu(); } }); menuDmUser.addEventListener('click', () => { if (contextTargetPeerId) { if (contextTargetPeerId === socket.id) { hideContextMenu(); addChatMessage('Sistema', 'No DM a te stesso.', true, 'system'); return; } const nickname = remoteNicknames[contextTargetPeerId] || 'Utente'; hideContextMenu(); const focusAndSetDM = () => { chatMessageInput.value = `/dm ${nickname} `; chatMessageInput.focus(); if(window.innerWidth <= 768) { setTimeout(() => { chatMessageInput.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, 50); } }; if (window.innerWidth <= 768) openChatPanelMobile(focusAndSetDM); else focusAndSetDM(); } });
+// --------------------------------------------------------
+// LISTENERS UI & CONTROLLI
+// --------------------------------------------------------
+
+// Controlli Media
+toggleAudioButton.addEventListener('click', toggleAudio);
+toggleVideoButton.addEventListener('click', toggleVideo);
+disconnectButton.addEventListener('click', disconnect);
+shareScreenButton.addEventListener('click', toggleScreenShare);
+shareRoomLinkButton.addEventListener('click', copyRoomLink);
+
+if (recordButton) {
+    recordButton.addEventListener('click', () => {
+        if (isRecording) stopRecording();
+        else startRecording();
+    });
+}
+
+// Controlli Chat (Aggiornato con Logica Notifiche)
+showChatBtn.addEventListener('click', () => {
+    if (window.innerWidth <= 768) {
+        // Mobile: usa la funzione dedicata e passa il callback per resettare le notifiche
+        openChatPanelMobile(() => {
+            markAllAsRead();
+        });
+    } else {
+        // Desktop: Toggle visibilità
+        chatPanel.classList.toggle('hidden');
+        
+        // Se il pannello è stato appena aperto (non è hidden), segna tutto come letto
+        if (!chatPanel.classList.contains('hidden')) {
+            markAllAsRead();
+            setTimeout(() => chatMessageInput.focus(), 50); // Focus automatico
+        }
+    }
+});
+
+sendChatButton.addEventListener('click', sendMessage);
+
+chatMessageInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendMessage();
+});
+
+// Gestione chiusura menu contestuale (click fuori)
+document.addEventListener('click', (e) => {
+    if (!contextMenuEl.classList.contains('hidden') && 
+        !contextMenuEl.contains(e.target) && 
+        !e.target.closest('.video-feed')) {
+        hideContextMenu();
+    }
+});
+
+// Prevenzione menu browser default se non sui video
+document.addEventListener('contextmenu', (e) => {
+    if (contextMenuEl && 
+        !e.target.closest('.video-feed') && 
+        !contextMenuEl.contains(e.target)) {
+        hideContextMenu();
+    }
+});
+
+// Azioni Menu Contestuale
+menuMuteUser.addEventListener('click', () => {
+    if (contextTargetPeerId) {
+        toggleRemoteMute(contextTargetPeerId);
+        hideContextMenu();
+    }
+});
+
+menuDmUser.addEventListener('click', () => {
+    if (contextTargetPeerId) {
+        // Controllo anti-self DM
+        if (contextTargetPeerId === socket.id) {
+            hideContextMenu();
+            addChatMessage('Sistema', 'No DM a te stesso.', true, 'system');
+            return;
+        }
+
+        const nickname = remoteNicknames[contextTargetPeerId] || 'Utente';
+        hideContextMenu();
+
+        const focusAndSetDM = () => {
+            chatMessageInput.value = `/dm ${nickname} `;
+            chatMessageInput.focus();
+            if (window.innerWidth <= 768) {
+                setTimeout(() => {
+                    chatMessageInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }, 50);
+            }
+        };
+
+        // Se mobile apre il pannello, altrimenti setta solo l'input
+        if (window.innerWidth <= 768) openChatPanelMobile(focusAndSetDM);
+        else focusAndSetDM();
+    }
+});

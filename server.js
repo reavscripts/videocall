@@ -199,7 +199,15 @@ io.on('connection', (socket) => {
     }
 
     // ... Gestione Messaggi, WebRTC, Whiteboard invariata ...
-    socket.on('send-message', (r, s, m) => socket.to(r).emit('new-message', s, m));
+	socket.on('send-message', (r, s, m, msgId) => {
+        // Se il client non invia ID (vecchie versioni), ne generiamo uno noi, ma meglio che lo faccia il client
+        const finalId = msgId || Date.now().toString(); 
+        socket.to(r).emit('new-message', s, m, finalId);
+    });
+	socket.on('msg-read', (roomId, messageId, readerNickname) => {
+        // Invia a tutti nella stanza (incluso chi l'ha inviato) che questo messaggio è stato letto
+        io.to(roomId).emit('msg-read-update', messageId, readerNickname);
+    });
     socket.on('send-private-message', (r, rid, s, m) => io.to(rid).emit('new-private-message', s, m));
     socket.on('wb-draw', (r, d) => socket.to(r).emit('wb-draw', d));
     socket.on('wb-clear', (r) => io.to(r).emit('wb-clear'));

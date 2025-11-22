@@ -1,7 +1,7 @@
 // app.js 
 
-//const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
-const RENDER_SERVER_URL = "http://localhost:3000";
+const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
+//const RENDER_SERVER_URL = "http://localhost:3000";
 
 // ---------- DOM & Controlli ----------
 const nicknameOverlay = document.getElementById('nickname-overlay');
@@ -46,6 +46,7 @@ const showChatBtn = document.getElementById('show-chat-btn');
 const contextMenuEl = document.getElementById('remote-context-menu');
 const menuDmUser = document.getElementById('menu-dm-user');
 const menuMuteUser = document.getElementById('menu-mute-user');
+const menuSendFile = document.getElementById('menu-send-file');
 
 // ** CONTROLLI IMPOSTAZIONI (NUOVI) **
 const settingsModal = document.getElementById('settings-modal');
@@ -102,6 +103,7 @@ const dataChannels = {};
 const fileChunks = {}; 
 const fileMetadata = {}; 
 const CHUNK_SIZE = 16384; 
+let targetFileRecipientId = null;
 
 // Variabili Focus/Parlato
 let isManualFocus = false; 
@@ -578,7 +580,43 @@ async function toggleScreenShare() {
 }
 
 // ** FILE TRANSFER LOGIC **
-transferFileButton.addEventListener('click', () => { if(Object.keys(peerConnections).length === 0) { alert("Nessun partecipante."); return; } fileInput.click(); });
+transferFileButton.addEventListener('click', () => { 
+    if(Object.keys(peerConnections).length === 0) { alert("Nessun partecipante."); return; } 
+    targetFileRecipientId = null; // Resetta: invio broadcast
+    fileInput.click(); 
+});
+
+// 2. Voce Menu Contestuale: Invia a UNO SPECIFICO
+menuSendFile.addEventListener('click', () => {
+    if (contextTargetPeerId) {
+        targetFileRecipientId = contextTargetPeerId; // Imposta il destinatario
+        hideContextMenu();
+        // Verifica se il canale dati è aperto per quell'utente
+        if(!dataChannels[targetFileRecipientId] || dataChannels[targetFileRecipientId].readyState !== 'open'){
+            alert("Impossibile inviare file: connessione dati non stabile con questo utente.");
+            return;
+        }
+        fileInput.click(); // Apre la selezione file
+    }
+});
+
+// 3. Gestione Selezione File (Logica modificata)
+fileInput.addEventListener('change', (e) => { 
+    const file = e.target.files[0]; 
+    if (!file) return; 
+
+    if (targetFileRecipientId) {
+        // CASO A: Invio Singolo
+        sendFile(targetFileRecipientId, file);
+    } else {
+        // CASO B: Invio Broadcast (a tutti)
+        Object.keys(dataChannels).forEach(peerId => sendFile(peerId, file)); 
+    }
+    
+    fileInput.value = ''; 
+    targetFileRecipientId = null; // Reset sicurezza
+});
+
 fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; Object.keys(dataChannels).forEach(peerId => sendFile(peerId, file)); fileInput.value = ''; });
 
 async function sendFile(peerId, file) {
@@ -640,18 +678,95 @@ function handleDataChannelMessage(peerId, event) {
 
 function saveReceivedFile(peerId) {
     const meta = fileMetadata[peerId];
+    
+    // Creiamo il Blob dai chunk ricevuti
     const blob = new Blob(fileChunks[peerId], { type: meta.type });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = meta.name; a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-        document.body.removeChild(a); window.URL.revokeObjectURL(url);
-        meta.toast.querySelector('.file-name').textContent = `Completato: ${meta.name}`;
-        setTimeout(() => meta.toast.remove(), 3000);
-        delete fileChunks[peerId]; delete fileMetadata[peerId];
-    }, 100);
+
+    // Rileviamo se l'utente è su Mobile (iPhone, iPad, Android)
+    // Questo regex copre la maggior parte dei dispositivi mobili moderni
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (isMobile) {
+        // SU MOBILE: Creiamo un pulsante visibile.
+        // iOS blocca i download automatici non generati da un tocco diretto dell'utente.
+        const btn = document.createElement('button');
+        btn.innerText = `📥 SCARICA: ${meta.name}`;
+        
+        // Stili inline per centrarlo e renderlo ben visibile sopra tutto
+        btn.style.cssText = `
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            z-index: 10000; 
+            padding: 20px 30px; 
+            font-size: 1.2em; 
+            font-weight: bold;
+            background: var(--primary-color, #00bcd4); 
+            color: white; 
+            border: 2px solid #fff; 
+            border-radius: 12px; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.7);
+            cursor: pointer;
+        `;
+
+        // Al click dell'utente, scateniamo il download
+        btn.onclick = () => {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = meta.name; // Nota: iOS potrebbe ignorare il nome e usare "document"
+            a.target = '_blank';    // Fondamentale per iOS per aprire l'anteprima
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            // Rimuoviamo il pulsante e puliamo
+            btn.remove();
+            cleanupTransferData(peerId, url);
+        };
+
+        document.body.appendChild(btn);
+
+    } else {
+        // SU DESKTOP: Download automatico (comportamento classico)
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = meta.name;
+        a.style.display = 'none';
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Pulizia immediata (con leggero ritardo per sicurezza browser)
+        setTimeout(() => {
+            cleanupTransferData(peerId, url);
+        }, 100);
+    }
+}
+
+// Funzione helper per pulire la memoria e aggiornare la UI
+function cleanupTransferData(peerId, url) {
+    // Rilasciamo l'URL del blob per liberare memoria
+    window.URL.revokeObjectURL(url);
+
+    // Aggiorniamo il Toast per dire "Completato"
+    if (fileMetadata[peerId] && fileMetadata[peerId].toast) {
+        const toast = fileMetadata[peerId].toast;
+        toast.querySelector('.file-name').textContent = `Completato: ${fileMetadata[peerId].name}`;
+        toast.querySelector('.progress-bar-fill').style.backgroundColor = '#4caf50'; // Verde successo
+        
+        // Rimuoviamo il toast dopo 3 secondi
+        setTimeout(() => {
+            if (toast) toast.remove();
+        }, 3000);
+    }
+
+    // Cancelliamo i dati dalla memoria RAM
+    delete fileChunks[peerId];
+    delete fileMetadata[peerId];
 }
 
 function createProgressToast(title, isSending) {
