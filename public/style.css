@@ -26,8 +26,9 @@ body.light-theme {
 }
 
 html, body {
-    height: 100%;
+	height: 100dvh; 
     margin: 0;
+    overflow: hidden; /* Importante per evitare scroll indesiderati */
     background: var(--bg);
     color: var(--text-color);
     font-family: Roboto, Arial, sans-serif;
@@ -548,7 +549,7 @@ input:checked + .slider:before {
     display: flex;
     flex-direction: column;
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
 }
 
@@ -1312,7 +1313,7 @@ body.light-theme .sender-private {
         height: 100%;
         padding: 0;
         padding-top: 90px !important;
-        padding-bottom: 100px !important;
+		padding-bottom: env(safe-area-inset-bottom);
         padding-left: 10px;
         padding-right: 10px;
         background: transparent;
@@ -1452,7 +1453,7 @@ body.light-theme .sender-private {
         left: 0;
         width: 100% !important;    
         min-width: 0 !important;  
-        height: 100dvh;           
+        height: 100dvh;         
         background: var(--surface);
         transform: translateY(100%);
         transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);

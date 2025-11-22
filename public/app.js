@@ -1738,25 +1738,42 @@ function createPeerConnection(socketId){
 function setupDataChannel(dc, peerId) { dc.onopen = () => { dataChannels[peerId] = dc; }; dc.onclose = () => { delete dataChannels[peerId]; }; dc.onmessage = (event) => handleDataChannelMessage(peerId, event); }
 
 // Listeners UI
-joinButton.addEventListener('click', async ()=>{
-  const nickname = nicknameInput.value.trim();
-  const roomId = roomIdInput.value.trim();
-  const password = document.getElementById('room-password-input').value.trim();
+function openFullscreen() {
+    const elem = document.documentElement;
+    try {
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) { /* Safari & Chrome iOS (limitato) */
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) { /* IE11 */
+            elem.msRequestFullscreen();
+        }
+    } catch (err) {
+        console.log("Fullscreen request denied or not supported:", err);
+    }
+}
 
-  if(!nickname || !roomId){ alert('Missing data'); return; }
-  
-  userNickname = nickname; 
-  currentRoomId = roomId;
-  currentRoomPassword = password; 
-  
-  await startLocalMedia(); 
-  initializeSocket();
-  
-  socket.emit('join-room', currentRoomId, userNickname, password); 
-  
-  document.getElementById('room-name-display').textContent = roomId;
-  showOverlay(false); 
-  setFocus('local', false);
+joinButton.addEventListener('click', async () => {
+    const nickname = nicknameInput.value.trim();
+    const roomId = roomIdInput.value.trim();
+    const password = document.getElementById('room-password-input').value.trim();
+
+    if (!nickname || !roomId) { alert('Missing data'); return; }
+
+    openFullscreen();
+
+    userNickname = nickname;
+    currentRoomId = roomId;
+    currentRoomPassword = password;
+
+    await startLocalMedia();
+    initializeSocket();
+
+    socket.emit('join-room', currentRoomId, userNickname, password);
+
+    document.getElementById('room-name-display').textContent = roomId;
+    showOverlay(false);
+    setFocus('local', false);
 });
 
 localFeedEl.addEventListener('click', () => {
