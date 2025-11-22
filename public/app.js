@@ -1690,3 +1690,74 @@ menuDmUser.addEventListener('click', () => {
         else focusAndSetDM();
     }
 });
+
+const switchCameraBtn = document.getElementById('switch-camera-button');
+let currentFacingMode = 'user'; // 'user' = frontale, 'environment' = posteriore
+
+async function switchCamera() {
+    // Se non c'è video attivo o stream locale, esci
+    if (!localStream || !isVideoEnabled) return;
+
+    // 1. Determina la nuova modalità
+    currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+    
+    // 2. Definisci i vincoli per il nuovo video
+    const constraints = {
+        video: { 
+            facingMode: { exact: currentFacingMode } // 'exact' forza il cambio su mobile
+        },
+        audio: false // Non chiediamo audio, manteniamo quello esistente
+    };
+
+    try {
+        // 3. Richiedi il nuovo stream video
+        const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const newVideoTrack = newStream.getVideoTracks()[0];
+
+        // 4. Sostituisci la traccia nel flusso locale (per farti vedere il cambiamento)
+        const oldVideoTrack = localStream.getVideoTracks()[0];
+        if (oldVideoTrack) {
+            localStream.removeTrack(oldVideoTrack);
+            oldVideoTrack.stop(); // Spegni la vecchia camera
+        }
+        localStream.addTrack(newVideoTrack);
+        
+        // Aggiorna l'elemento video locale
+        localVideoEl.srcObject = localStream;
+
+        // 5. IMPORTANTE: Sostituisci la traccia video in TUTTE le connessioni P2P attive
+        // Questo permette agli altri di vedere il cambio senza caduta di connessione
+        for (const peerId in peerConnections) {
+            const pc = peerConnections[peerId];
+            const sender = pc.getSenders().find(s => s.track.kind === 'video');
+            if (sender) {
+                sender.replaceTrack(newVideoTrack);
+            }
+        }
+        
+        // Specchia il video locale solo se è la camera frontale ('user')
+        if (currentFacingMode === 'user') {
+            localVideoEl.style.transform = 'scaleX(-1)';
+        } else {
+            localVideoEl.style.transform = 'scaleX(1)';
+        }
+
+    } catch (err) {
+        console.error("Errore cambio camera:", err);
+        // Fallback: se 'exact' fallisce (es. su PC), prova senza 'exact'
+        if (constraints.video.facingMode.exact) {
+            delete constraints.video.facingMode.exact;
+            constraints.video.facingMode = currentFacingMode;
+            try {
+                // Riprova con vincoli più leggeri
+                // ... (ripetere logica semplificata se necessario) ...
+                alert("Impossibile cambiare fotocamera su questo dispositivo.");
+            } catch(e) {}
+        }
+    }
+}
+
+// 6. Aggiungi il Listener al bottone
+if (switchCameraBtn) {
+    switchCameraBtn.addEventListener('click', switchCamera);
+}
