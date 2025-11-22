@@ -1,4 +1,4 @@
-// app.js
+// app.js 
 
 //const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
 const RENDER_SERVER_URL = "http://localhost:3000";
@@ -21,6 +21,11 @@ const shareScreenButton = document.getElementById('share-screen-button');
 const shareRoomLinkButton = document.getElementById('share-room-link'); 
 const recordButton = document.getElementById('record-button'); 
 
+// ** CONTROLLI FILE TRANSFER **
+const transferFileButton = document.getElementById('transfer-file-button');
+const fileInput = document.getElementById('file-input');
+const fileTransferContainer = document.getElementById('file-transfer-container');
+
 // ** CONTROLLI WHITEBOARD **
 const toggleWhiteboardButton = document.getElementById('toggle-whiteboard-button');
 const whiteboardContainer = document.getElementById('whiteboard-container');
@@ -42,10 +47,34 @@ const contextMenuEl = document.getElementById('remote-context-menu');
 const menuDmUser = document.getElementById('menu-dm-user');
 const menuMuteUser = document.getElementById('menu-mute-user');
 
+// ** CONTROLLI IMPOSTAZIONI (NUOVI) **
+const settingsModal = document.getElementById('settings-modal');
+const settingsBtnOverlay = document.getElementById('settings-btn-overlay');
+const settingsBtnRoom = document.getElementById('settings-btn-room');
+const closeSettingsBtn = document.getElementById('close-settings-btn');
+const themeToggle = document.getElementById('theme-toggle');
+
+// ** CONTROLLI ADMIN **
+const openAdminLoginBtn = document.getElementById('open-admin-login');
+const adminPanel = document.getElementById('admin-panel');
+const closeAdminBtn = document.getElementById('close-admin-btn');
+const adminLoginView = document.getElementById('admin-login-view');
+const adminDashboardView = document.getElementById('admin-dashboard-view');
+const adminPasswordInput = document.getElementById('admin-password-input');
+const adminLoginBtn = document.getElementById('admin-login-btn');
+const adminMsg = document.getElementById('admin-msg');
+const adminRoomsList = document.getElementById('admin-rooms-list');
+const adminTotalUsers = document.getElementById('admin-total-users');
+const adminRefreshBtn = document.getElementById('admin-refresh-btn');
+const roomPasswordInput = document.getElementById('room-password-input');
+const adminLogsConsole = document.getElementById('admin-logs-console');
+const adminBannedCount = document.getElementById('admin-banned-count');
+
 let socket = null;
 let localStream = null;
 let userNickname = 'Ospite';
 let currentRoomId = null;
+let currentRoomPassword = '';
 const peerConnections = {};
 const remoteNicknames = {};
 let focusedPeerId = 'local'; 
@@ -66,7 +95,13 @@ let currentX = 0;
 let currentY = 0;
 let currentColor = '#ffffff';
 let ctx = null;
-// **************************
+let localWhiteboardHistory = []; 
+
+// ** VARIABILI FILE TRANSFER **
+const dataChannels = {}; 
+const fileChunks = {}; 
+const fileMetadata = {}; 
+const CHUNK_SIZE = 16384; 
 
 // Variabili Focus/Parlato
 let isManualFocus = false; 
@@ -83,7 +118,6 @@ let isLocalTalking = false;
 const manuallyMutedPeers = {}; 
 let contextTargetPeerId = null; 
 
-
 const iceConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -97,9 +131,11 @@ function log(...args){ console.log('[APP]',...args); }
 function showOverlay(show){
   if(show){
     nicknameOverlay.classList.remove('hidden');
+    settingsBtnOverlay.classList.remove('hidden'); // Mostra il tasto impostazioni
     document.getElementById('conference-container').classList.add('hidden');
   } else {
     nicknameOverlay.classList.add('hidden');
+    settingsBtnOverlay.classList.add('hidden'); // Nascondi il tasto overlay quando sei in stanza
     document.getElementById('conference-container').classList.remove('hidden');
   }
 }
@@ -111,7 +147,6 @@ function resetAndShowOverlay() {
     document.getElementById('room-name-display').textContent = '';
 
     showOverlay(true);
-
     userNickname = 'Ospite';
     currentRoomId = null;
     
@@ -127,11 +162,14 @@ function resetAndShowOverlay() {
     isAudioEnabled = true;
     isVideoEnabled = true;
 
-    // Reset whiteboard
     whiteboardContainer.classList.add('hidden');
     toggleWhiteboardButton.classList.remove('active');
-    toggleWhiteboardButton.classList.remove('has-notification'); // Rimuovi notifica
+    toggleWhiteboardButton.classList.remove('has-notification'); 
     if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    localWhiteboardHistory = []; // Reset history
+
+    if(fileTransferContainer) fileTransferContainer.innerHTML = '';
+    for(const k in dataChannels) delete dataChannels[k];
 
     if (isRecording) stopRecording(); 
     if (recordButton) {
@@ -164,7 +202,6 @@ function resetAndShowOverlay() {
     roomIdInput.value = '';
 }
 
-
 async function startLocalMedia(){
   try{
     localStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
@@ -173,7 +210,6 @@ async function startLocalMedia(){
     toggleVideoButton.querySelector('.material-icons').textContent = 'videocam';
     localFeedEl.classList.add('ratio-4-3'); 
     localFeedEl.classList.remove('ratio-16-9'); 
-    
     monitorLocalAudio(true); 
   }catch(err){ 
     console.error('getUserMedia error',err); 
@@ -192,10 +228,7 @@ function updateLocalVideo(){
 
 function monitorLocalAudio(start = true) {
     if (!localStream || !isAudioEnabled) {
-        if (talkingInterval) {
-            clearInterval(talkingInterval);
-            talkingInterval = null;
-        }
+        if (talkingInterval) { clearInterval(talkingInterval); talkingInterval = null; }
          if (isLocalTalking && socket) {
              isLocalTalking = false;
              localFeedEl.classList.remove('is-talking');
@@ -203,7 +236,6 @@ function monitorLocalAudio(start = true) {
          }
         return;
     }
-
     if (start && !talkingInterval) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         analyser = audioContext.createAnalyser();
@@ -211,25 +243,17 @@ function monitorLocalAudio(start = true) {
         analyser.minDecibels = -90;
         analyser.maxDecibels = 0;
         analyser.smoothingTimeConstant = 0.85;
-
         const source = audioContext.createMediaStreamSource(localStream);
         source.connect(analyser);
-
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
-        
         talkingInterval = setInterval(() => {
             analyser.getByteFrequencyData(dataArray);
-            
             let sum = 0;
-            for(let i = 0; i < bufferLength; i++) {
-                sum += dataArray[i];
-            }
+            for(let i = 0; i < bufferLength; i++) sum += dataArray[i];
             const average = sum / bufferLength;
             const db = 20 * Math.log10(average / 128) + 10; 
-            
             const currentlyTalking = db > AUDIO_THRESHOLD && isAudioEnabled;
-
             if (currentlyTalking !== isLocalTalking) {
                 isLocalTalking = currentlyTalking;
                 localFeedEl.classList.toggle('is-talking', isLocalTalking);
@@ -242,25 +266,13 @@ function monitorLocalAudio(start = true) {
     }
 }
 
-// --- LOGICA MUTE/DM REMOTO ---
 function toggleRemoteMute(peerId) {
     const isMuted = !manuallyMutedPeers[peerId];
     manuallyMutedPeers[peerId] = isMuted;
-
     const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
     const remoteVideo = feed ? feed.querySelector('video') : null;
-    const muteToggleIcon = feed ? feed.querySelector('.remote-mute-toggle .material-icons') : null;
-
     if (remoteVideo) remoteVideo.muted = isMuted;
-
-    if (muteToggleIcon) {
-        muteToggleIcon.textContent = isMuted ? 'volume_off' : 'volume_up';
-        muteToggleIcon.closest('button').title = isMuted ? 'Riattiva Audio Locale' : 'Silenzia Audio Locale';
-    }
-    
-    if(contextTargetPeerId === peerId) {
-        updateContextMenuState(peerId);
-    }
+    if(contextTargetPeerId === peerId) updateContextMenuState(peerId);
 }
 
 function updateContextMenuState(peerId) {
@@ -268,7 +280,6 @@ function updateContextMenuState(peerId) {
     menuMuteUser.classList.toggle('active-toggle', isMuted);
     menuMuteUser.querySelector('.material-icons').textContent = isMuted ? 'volume_up' : 'volume_off';
     menuMuteUser.querySelector('span:last-child').textContent = isMuted ? 'Riattiva Audio' : 'Silenzia Audio';
-
     const nickname = remoteNicknames[peerId] || 'Utente';
     menuDmUser.querySelector('span:last-child').textContent = `Messaggio Privato a ${nickname}`;
 }
@@ -277,60 +288,43 @@ function showContextMenu(peerId, x, y) {
     contextTargetPeerId = peerId;
     updateContextMenuState(peerId);
     contextMenuEl.classList.remove('hidden');
-    
     let finalX = x;
     let finalY = y;
     const menuWidth = contextMenuEl.offsetWidth;
     const menuHeight = contextMenuEl.offsetHeight;
-
     if (x + menuWidth > window.innerWidth) finalX = window.innerWidth - menuWidth - 10;
     if (y + menuHeight > window.innerHeight) finalY = window.innerHeight - menuHeight - 10;
-    
     contextMenuEl.style.left = `${finalX}px`;
     contextMenuEl.style.top = `${finalY}px`;
 }
-
-function hideContextMenu() {
-    contextMenuEl.classList.add('hidden');
-    contextTargetPeerId = null;
-}
+function hideContextMenu() { contextMenuEl.classList.add('hidden'); contextTargetPeerId = null; }
 
 function setFocus(peerId, manual=false){ 
   videosGrid.querySelectorAll('.video-feed').forEach(feed => feed.classList.remove('is-focused'));
   focusedPeerId = peerId;
   isManualFocus = manual; 
-  
-  if (manual && autoFocusTimer) {
-      clearTimeout(autoFocusTimer);
-      autoFocusTimer = null;
-  }
-  
-  if (peerId === 'local') {
-      localFeedEl.classList.add('is-focused');
-  } else {
+  if (manual && autoFocusTimer) { clearTimeout(autoFocusTimer); autoFocusTimer = null; }
+  if (peerId === 'local') localFeedEl.classList.add('is-focused');
+  else if (peerId) {
       const newFocused = videosGrid.querySelector(`[data-peer-id="${focusedPeerId}"]`);
       if(newFocused) newFocused.classList.add('is-focused');
   }
 }
 
+function toggleFocus(peerId) {
+    if (focusedPeerId === peerId) {
+        setFocus(null, true); 
+    } else {
+        setFocus(peerId, true);
+    }
+}
+
 function addRemoteControlListeners(feed){
     const peerId = feed.dataset.peerId;
-    const remoteMuteButton = feed.querySelector('.remote-mute-toggle');
     const contextMenuTrigger = feed.querySelector('.context-menu-trigger'); 
     const remoteVideo = feed.querySelector('video');
-
-    remoteMuteButton.addEventListener('click', (e) => {
-        e.stopPropagation(); 
-        toggleRemoteMute(peerId);
-    });
-    
-    if (manuallyMutedPeers[peerId]) {
-        remoteVideo.muted = true;
-        remoteMuteButton.querySelector('.material-icons').textContent = 'volume_off';
-    } else {
-        remoteVideo.muted = false;
-        remoteMuteButton.querySelector('.material-icons').textContent = 'volume_up';
-    }
+    if (manuallyMutedPeers[peerId]) remoteVideo.muted = true;
+    else remoteVideo.muted = false;
     
     if (contextMenuTrigger) {
         contextMenuTrigger.addEventListener('click', (e) => {
@@ -340,6 +334,9 @@ function addRemoteControlListeners(feed){
             const rect = contextMenuTrigger.getBoundingClientRect();
             showContextMenu(peerId, rect.left, rect.bottom); 
         });
+        contextMenuTrigger.addEventListener('touchstart', (e) => {
+            e.stopPropagation(); 
+        }, {passive: false});
     }
 
     feed.addEventListener('contextmenu', (e) => {
@@ -348,40 +345,48 @@ function addRemoteControlListeners(feed){
         showContextMenu(peerId, e.clientX, e.clientY);
     });
 
-    let touchTimeout;
+    let touchTimer = null;
+    let isScrolling = false;
+
     feed.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1 && !e.target.closest('.context-menu-trigger')) { 
-            e.preventDefault(); 
-            touchTimeout = setTimeout(() => {
+        if(e.touches.length > 1) return; 
+        isScrolling = false;
+        touchTimer = setTimeout(() => {
+            if(!isScrolling) {
+                navigator.vibrate?.(50); 
                 hideContextMenu();
                 showContextMenu(peerId, e.touches[0].clientX, e.touches[0].clientY);
-            }, 700); 
-        }
-    });
+            }
+        }, 600);
+    }, {passive: true});
 
-    feed.addEventListener('touchend', () => {
-        clearTimeout(touchTimeout);
-    });
-    feed.addEventListener('touchcancel', () => {
-        clearTimeout(touchTimeout);
-    });
+    feed.addEventListener('touchmove', () => {
+        isScrolling = true; 
+        clearTimeout(touchTimer);
+    }, {passive: true});
+
+    feed.addEventListener('touchend', () => clearTimeout(touchTimer));
+    feed.addEventListener('touchcancel', () => clearTimeout(touchTimer));
 }
 
 function ensureRemoteFeed(socketId, nickname='Utente'){
   let feed = videosGrid.querySelector(`[data-peer-id="${socketId}"]`);
   if(feed) return feed;
-
   const template = document.getElementById('remote-video-template');
   const div = template.content.cloneNode(true).querySelector('.video-feed');
   div.dataset.peerId = socketId; 
   div.querySelector('.remote-nickname').textContent = nickname;
   div.querySelector('.remote-mic-status').textContent = 'mic'; 
+  
   addRemoteControlListeners(div); 
-  div.addEventListener('click', ()=> setFocus(socketId, true)); 
-
+  
+  div.addEventListener('click', (e) => {
+      if(e.defaultPrevented) return;
+      toggleFocus(socketId);
+  }); 
+  
   const placeholder = document.getElementById('remote-video-placeholder');
   if(placeholder) placeholder.remove();
-
   videosGrid.insertBefore(div, localFeedEl);
   return div;
 }
@@ -389,17 +394,14 @@ function ensureRemoteFeed(socketId, nickname='Utente'){
 function removeRemoteFeed(socketId){
   const el = videosGrid.querySelector(`[data-peer-id="${socketId}"]`);
   if(el) el.remove();
-  
   if(peerConnections[socketId]) { peerConnections[socketId].close(); delete peerConnections[socketId]; }
-  delete remoteNicknames[socketId];
-  delete iceCandidateQueues[socketId];
-  delete videoSenders[socketId]; 
-  delete manuallyMutedPeers[socketId]; 
-
+  if (dataChannels[socketId]) { dataChannels[socketId].close(); delete dataChannels[socketId]; }
+  delete fileChunks[socketId]; delete fileMetadata[socketId];
+  delete remoteNicknames[socketId]; delete iceCandidateQueues[socketId];
+  delete videoSenders[socketId]; delete manuallyMutedPeers[socketId]; 
   if (currentSpeakerId === socketId) currentSpeakerId = null;
   if (autoFocusTimer) { clearTimeout(autoFocusTimer); autoFocusTimer = null; }
   if(focusedPeerId === socketId) setFocus('local', false); 
-
   if(videosGrid.children.length === 1 && videosGrid.querySelector('#local-feed')){
     const placeholder = document.createElement('div');
     placeholder.id = 'remote-video-placeholder';
@@ -408,8 +410,8 @@ function removeRemoteFeed(socketId){
     videosGrid.insertBefore(placeholder, localFeedEl);
   }
 }
+// app.js - PARTE 2
 
-// ---------- Media Controls ----------
 function toggleAudio(){
   isAudioEnabled = !isAudioEnabled;
   if (localStream) localStream.getAudioTracks().forEach(track => track.enabled = isAudioEnabled);
@@ -426,10 +428,8 @@ function toggleVideo(){
 
 function disconnect(){
   Object.values(peerConnections).forEach(pc => pc.close());
-  localStream?.getTracks().forEach(track => track.stop());
-  localStream = null;
-  screenStream?.getTracks().forEach(track => track.stop()); 
-  screenStream = null;
+  localStream?.getTracks().forEach(track => track.stop()); localStream = null;
+  screenStream?.getTracks().forEach(track => track.stop()); screenStream = null;
   if (talkingInterval) clearInterval(talkingInterval);
   if (isRecording) stopRecording(); 
   if(socket) socket.disconnect();
@@ -437,22 +437,13 @@ function disconnect(){
 }
 
 async function toggleScreenShare() {
-    if( /Mobi|Android/i.test(navigator.userAgent) ) {
-        alert("La condivisione dello schermo non è supportata sulla maggior parte dei dispositivi mobili.");
-        return;
-    }
-    
+    if( /Mobi|Android/i.test(navigator.userAgent) ) { alert("Non supportato su mobile."); return; }
     if (screenStream) {
-        screenStream.getTracks().forEach(track => track.stop());
-        screenStream = null;
+        screenStream.getTracks().forEach(track => track.stop()); screenStream = null;
         updateLocalVideo(); 
-
-        shareScreenButton.classList.remove('active');
-        shareScreenButton.querySelector('.material-icons').textContent = 'screen_share';
-        localFeedEl.classList.add('ratio-4-3'); 
-        localFeedEl.classList.remove('ratio-16-9'); 
+        shareScreenButton.classList.remove('active'); shareScreenButton.querySelector('.material-icons').textContent = 'screen_share';
+        localFeedEl.classList.add('ratio-4-3'); localFeedEl.classList.remove('ratio-16-9'); 
         socket.emit('stream-type-changed', currentRoomId, '4-3');
-
         localStream.getVideoTracks().forEach(newTrack => {
              Object.values(peerConnections).forEach(pc => {
                 const sender = videoSenders[Object.keys(peerConnections).find(key => peerConnections[key] === pc)];
@@ -463,15 +454,10 @@ async function toggleScreenShare() {
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
             if (stream) {
-                screenStream = stream;
-                updateLocalVideo();
-
-                shareScreenButton.classList.add('active');
-                shareScreenButton.querySelector('.material-icons').textContent = 'stop_screen_share';
-                localFeedEl.classList.add('ratio-16-9'); 
-                localFeedEl.classList.remove('ratio-4-3'); 
+                screenStream = stream; updateLocalVideo();
+                shareScreenButton.classList.add('active'); shareScreenButton.querySelector('.material-icons').textContent = 'stop_screen_share';
+                localFeedEl.classList.add('ratio-16-9'); localFeedEl.classList.remove('ratio-4-3'); 
                 socket.emit('stream-type-changed', currentRoomId, '16-9');
-
                 stream.getVideoTracks().forEach(newTrack => {
                     Object.values(peerConnections).forEach(pc => {
                         const sender = videoSenders[Object.keys(peerConnections).find(key => peerConnections[key] === pc)];
@@ -480,653 +466,525 @@ async function toggleScreenShare() {
                 });
                 stream.getVideoTracks()[0].onended = () => toggleScreenShare();
             }
-        } catch (err) {
-            console.error('Errore durante la condivisione schermo:', err);
-        }
+        } catch (err) { console.error('Errore condivisione schermo:', err); }
     }
 }
 
-// *************************************************
-// ************* INIZIO LOGICA WHITEBOARD **********
-// *************************************************
+// ** FILE TRANSFER LOGIC **
+transferFileButton.addEventListener('click', () => { if(Object.keys(peerConnections).length === 0) { alert("Nessun partecipante."); return; } fileInput.click(); });
+fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; Object.keys(dataChannels).forEach(peerId => sendFile(peerId, file)); fileInput.value = ''; });
 
+async function sendFile(peerId, file) {
+    const dc = dataChannels[peerId];
+    if (!dc || dc.readyState !== 'open') { console.warn(`Channel chiuso ${peerId}`); return; }
+    const toast = createProgressToast(`Inviando: ${file.name}`, true);
+    const metadata = { type: 'file-metadata', name: file.name, size: file.size, fileType: file.type };
+    dc.send(JSON.stringify(metadata));
+    const arrayBuffer = await file.arrayBuffer();
+    let offset = 0;
+    while (offset < file.size) {
+        const chunk = arrayBuffer.slice(offset, offset + CHUNK_SIZE);
+        dc.send(chunk);
+        offset += chunk.byteLength;
+        const percent = Math.min(100, Math.round((offset / file.size) * 100));
+        updateProgressToast(toast, percent);
+        if (dc.bufferedAmount > 16000000) await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    setTimeout(() => toast.remove(), 2000);
+}
+
+function handleDataChannelMessage(peerId, event) {
+    const data = event.data;
+    if (typeof data === 'string') {
+        try {
+            const msg = JSON.parse(data);
+            if (msg.type === 'file-metadata') {
+                fileMetadata[peerId] = { name: msg.name, size: msg.size, type: msg.fileType, received: 0 };
+                fileChunks[peerId] = [];
+                fileMetadata[peerId].toast = createProgressToast(`Ricevendo: ${msg.name}`, false);
+            }
+        } catch (e) {}
+        return;
+    }
+    if (fileMetadata[peerId]) {
+        fileChunks[peerId].push(data);
+        fileMetadata[peerId].received += data.byteLength;
+        const meta = fileMetadata[peerId];
+        const percent = Math.min(100, Math.round((meta.received / meta.size) * 100));
+        updateProgressToast(meta.toast, percent);
+        if (meta.received >= meta.size) saveReceivedFile(peerId);
+    }
+}
+
+function saveReceivedFile(peerId) {
+    const meta = fileMetadata[peerId];
+    const blob = new Blob(fileChunks[peerId], { type: meta.type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = meta.name; a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a); window.URL.revokeObjectURL(url);
+        meta.toast.querySelector('.file-name').textContent = `Completato: ${meta.name}`;
+        setTimeout(() => meta.toast.remove(), 3000);
+        delete fileChunks[peerId]; delete fileMetadata[peerId];
+    }, 100);
+}
+
+function createProgressToast(title, isSending) {
+    if (!fileTransferContainer) return null;
+    const div = document.createElement('div');
+    div.className = 'file-toast';
+    div.innerHTML = `<div class="file-info"><span class="file-name">${title}</span><span class="file-percent">0%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill"></div></div>`;
+    fileTransferContainer.appendChild(div);
+    return div;
+}
+function updateProgressToast(el, percent) { if(!el) return; el.querySelector('.progress-bar-fill').style.width = `${percent}%`; el.querySelector('.file-percent').textContent = `${percent}%`; }
+
+
+// ** WHITEBOARD LOGIC **
 function initWhiteboard() {
-    if(ctx) return; // Inizializza solo una volta
-    ctx = canvas.getContext('2d');
+    if(ctx) return; 
+    ctx = canvas.getContext('2d'); 
     resizeCanvas();
     
-    window.addEventListener('resize', resizeCanvas);
-
-    // Listener Mouse
-    canvas.addEventListener('mousedown', onMouseDown);
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(resizeCanvas, 100);
+    });
+    
+    canvas.addEventListener('mousedown', onMouseDown); 
     canvas.addEventListener('mousemove', throttle(onMouseMove, 10));
-    canvas.addEventListener('mouseup', onMouseUp);
+    canvas.addEventListener('mouseup', onMouseUp); 
     canvas.addEventListener('mouseout', onMouseUp);
-
-    // Listener Touch
     canvas.addEventListener('touchstart', onTouchStart, {passive: false});
     canvas.addEventListener('touchmove', throttle(onTouchMove, 10), {passive: false});
     canvas.addEventListener('touchend', onMouseUp);
 }
 
-function resizeCanvas() {
-    // *** FIX CRUCIALE: Gestione dimensioni quando nascosto ***
-    // Se il container è hidden, offsetWidth è 0. Usiamo window.innerWidth come fallback
-    // dato che la whiteboard è fullscreen (inset: 0).
-    canvas.width = canvas.offsetWidth || window.innerWidth;
+function resizeCanvas() { 
+    canvas.width = canvas.offsetWidth || window.innerWidth; 
     canvas.height = canvas.offsetHeight || window.innerHeight;
-}
-
-// Eventi Disegno Locale
-function onMouseDown(e) {
-    isDrawing = true;
-    currentX = e.offsetX;
-    currentY = e.offsetY;
-}
-
-function onMouseMove(e) {
-    if (!isDrawing) return;
-    draw(currentX, currentY, e.offsetX, e.offsetY, currentColor, true);
-    currentX = e.offsetX;
-    currentY = e.offsetY;
-}
-
-function onMouseUp(e) {
-    isDrawing = false;
-}
-
-// Adattamento Touch
-function onTouchStart(e) {
-    if(e.touches.length == 1){
-        e.preventDefault(); 
-        const rect = canvas.getBoundingClientRect();
-        currentX = e.touches[0].clientX - rect.left;
-        currentY = e.touches[0].clientY - rect.top;
-        isDrawing = true;
+    if(localWhiteboardHistory.length > 0) {
+        localWhiteboardHistory.forEach(data => drawRemote(data, false));
     }
 }
 
-function onTouchMove(e) {
-    if (!isDrawing) return;
-    e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    const newX = e.touches[0].clientX - rect.left;
-    const newY = e.touches[0].clientY - rect.top;
+function onMouseDown(e) { isDrawing = true; currentX = e.offsetX; currentY = e.offsetY; }
+function onMouseMove(e) { if (!isDrawing) return; draw(currentX, currentY, e.offsetX, e.offsetY, currentColor, true); currentX = e.offsetX; currentY = e.offsetY; }
+function onMouseUp(e) { isDrawing = false; }
+function onTouchStart(e) { if(e.touches.length == 1){ e.preventDefault(); const rect = canvas.getBoundingClientRect(); currentX = e.touches[0].clientX - rect.left; currentY = e.touches[0].clientY - rect.top; isDrawing = true; } }
+function onTouchMove(e) { if (!isDrawing) return; e.preventDefault(); const rect = canvas.getBoundingClientRect(); const newX = e.touches[0].clientX - rect.left; const newY = e.touches[0].clientY - rect.top; draw(currentX, currentY, newX, newY, currentColor, true); currentX = newX; currentY = newY; }
+
+function draw(x0, y0, x1, y1, color, emit){
+    if(!ctx) initWhiteboard(); 
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); ctx.closePath();
     
-    draw(currentX, currentY, newX, newY, currentColor, true);
-    currentX = newX;
-    currentY = newY;
+    const drawData = { 
+        x0: x0 / (canvas.width||window.innerWidth), 
+        y0: y0 / (canvas.height||window.innerHeight), 
+        x1: x1 / (canvas.width||window.innerWidth), 
+        y1: y1 / (canvas.height||window.innerHeight), 
+        color: color 
+    };
+
+    if (emit && socket && currentRoomId) {
+        socket.emit('wb-draw', currentRoomId, drawData);
+        localWhiteboardHistory.push(drawData); 
+    }
 }
 
-// Funzione Disegno (Core)
-function draw(x0, y0, x1, y1, color, emit){
-    if(!ctx) initWhiteboard(); // Assicura che il contesto esista
+function drawRemote(data, saveToHistory = true){
+    if(!ctx) initWhiteboard();
+    const w = canvas.width || window.innerWidth; 
+    const h = canvas.height || window.innerHeight;
     
-    ctx.beginPath();
-    ctx.moveTo(x0, y0);
-    ctx.lineTo(x1, y1);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.stroke();
+    ctx.beginPath(); 
+    ctx.moveTo(data.x0 * w, data.y0 * h); 
+    ctx.lineTo(data.x1 * w, data.y1 * h);
+    ctx.strokeStyle = data.color; 
+    ctx.lineWidth = 2; 
+    ctx.lineCap = 'round'; 
+    ctx.stroke(); 
     ctx.closePath();
 
-    if (!emit) return;
-
-    // Normalizza le coordinate (0-1)
-    // Usiamo width/height attuali o fallback a window
-    const w = canvas.width || window.innerWidth;
-    const h = canvas.height || window.innerHeight;
-
-    if(socket && currentRoomId){
-        socket.emit('wb-draw', currentRoomId, {
-            x0: x0 / w,
-            y0: y0 / h,
-            x1: x1 / w,
-            y1: y1 / h,
-            color: color
-        });
-    }
+    if(saveToHistory) localWhiteboardHistory.push(data);
 }
 
-// Funzione per disegnare dati remoti (denormalizzati)
-function drawRemote(data){
-    if(!ctx) initWhiteboard();
+function throttle(callback, delay) { let previousCall = new Date().getTime(); return function() { const time = new Date().getTime(); if ((time - previousCall) >= delay) { previousCall = time; callback.apply(null, arguments); } }; }
 
-    // Ricalcola width/height in caso di resize
-    const w = canvas.width || window.innerWidth;
-    const h = canvas.height || window.innerHeight;
-    
-    // Disegna usando le percentuali relative alle dimensioni attuali del client
-    draw(data.x0 * w, data.y0 * h, data.x1 * w, data.y1 * h, data.color, false);
-}
-
-function throttle(callback, delay) {
-    let previousCall = new Date().getTime();
-    return function() {
-        const time = new Date().getTime();
-        if ((time - previousCall) >= delay) {
-            previousCall = time;
-            callback.apply(null, arguments);
-        }
-    };
-}
-
-// Toggle Whiteboard
 toggleWhiteboardButton.addEventListener('click', () => {
     const isHidden = whiteboardContainer.classList.contains('hidden');
-    
-    if (isHidden) {
-        // 1. Mostra la lavagna
-        whiteboardContainer.classList.remove('hidden');
-        toggleWhiteboardButton.classList.add('active');
-        toggleWhiteboardButton.classList.remove('has-notification'); // Rimuovi pallino rosso
-        
-        // 2. Inizializza e ridimensiona
-        initWhiteboard();
-        resizeCanvas();
-        
-        // 3. *** FIX CRUCIALE: Richiedi la history aggiornata al server ***
-        // Questo recupera tutti i disegni fatti mentre la lavagna era chiusa
-        if(socket && currentRoomId) {
-            console.log("Richiedo aggiornamento lavagna al server...");
-            socket.emit('wb-request-history', currentRoomId);
-        }
+    if (isHidden) { whiteboardContainer.classList.remove('hidden'); toggleWhiteboardButton.classList.add('active'); toggleWhiteboardButton.classList.remove('has-notification'); initWhiteboard(); resizeCanvas(); if(socket && currentRoomId) socket.emit('wb-request-history', currentRoomId); }
+    else { whiteboardContainer.classList.add('hidden'); toggleWhiteboardButton.classList.remove('active'); }
+});
+wbCloseBtn.addEventListener('click', () => { whiteboardContainer.classList.add('hidden'); toggleWhiteboardButton.classList.remove('active'); });
 
-    } else {
-        // Chiudi la lavagna
-        whiteboardContainer.classList.add('hidden');
-        toggleWhiteboardButton.classList.remove('active');
-    }
+wbClearBtn.addEventListener('click', () => { 
+    if(confirm("Cancellare lavagna?")){ 
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        localWhiteboardHistory = [];
+        if(socket && currentRoomId) socket.emit('wb-clear', currentRoomId); 
+    } 
 });
 
-wbCloseBtn.addEventListener('click', () => {
-    whiteboardContainer.classList.add('hidden');
-    toggleWhiteboardButton.classList.remove('active');
-});
+wbUndoBtn.addEventListener('click', () => { if(socket && currentRoomId) socket.emit('wb-undo', currentRoomId); });
+wbColors.forEach(btn => { btn.addEventListener('click', (e) => { wbColors.forEach(b => b.classList.remove('active')); e.target.classList.add('active'); currentColor = e.target.dataset.color; }); });
 
-wbClearBtn.addEventListener('click', () => {
-    if(confirm("Sei sicuro di voler cancellare tutta la lavagna per tutti?")){
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if(socket && currentRoomId) socket.emit('wb-clear', currentRoomId);
-    }
-});
-
-wbUndoBtn.addEventListener('click', () => {
-    if(socket && currentRoomId) socket.emit('wb-undo', currentRoomId);
-});
-
-wbColors.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        wbColors.forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        currentColor = e.target.dataset.color;
-    });
-});
-
-// **********************************************
-// ************** FINE LOGICA WHITEBOARD ********
-// **********************************************
-
-// Funzioni Registrazione (Focus)
-function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        log('Registrazione interrotta. Salvataggio in corso...');
-        mediaRecorder.stop();
-    }
-}
-
-function saveRecording() {
-    isRecording = false;
-    recordButton.classList.remove('active');
-    recordButton.querySelector('.material-icons').textContent = 'fiber_manual_record'; 
-    recordButton.title = 'Avvia Registrazione';
-    
-    if (recordedChunks.length === 0) {
-        addChatMessage('Sistema', 'Registrazione interrotta. Nessun dato acquisito.', true, 'system');
-        return;
-    }
-
-    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    
-    const now = new Date();
-    const fileName = `registrazione-${now.toLocaleDateString('it-IT').replace(/\//g, '-')}-${now.toLocaleTimeString('it-IT').replace(/:/g, '-')}.webm`;
-    
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-    addChatMessage('Sistema', `Registrazione salvata e scaricata come "${fileName}".`, true, 'system');
-}
-
+// ** RECORDING **
+function stopRecording() { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); }
+function saveRecording() { isRecording = false; recordButton.classList.remove('active'); if (recordedChunks.length === 0) return; const blob = new Blob(recordedChunks, { type: 'video/webm' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'rec.webm'; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); document.body.removeChild(a); }
 function startRecording() {
     if (!window.MediaRecorder) {
-        alert('Il tuo browser non supporta l\'API MediaRecorder.');
-        return;
-    }
-    let streamToRecord = null;
-    let nicknameToRecord = userNickname; 
-    if (focusedPeerId === 'local') {
-        streamToRecord = localVideoEl.srcObject || localStream;
-        nicknameToRecord = userNickname;
-    } else {
-        const remoteFeedEl = videosGrid.querySelector(`[data-peer-id="${focusedPeerId}"]`);
-        if (remoteFeedEl) {
-            const remoteVideoEl = remoteFeedEl.querySelector('video');
-            streamToRecord = remoteVideoEl.srcObject;
-            nicknameToRecord = remoteNicknames[focusedPeerId] || 'Peer Remoto';
-        }
-    }
-    if (!streamToRecord || !streamToRecord.getTracks().length) {
-        alert('Impossibile trovare uno stream video o audio attivo da registrare.');
+        alert('Il tuo browser non supporta la registrazione.');
         return;
     }
 
-    isRecording = true;
-    recordButton.classList.add('active');
-    recordButton.querySelector('.material-icons').textContent = 'stop'; 
-    recordButton.title = 'Ferma Registrazione';
+    let streamToRecord = null;
+    if (focusedPeerId === 'local') {
+        streamToRecord = (localVideoEl.srcObject || localStream);
+    } else {
+        const remoteVideo = videosGrid.querySelector(`[data-peer-id="${focusedPeerId}"] video`);
+        if (remoteVideo) streamToRecord = remoteVideo.srcObject;
+    }
+
+    if (!streamToRecord) {
+        alert("Nessun flusso video attivo da registrare.");
+        return;
+    }
+
+    const mimeTypes = [
+        'video/webm; codecs=vp9',
+        'video/webm; codecs=vp8',
+        'video/webm; codecs=h264',
+        'video/webm',
+        'video/mp4' 
+    ];
+
+    let selectedMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));
+
+    if (!selectedMimeType) {
+        alert("Nessun codec supportato trovato per la registrazione su questo dispositivo.");
+        return;
+    }
 
     recordedChunks = [];
     try {
-        mediaRecorder = new MediaRecorder(streamToRecord, { mimeType: 'video/webm; codecs=vp9' });
-        mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) recordedChunks.push(event.data);
+        mediaRecorder = new MediaRecorder(streamToRecord, { mimeType: selectedMimeType });
+        
+        mediaRecorder.ondataavailable = e => {
+            if (e.data.size > 0) recordedChunks.push(e.data);
         };
+        
         mediaRecorder.onstop = saveRecording;
+        
         mediaRecorder.start(1000); 
-        log(`Registrazione avviata per lo stream di ${nicknameToRecord}...`);
-        addChatMessage('Sistema', `Registrazione avviata per lo stream di **${nicknameToRecord}**.`, true, 'system');
-    } catch(err) {
-        console.error('Errore MediaRecorder:', err);
+        isRecording = true;
+        recordButton.classList.add('active');
+        console.log(`Registrazione avviata con codec: ${selectedMimeType}`);
+
+    } catch (e) {
+        console.error("Errore avvio registrazione:", e);
+        alert("Errore durante l'avvio della registrazione: " + e.message);
         isRecording = false;
         recordButton.classList.remove('active');
-        alert('Impossibile avviare la registrazione.');
     }
 }
 
-// ---------- Utils e Chat ----------
-function getRoomIdFromUrl(){
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('room');
-}
+// ** IMPOSTAZIONI UI LOGIC **
+function openSettings() { settingsModal.classList.remove('hidden'); }
+function closeSettings() { settingsModal.classList.add('hidden'); }
 
-function copyRoomLink(){
-    const url = `${window.location.protocol}//${window.location.host}${window.location.pathname}?room=${currentRoomId}`;
-    navigator.clipboard.writeText(url).then(() => {
-        shareRoomLinkButton.value = 'Link Copiato!';
-        setTimeout(() => { shareRoomLinkButton.value = 'Ottieni Link'; }, 3000);
-    }).catch(err => {
-        console.error('Errore copia link:', err);
-        alert(`Copia manuale: ${url}`);
-    });
-}
+settingsBtnOverlay.addEventListener('click', openSettings);
+settingsBtnRoom.addEventListener('click', openSettings);
+closeSettingsBtn.addEventListener('click', closeSettings);
 
-function addChatMessage(sender, message, isLocal=false, type='public'){
-    const messageEl = document.createElement('div');
-    messageEl.classList.add('chat-message');
-    let cssClass;
-    let senderText = sender;
-    if (type === 'system') { cssClass = 'sender-system'; senderText = 'Sistema'; } 
-    else if (type === 'private') { cssClass = 'sender-private'; } 
-    else { cssClass = isLocal ? 'sender-me' : 'sender-remote'; }
+// Cambio Tema
+themeToggle.addEventListener('change', (e) => {
+    if(e.target.checked) {
+        document.body.classList.add('light-theme');
+    } else {
+        document.body.classList.remove('light-theme');
+    }
+});
 
-    const prefix = isLocal ? `Tu${type === 'private' ? ` (DM a ${sender})` : ''}: ` : `${senderText}: `;
-    messageEl.innerHTML = `<span class="${cssClass}">${prefix}</span>${message}`;
-    messagesContainer.appendChild(messageEl);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
+// ** ADMIN PANEL UI **
+// La logica "openAdminLoginBtn" è stata spostata dentro settings, quindi:
+// 1. Apri settings -> 2. Clicca "Admin Login" -> Chiude settings, apre Admin Panel
+openAdminLoginBtn.addEventListener('click', () => { 
+    closeSettings(); // Chiudi modale impostazioni
+    adminPanel.classList.remove('hidden'); // Apri modale admin
+});
 
-function clearChatInput(){ chatMessageInput.value = ''; }
+closeAdminBtn.addEventListener('click', () => { adminPanel.classList.add('hidden'); });
+adminLoginBtn.addEventListener('click', () => { const pwd = adminPasswordInput.value; if(!socket) initializeSocket(); socket.emit('admin-login', pwd); });
+adminRefreshBtn.addEventListener('click', () => { if(socket) socket.emit('admin-refresh'); });
 
-function sendMessage(){
-    const fullMessage = chatMessageInput.value.trim();
-    if (!fullMessage) return;
+// ** RENDER DASHBOARD ADMIN AGGIORNATO **
+function renderAdminDashboard(data) {
+    adminTotalUsers.textContent = data.totalUsers;
+    adminBannedCount.textContent = data.bannedCount || 0;
     
-    const parts = fullMessage.split(' ');
-    if (parts[0].toLowerCase() === '/dm' && parts.length >= 3) {
-        const recipientNickname = parts[1];
-        const messageContent = parts.slice(2).join(' ');
-        if (recipientNickname.toLowerCase() === userNickname.toLowerCase()) {
-            addChatMessage('Sistema', 'Non puoi inviare un Messaggio Privato a te stesso.', true, 'system');
-            clearChatInput();
-            return;
-        }
-        const recipientId = Object.keys(remoteNicknames).find(
-            key => remoteNicknames[key] && remoteNicknames[key].toLowerCase() === recipientNickname.toLowerCase()
-        );
-        if (recipientId) {
-            sendPrivateMessage(recipientId, recipientNickname, messageContent);
-            clearChatInput();
-        } else {
-            addChatMessage('Sistema', `Utente privato "${recipientNickname}" non trovato.`, true, 'system');
-        }
+    const list = adminRoomsList;
+    list.innerHTML = '';
+    
+    if (Object.keys(data.rooms).length === 0) { 
+        list.innerHTML = '<p style="color:var(--muted); text-align:center;">Nessuna stanza attiva.</p>'; 
         return; 
     }
 
-    if (socket && currentRoomId) {
-        socket.emit('send-message', currentRoomId, userNickname, fullMessage);
-        addChatMessage(userNickname, fullMessage, true, 'public');
-        clearChatInput();
-        chatMessageInput.focus();
-        if(window.innerWidth <= 768) {
-             setTimeout(() => { window.scrollTo(0, document.body.scrollHeight); }, 50);
+    // Iteriamo le stanze
+    for (const [roomId, users] of Object.entries(data.rooms)) {
+        const config = data.configs[roomId] || { isLocked: false, password: "" }; // Leggi config
+        
+        const roomCard = document.createElement('div'); 
+        roomCard.className = 'admin-room-card';
+        
+        // Header Stanza
+        const header = document.createElement('div'); 
+        header.className = 'room-header';
+        
+        // Icone stato stanza
+        let statusIcons = '';
+        if (config.isLocked) statusIcons += '🔒 ';
+        if (config.password) statusIcons += '🔑 ';
+
+        header.innerHTML = `<span class="room-name">${statusIcons}${roomId}</span>`;
+        
+        // Container Controlli Stanza
+        const controlsDiv = document.createElement('div');
+        controlsDiv.style.display = 'flex';
+        controlsDiv.style.gap = '5px';
+
+        // 1. Tasto Lock/Unlock
+        const lockBtn = document.createElement('button');
+        lockBtn.className = `btn-admin-action btn-lock ${config.isLocked ? 'locked' : ''}`;
+        lockBtn.innerHTML = `<span class="material-icons" style="font-size:1.2em;">${config.isLocked ? 'lock' : 'lock_open'}</span>`;
+        lockBtn.title = config.isLocked ? "Sblocca Stanza" : "Blocca Stanza";
+        lockBtn.onclick = () => socket.emit('admin-toggle-lock', roomId);
+
+        // 2. Tasto Password
+        const passBtn = document.createElement('button');
+        passBtn.className = 'btn-admin-action btn-pass';
+        passBtn.innerHTML = '<span class="material-icons" style="font-size:1.2em;">vpn_key</span>';
+        passBtn.title = config.password ? `Cambia Pass (Attuale: ${config.password})` : "Imposta Password";
+        passBtn.onclick = () => {
+            const newPass = prompt("Imposta password stanza (lascia vuoto per rimuovere):", config.password);
+            if (newPass !== null) socket.emit('admin-set-password', roomId, newPass);
+        };
+
+        // 3. Tasto Chiudi Stanza
+        const closeBtn = document.createElement('button'); 
+        closeBtn.className = 'btn-close-room'; 
+        closeBtn.textContent = 'Chiudi';
+        closeBtn.onclick = () => { if(confirm('Chiudere stanza e disconnettere tutti?')) socket.emit('admin-close-room', roomId); };
+
+        controlsDiv.appendChild(lockBtn);
+        controlsDiv.appendChild(passBtn);
+        controlsDiv.appendChild(closeBtn);
+        header.appendChild(controlsDiv);
+        
+        roomCard.appendChild(header);
+
+        // Lista Utenti con BAN
+        const userList = document.createElement('ul'); 
+        userList.className = 'admin-user-list';
+        for (const [socketId, nickname] of Object.entries(users)) {
+            const li = document.createElement('li'); 
+            li.className = 'admin-user-item';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = nickname;
+            
+            const actionsSpan = document.createElement('div');
+            
+            // Tasto Kick
+            const kickBtn = document.createElement('button'); 
+            kickBtn.className = 'btn-kick'; 
+            kickBtn.textContent = 'Kick';
+            kickBtn.onclick = () => { if(confirm(`Kick ${nickname}?`)) socket.emit('admin-kick-user', socketId); };
+            
+            // Tasto BAN IP
+            const banBtn = document.createElement('button'); 
+            banBtn.className = 'btn-admin-action btn-ban'; 
+            banBtn.textContent = 'BAN IP';
+            banBtn.title = "Banna IP Permanentemente";
+            banBtn.onclick = () => { if(confirm(`ATTENZIONE: Bannare l'IP di ${nickname}? Non potrà più rientrare.`)) socket.emit('admin-ban-ip', socketId); };
+
+            actionsSpan.appendChild(kickBtn);
+            actionsSpan.appendChild(banBtn);
+            
+            li.appendChild(nameSpan);
+            li.appendChild(actionsSpan);
+            userList.appendChild(li);
         }
-    } else {
-        alert('Impossibile inviare il messaggio: connessione non stabilita.');
+        roomCard.appendChild(userList); 
+        list.appendChild(roomCard);
     }
 }
 
-function sendPrivateMessage(recipientId, recipientNickname, message) {
-    if (!message || !recipientId) return;
-    if (socket && currentRoomId) {
-        socket.emit('send-private-message', currentRoomId, recipientId, userNickname, message);
-        addChatMessage(recipientNickname, message, true, 'private');
+// ** UTILS & CHAT **
+function getRoomIdFromUrl(){ const urlParams = new URLSearchParams(window.location.search); return urlParams.get('room'); }
+function copyRoomLink(){ 
+    // Costruiamo l'URL base con la stanza
+    let url = `${window.location.protocol}//${window.location.host}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
+    
+    // Se c'è una password, la aggiungiamo all'URL
+    if (currentRoomPassword) {
+        url += `&pass=${encodeURIComponent(currentRoomPassword)}`;
     }
-}
 
-function openChatPanelMobile(callback) {
-    if (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden')) {
-        if (callback) callback();
-        return;
-    }
-    chatPanel.classList.remove('hidden');
-    setTimeout(() => {
-        chatPanel.classList.add('active');
-        let closeBtn = document.getElementById('close-chat-btn');
-        if (!closeBtn) {
-            closeBtn = document.createElement('button');
-            closeBtn.textContent = '← Torna alle webcam';
-            closeBtn.id = 'close-chat-btn';
-            closeBtn.style.cssText = `position: relative; width: calc(100% - 20px); padding: 10px; margin: 10px; border: none; background: var(--primary-color); color: var(--bg); font-weight: bold; cursor: pointer; border-radius: 6px;`; 
-            const chatHeader = chatPanel.querySelector('h3');
-            if(chatHeader) chatPanel.insertBefore(closeBtn, chatHeader);
-            closeBtn.addEventListener('click', () => {
-                chatPanel.classList.remove('active');
-                setTimeout(() => { chatPanel.classList.add('hidden'); closeBtn.remove(); }, 300);
-            });
-        }
-        setTimeout(callback, 350); 
-    }, 10);
+    navigator.clipboard.writeText(url).then(() => { 
+        const originalText = shareRoomLinkButton.querySelector('.material-icons').textContent; // O il testo se non usi icone
+        shareRoomLinkButton.classList.add('active'); // Feedback visivo opzionale
+        
+        // Mostra feedback "Copiato!"
+        // Nota: nel tuo codice originale modificavi .value, ma il bottone contiene un'icona span. 
+        // Meglio usare un tooltip o un alert temporaneo, ma qui adattiamo la logica esistente:
+        alert("Link copiato negli appunti! " + (currentRoomPassword ? "(Include la password)" : ""));
+    }).catch(err => {
+        console.error('Errore copia:', err);
+    }); 
 }
+function addChatMessage(sender, message, isLocal=false, type='public'){ const messageEl = document.createElement('div'); messageEl.classList.add('chat-message'); let cssClass; let senderText = sender; if (type === 'system') { cssClass = 'sender-system'; senderText = 'Sistema'; } else if (type === 'private') { cssClass = 'sender-private'; } else { cssClass = isLocal ? 'sender-me' : 'sender-remote'; } const prefix = isLocal ? `Tu${type === 'private' ? ` (DM a ${sender})` : ''}: ` : `${senderText}: `; messageEl.innerHTML = `<span class="${cssClass}">${prefix}</span>${message}`; messagesContainer.appendChild(messageEl); messagesContainer.scrollTop = messagesContainer.scrollHeight; }
+function clearChatInput(){ chatMessageInput.value = ''; }
+function sendMessage(){ const fullMessage = chatMessageInput.value.trim(); if (!fullMessage) return; const parts = fullMessage.split(' '); if (parts[0].toLowerCase() === '/dm' && parts.length >= 3) { const recipientNickname = parts[1]; const messageContent = parts.slice(2).join(' '); if (recipientNickname.toLowerCase() === userNickname.toLowerCase()) { addChatMessage('Sistema', 'No DM a te stesso.', true, 'system'); clearChatInput(); return; } const recipientId = Object.keys(remoteNicknames).find(key => remoteNicknames[key] && remoteNicknames[key].toLowerCase() === recipientNickname.toLowerCase()); if (recipientId) { sendPrivateMessage(recipientId, recipientNickname, messageContent); clearChatInput(); } else { addChatMessage('Sistema', `Utente "${recipientNickname}" non trovato.`, true, 'system'); } return; } if (socket && currentRoomId) { socket.emit('send-message', currentRoomId, userNickname, fullMessage); addChatMessage(userNickname, fullMessage, true, 'public'); clearChatInput(); } }
+function sendPrivateMessage(recipientId, recipientNickname, message) { if (!message || !recipientId) return; if (socket && currentRoomId) { socket.emit('send-private-message', currentRoomId, recipientId, userNickname, message); addChatMessage(recipientNickname, message, true, 'private'); } }
+function openChatPanelMobile(callback) { if (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden')) { if (callback) callback(); return; } chatPanel.classList.remove('hidden'); setTimeout(() => { chatPanel.classList.add('active'); let closeBtn = document.getElementById('close-chat-btn'); if (!closeBtn) { closeBtn = document.createElement('button'); closeBtn.textContent = '← Torna alle webcam'; closeBtn.id = 'close-chat-btn'; closeBtn.style.cssText = `position: relative; width: calc(100% - 20px); padding: 10px; margin: 10px; border: none; background: var(--primary-color); color: #fff; font-weight: bold; cursor: pointer; border-radius: 6px;`; const chatHeader = chatPanel.querySelector('h3'); if(chatHeader) chatPanel.insertBefore(closeBtn, chatHeader); closeBtn.addEventListener('click', () => { chatPanel.classList.remove('active'); setTimeout(() => { chatPanel.classList.add('hidden'); closeBtn.remove(); }, 300); }); } setTimeout(callback, 350); }, 10); }
 
-// ---------- Socket.IO Logic ----------
+// ** SOCKET IO **
 function initializeSocket(){
+  if(socket) return; 
   socket = io(RENDER_SERVER_URL);
+  socket.on('error-message', (msg) => {
+      alert("ERRORE: " + msg);
+      resetAndShowOverlay(); // Torna alla home
+      if(socket) socket.disconnect();
+      socket = null;
+  });
+  socket.on('kicked-by-admin', (msg) => {
+      alert(msg); // Messaggio personalizzato (es. "Sei bannato")
+      location.reload();
+  });
+
+  // ** ADMIN EVENTS **
+  socket.on('admin-log', (msg) => {
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      div.textContent = msg;
+      adminLogsConsole.appendChild(div);
+      adminLogsConsole.scrollTop = adminLogsConsole.scrollHeight;
+  });
+
+  socket.on('admin-data-update', (data) => { renderAdminDashboard(data); });
   socket.on('connect', ()=> log('Connesso', socket.id));
 
-  socket.on('nickname-in-use', (errorMessage) => {
-      alert(errorMessage);
-      resetAndShowOverlay();
-      if (socket) socket.disconnect();
-  });
-
-  socket.on('welcome', (newPeerId, nickname, peers=[])=>{
-    remoteNicknames[newPeerId] = nickname;
-    addChatMessage(userNickname, `Benvenuto nella stanza ${currentRoomId}!`, false, 'system');
-    peers.forEach(peer=>{
-      if(peer.id !== socket.id) {
-        remoteNicknames[peer.id] = peer.nickname;
-        createPeerConnection(peer.id); 
-      }
-    });
-    setFocus('local', false);
-  });
-
-  // *** GESTIONE EVENTI WHITEBOARD CORRETTA ***
-  socket.on('wb-draw', (data) => {
-      // Se la whiteboard è chiusa, mostra la notifica
-      if (whiteboardContainer.classList.contains('hidden')) {
-          toggleWhiteboardButton.classList.add('has-notification');
-      }
-      // Disegna comunque (grazie al fix su resizeCanvas funzionerà anche nascosto)
-      drawRemote(data);
-  });
-
-  socket.on('wb-clear', () => {
-      if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-  });
-
-  socket.on('wb-history', (history) => {
-      if(!ctx) initWhiteboard();
-      // Pulisci tutto prima di ridisegnare la storia
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Ridisegna ogni tratto
-      history.forEach(item => drawRemote(item));
-      
-      // Se arriva una history e la lavagna è chiusa, notifica
-      if (whiteboardContainer.classList.contains('hidden') && history.length > 0) {
-           toggleWhiteboardButton.classList.add('has-notification');
-      }
-  });
-  // *******************************************
-
-  socket.on('peer-joined', (peerId,nickname)=>{
-    remoteNicknames[peerId] = nickname;
-    createPeerConnection(peerId); 
-    addChatMessage('Sistema', `${nickname} è entrato.`, false, 'system');
-  });
-
-  socket.on('peer-left', (peerId)=>{
-    const nickname = remoteNicknames[peerId] || 'Un utente';
-    removeRemoteFeed(peerId);
-    addChatMessage('Sistema', `${nickname} è uscito.`, false, 'system');
-  });
-
-  socket.on('new-message', (senderNickname, message)=>{
-    addChatMessage(senderNickname, message, false, 'public');
-  });
+  socket.on('nickname-in-use', (msg) => { alert(msg); resetAndShowOverlay(); if (socket) socket.disconnect(); socket = null; });
+  socket.on('welcome', (newPeerId, nickname, peers=[])=>{ remoteNicknames[newPeerId] = nickname; addChatMessage(userNickname, `Benvenuto in ${currentRoomId}!`, false, 'system'); peers.forEach(peer=>{ if(peer.id !== socket.id) { remoteNicknames[peer.id] = peer.nickname; createPeerConnection(peer.id); } }); setFocus('local', false); });
   
-  socket.on('new-private-message', (senderNickname, message) => {
-      addChatMessage(`Privato da ${senderNickname}`, message, false, 'private');
+  // Whiteboard events
+  socket.on('wb-draw', (data) => { if (whiteboardContainer.classList.contains('hidden')) toggleWhiteboardButton.classList.add('has-notification'); drawRemote(data); });
+  socket.on('wb-clear', () => { if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height); localWhiteboardHistory = []; });
+  socket.on('wb-history', (history) => { 
+      if(!ctx) initWhiteboard(); 
+      ctx.clearRect(0, 0, canvas.width, canvas.height); 
+      localWhiteboardHistory = []; 
+      history.forEach(item => drawRemote(item)); 
+      if (whiteboardContainer.classList.contains('hidden') && history.length > 0) toggleWhiteboardButton.classList.add('has-notification'); 
   });
+
+  // Standard events
+  socket.on('peer-joined', (peerId,nickname)=>{ remoteNicknames[peerId] = nickname; createPeerConnection(peerId); addChatMessage('Sistema', `${nickname} entrato.`, false, 'system'); });
+  socket.on('peer-left', (peerId)=>{ removeRemoteFeed(peerId); addChatMessage('Sistema', `Utente uscito.`, false, 'system'); });
+  socket.on('new-message', (s, m)=>{ addChatMessage(s, m, false, 'public'); });
+  socket.on('new-private-message', (s, m) => { addChatMessage(`Privato da ${s}`, m, false, 'private'); });
+  socket.on('audio-status-changed', (pid, talk) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f) { f.classList.toggle('is-talking', talk); f.querySelector('.remote-mic-status').textContent = talk ? 'mic' : 'mic_off'; } });
+  socket.on('remote-stream-type-changed', (pid, ratio) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f){ f.classList.remove('ratio-4-3', 'ratio-16-9'); f.classList.add(`ratio-${ratio}`); } });
   
-  socket.on('audio-status-changed', (peerId, isTalking) => {
-      const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
-      if(feed) {
-          feed.classList.toggle('is-talking', isTalking);
-          feed.querySelector('.remote-mic-status').textContent = isTalking ? 'mic' : 'mic_off';
-      }
-      if (isTalking) {
-          currentSpeakerId = peerId;
-          if (!isManualFocus) {
-              if (autoFocusTimer) clearTimeout(autoFocusTimer);
-              setFocus(peerId, false);
-          }
-      } else {
-          if (peerId === currentSpeakerId && !isManualFocus) {
-              if (autoFocusTimer) clearTimeout(autoFocusTimer);
-              autoFocusTimer = setTimeout(() => {
-                  if (peerId === focusedPeerId) setFocus('local', false);
-                  autoFocusTimer = null;
-              }, AUTO_FOCUS_COOLDOWN);
-          }
-      }
-  });
+  // WebRTC Signaling
+  socket.on('offer', async (fid, o)=>{ const pc = createPeerConnection(fid); if(pc.signalingState !== 'stable') return; await pc.setRemoteDescription(new RTCSessionDescription(o)); if (iceCandidateQueues[fid]) { iceCandidateQueues[fid].forEach(c => pc.addIceCandidate(new RTCIceCandidate(c))); iceCandidateQueues[fid] = []; } const a = await pc.createAnswer(); await pc.setLocalDescription(a); socket.emit('answer', fid, pc.localDescription); });
+  socket.on('answer', async (fid, a)=>{ const pc = peerConnections[fid]; if(pc && pc.signalingState === 'have-local-offer') { await pc.setRemoteDescription(new RTCSessionDescription(a)); if (iceCandidateQueues[fid]) { iceCandidateQueues[fid].forEach(c => pc.addIceCandidate(new RTCIceCandidate(c))); iceCandidateQueues[fid] = []; } } });
+  socket.on('candidate', async (fid, c)=>{ const pc = peerConnections[fid]; if(pc && c) { if (pc.remoteDescription) await pc.addIceCandidate(new RTCIceCandidate(c)); else { if (!iceCandidateQueues[fid]) iceCandidateQueues[fid] = []; iceCandidateQueues[fid].push(c); } } });
 
-  socket.on('remote-stream-type-changed', (peerId, newRatio) => {
-    const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
-    if(feed){
-        feed.classList.remove('ratio-4-3', 'ratio-16-9');
-        feed.classList.add(`ratio-${newRatio}`);
-    }
-  });
-
-  socket.on('offer', async (fromId, offer)=>{
-    const pc = createPeerConnection(fromId); 
-    if(pc.signalingState !== 'stable') return; 
-    await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    if (iceCandidateQueues[fromId]) {
-      iceCandidateQueues[fromId].forEach(candidate => { if(candidate) pc.addIceCandidate(new RTCIceCandidate(candidate)); });
-      iceCandidateQueues[fromId] = [];
-    }
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    socket.emit('answer', fromId, pc.localDescription);
-  });
-
-  socket.on('answer', async (fromId, answer)=>{
-    const pc = peerConnections[fromId];
-    if(pc) {
-        if(pc.signalingState !== 'have-local-offer') return;
-        await pc.setRemoteDescription(new RTCSessionDescription(answer));
-        if (iceCandidateQueues[fromId]) {
-          iceCandidateQueues[fromId].forEach(candidate => { if(candidate) pc.addIceCandidate(new RTCIceCandidate(candidate)); });
-          iceCandidateQueues[fromId] = [];
-        }
-    }
-  });
-
-  socket.on('candidate', async (fromId, candidate)=>{
-    const pc = peerConnections[fromId];
-    if(pc && candidate) {
-      if (pc.remoteDescription) {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      } else {
-        if (!iceCandidateQueues[fromId]) iceCandidateQueues[fromId] = [];
-        iceCandidateQueues[fromId].push(candidate);
-      }
-    }
-  });
+  // Admin events
+  socket.on('admin-login-success', () => { adminLoginView.classList.add('hidden'); adminDashboardView.classList.remove('hidden'); adminMsg.textContent = ''; });
+  socket.on('admin-login-fail', () => { adminMsg.textContent = 'Password errata.'; });
+  socket.on('admin-data-update', (data) => { renderAdminDashboard(data); });
+  socket.on('kicked-by-admin', () => { alert("Sei stato espulso."); location.reload(); });
+  socket.on('room-closed-by-admin', () => { alert("Stanza chiusa."); location.reload(); });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const roomParam = params.get('room');
+    const passParam = params.get('pass');
+
+    // Se c'è il parametro ?room=... nell'URL
+    if (roomParam) {
+        roomIdInput.value = roomParam;
+        // Disabilita o rendi readonly l'input se vuoi che non lo cambino, oppure lascialo modificabile
+        // roomIdInput.readOnly = true; 
+    }
+
+    // Se c'è il parametro &pass=... nell'URL
+    if (passParam) {
+        roomPasswordInput.value = passParam;
+    }
+
+    // Se abbiamo la stanza, spostiamo il focus direttamente sul Nickname per velocizzare
+    if (roomParam) {
+        nicknameInput.focus();
+    }
+});
 
 function createPeerConnection(socketId){
   if(peerConnections[socketId]) return peerConnections[socketId];
   const pc = new RTCPeerConnection(iceConfiguration);
   peerConnections[socketId] = pc;
   iceCandidateQueues[socketId] = []; 
-
-  if(localStream) {
-      localStream.getTracks().forEach(track => {
-        const sender = pc.addTrack(track, localStream);
-        if(track.kind === 'video') videoSenders[socketId] = sender;
-      });
-  }
+  if(localStream) { localStream.getTracks().forEach(track => { const sender = pc.addTrack(track, localStream); if(track.kind === 'video') videoSenders[socketId] = sender; }); }
+  
+  // Data Channel logic
+  const shouldCreateOffer = (socket.id < socketId); 
+  if (shouldCreateOffer) { const dc = pc.createDataChannel("fileTransfer"); setupDataChannel(dc, socketId); } 
+  else { pc.ondatachannel = (event) => { setupDataChannel(event.channel, socketId); }; }
 
   pc.onicecandidate = event=>{ if(event.candidate) socket.emit('candidate', socketId, event.candidate); };
-  pc.ontrack = event=>{
-    const feed = ensureRemoteFeed(socketId, remoteNicknames[socketId]);
-    const video = feed.querySelector('video');
-    if(video && event.streams.length > 0) {
-        video.srcObject = event.streams[0];
-        if (manuallyMutedPeers[socketId]) video.muted = true;
-    }
-  };
-
-  const shouldCreateOffer = (socket.id < socketId); 
-  pc.onnegotiationneeded = async ()=>{
-    if(shouldCreateOffer && pc.signalingState === 'stable'){
-      try{
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socket.emit('offer', socketId, pc.localDescription);
-      }catch(err){ console.error('Error creating/sending offer', err); }
-    }
-  };
+  pc.ontrack = event=>{ const feed = ensureRemoteFeed(socketId, remoteNicknames[socketId]); const video = feed.querySelector('video'); if(video && event.streams.length > 0) { video.srcObject = event.streams[0]; if (manuallyMutedPeers[socketId]) video.muted = true; } };
+  pc.onnegotiationneeded = async ()=>{ if(shouldCreateOffer && pc.signalingState === 'stable'){ try{ const offer = await pc.createOffer(); await pc.setLocalDescription(offer); socket.emit('offer', socketId, pc.localDescription); }catch(err){ console.error('Offer err', err); } } };
   return pc;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const urlRoomId = getRoomIdFromUrl();
-    if (urlRoomId) roomIdInput.value = urlRoomId;
-    if (videosGrid.children.length === 1 && videosGrid.querySelector('#local-feed')){
-        const placeholder = document.createElement('div');
-        placeholder.id = 'remote-video-placeholder';
-        placeholder.className = 'video-placeholder';
-        placeholder.textContent = 'In attesa di altri partecipanti...';
-        videosGrid.insertBefore(placeholder, localFeedEl);
-    }
-    localFeedEl.classList.add('is-focused');
-    localFeedEl.addEventListener('click', ()=> setFocus('local', true)); 
-});
+function setupDataChannel(dc, peerId) { dc.onopen = () => { dataChannels[peerId] = dc; }; dc.onclose = () => { delete dataChannels[peerId]; }; dc.onmessage = (event) => handleDataChannelMessage(peerId, event); }
 
+// Listeners UI
 joinButton.addEventListener('click', async ()=>{
   const nickname = nicknameInput.value.trim();
   const roomId = roomIdInput.value.trim();
-  if(!nickname || !roomId){ alert('Inserisci nickname e stanza'); return; }
+  const password = document.getElementById('room-password-input').value.trim();
 
-  userNickname = nickname;
+  if(!nickname || !roomId){ alert('Dati mancanti'); return; }
+  
+  userNickname = nickname; 
   currentRoomId = roomId;
+  currentRoomPassword = password; // <--- SALVIAMO LA PASSWORD QUI
   
   await startLocalMedia(); 
   initializeSocket();
-  socket.emit('join-room', currentRoomId, userNickname); 
+  
+  // INVIAMO ANCHE LA PASSWORD
+  socket.emit('join-room', currentRoomId, userNickname, password); 
+  
   document.getElementById('room-name-display').textContent = roomId;
-  showOverlay(false);
+  showOverlay(false); 
   setFocus('local', false);
 });
 
-toggleAudioButton.addEventListener('click', toggleAudio);
-toggleVideoButton.addEventListener('click', toggleVideo);
-disconnectButton.addEventListener('click', disconnect);
-shareScreenButton.addEventListener('click', toggleScreenShare); 
-shareRoomLinkButton.addEventListener('click', copyRoomLink); 
-
-if (recordButton) {
-    recordButton.addEventListener('click', () => {
-        if (isRecording) stopRecording();
-        else startRecording();
-    });
-}
-
-showChatBtn.addEventListener('click', () => {
-    if(window.innerWidth <= 768){ 
-        openChatPanelMobile();
-    } else { 
-        chatPanel.classList.toggle('hidden');
-    }
+localFeedEl.addEventListener('click', () => {
+    toggleFocus('local');
 });
 
-sendChatButton.addEventListener('click', sendMessage);
-chatMessageInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') sendMessage();
-});
-
-document.addEventListener('click', (e) => {
-    if (!contextMenuEl.classList.contains('hidden') && 
-        !contextMenuEl.contains(e.target) && 
-        !e.target.closest('.video-feed')) {
-        hideContextMenu();
-    }
-});
-
-document.addEventListener('contextmenu', (e) => {
-    if (contextMenuEl && !e.target.closest('.video-feed') && !contextMenuEl.contains(e.target)) {
-        hideContextMenu();
-    }
-});
-
-menuMuteUser.addEventListener('click', () => {
-    if (contextTargetPeerId) {
-        toggleRemoteMute(contextTargetPeerId);
-        hideContextMenu();
-    }
-});
-
-menuDmUser.addEventListener('click', () => {
-    if (contextTargetPeerId) {
-        if (contextTargetPeerId === socket.id) {
-            hideContextMenu();
-            addChatMessage('Sistema', 'Non puoi inviare un Messaggio Privato a te stesso.', true, 'system');
-            return;
-        }
-        const nickname = remoteNicknames[contextTargetPeerId] || 'Utente';
-        hideContextMenu();
-        const focusAndSetDM = () => {
-            chatMessageInput.value = `/dm ${nickname} `; 
-            chatMessageInput.focus(); 
-            if(window.innerWidth <= 768) {
-                setTimeout(() => { chatMessageInput.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, 50);
-            }
-        };
-        if (window.innerWidth <= 768) openChatPanelMobile(focusAndSetDM);
-        else focusAndSetDM();
-    }
-});
+toggleAudioButton.addEventListener('click', toggleAudio); toggleVideoButton.addEventListener('click', toggleVideo); disconnectButton.addEventListener('click', disconnect); shareScreenButton.addEventListener('click', toggleScreenShare); shareRoomLinkButton.addEventListener('click', copyRoomLink); if (recordButton) recordButton.addEventListener('click', () => { if (isRecording) stopRecording(); else startRecording(); }); showChatBtn.addEventListener('click', () => { if(window.innerWidth <= 768){ openChatPanelMobile(); } else { chatPanel.classList.toggle('hidden'); } }); sendChatButton.addEventListener('click', sendMessage); chatMessageInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); }); document.addEventListener('click', (e) => { if (!contextMenuEl.classList.contains('hidden') && !contextMenuEl.contains(e.target) && !e.target.closest('.video-feed')) { hideContextMenu(); } }); document.addEventListener('contextmenu', (e) => { if (contextMenuEl && !e.target.closest('.video-feed') && !contextMenuEl.contains(e.target)) { hideContextMenu(); } }); menuMuteUser.addEventListener('click', () => { if (contextTargetPeerId) { toggleRemoteMute(contextTargetPeerId); hideContextMenu(); } }); menuDmUser.addEventListener('click', () => { if (contextTargetPeerId) { if (contextTargetPeerId === socket.id) { hideContextMenu(); addChatMessage('Sistema', 'No DM a te stesso.', true, 'system'); return; } const nickname = remoteNicknames[contextTargetPeerId] || 'Utente'; hideContextMenu(); const focusAndSetDM = () => { chatMessageInput.value = `/dm ${nickname} `; chatMessageInput.focus(); if(window.innerWidth <= 768) { setTimeout(() => { chatMessageInput.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, 50); } }; if (window.innerWidth <= 768) openChatPanelMobile(focusAndSetDM); else focusAndSetDM(); } });
