@@ -1478,7 +1478,6 @@ function initializeSocket(){
   // Standard events
   socket.on('peer-joined', (peerId,nickname)=>{ remoteNicknames[peerId] = nickname; createPeerConnection(peerId); addChatMessage('Sistema', `${nickname} entrato.`, false, 'system'); });
   socket.on('peer-left', (peerId)=>{ removeRemoteFeed(peerId); addChatMessage('Sistema', `Utente uscito.`, false, 'system'); });
-  socket.on('new-message', (s, m)=>{ addChatMessage(s, m, false, 'public'); });
   socket.on('new-private-message', (s, m) => { addChatMessage(`Privato da ${s}`, m, false, 'private'); });
   socket.on('audio-status-changed', (pid, talk) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f) { f.classList.toggle('is-talking', talk); f.querySelector('.remote-mic-status').textContent = talk ? 'mic' : 'mic_off'; } });
   socket.on('remote-stream-type-changed', (pid, ratio) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f){ f.classList.remove('ratio-4-3', 'ratio-16-9'); f.classList.add(`ratio-${ratio}`); } });
