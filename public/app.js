@@ -1,9 +1,9 @@
 // app.js 
 
 // URL del Server Signaling (Render)
-//const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
+const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
 // Se stai testando in locale, de-commenta la riga sotto:
-const RENDER_SERVER_URL = "http://localhost:3000";
+//const RENDER_SERVER_URL = "http://localhost:3000";
 
 // ==========================================
 // 🌍 MULTI-LANGUAGE SYSTEM (i18n)
