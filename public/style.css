@@ -1169,17 +1169,6 @@ body.light-theme .sender-private {
     position: relative; /* Necessario per posizionare il badge */
 }
 
-Certamente! Per implementare queste due funzionalità (Notifiche di messaggi non letti e Ricevute di lettura con lista visualizzabile), dobbiamo toccare tutti e tre i file principali: style.css, server.js e app.js.
-
-Ecco come procedere passo dopo passo.
-
-1. Modifiche allo Stile (style.css)
-Dobbiamo aggiungere lo stile per il "pallino rosso" (badge) sopra il pulsante della chat e per l'indicatore di lettura dentro i messaggi.
-
-Aggiungi questo codice alla fine del file style.css:
-
-CSS
-
 /* --- NOTIFICHE CHAT --- */
 #show-chat-btn {
     position: relative; /* Necessario per posizionare il badge */

@@ -109,17 +109,27 @@ io.on('connection', (socket) => {
         broadcastAdminUpdate();
     });
 
-	// --- GLOBAL MEETING TRANSCRIPTION ---
+// --- GLOBAL MEETING TRANSCRIPTION ---
 
     // 1. Toggle: Qualcuno avvia/ferma la registrazione globale
     socket.on('toggle-global-transcription', (roomId, isActive) => {
-        // Avvisa TUTTI nella stanza di accendere/spegnere il loro speech recognition
+        console.log(`[SERVER-TRANSCRIPT] Toggle stato nella stanza ${roomId}: ${isActive}`);
+        
+        // Avvisa TUTTI nella stanza (incluso chi ha cliccato)
         io.to(roomId).emit('global-transcription-status', isActive);
     });
 
-    // 2. Data: Qualcuno ha parlato, invia il testo a TUTTI (per salvarlo/visualizzarlo)
+    // 2. Data: Qualcuno ha parlato, invia il testo a TUTTI
     socket.on('global-transcript-chunk', (roomId, data) => {
-        // data = { senderId, nickname, text, timestamp }
+        // data = { nickname, text, timestamp }
+        
+        // Log di debug per vedere se il server riceve il testo
+        console.log(`[SERVER-TRANSCRIPT] Ricevuto testo da ${data.nickname} (${roomId}): "${data.text.substring(0, 20)}..."`);
+
+        // IMPORTANTE: Usiamo io.to(roomId) e NON socket.to(roomId).
+        // io.to manda il messaggio a TUTTI, incluso chi ha parlato.
+        // Questo serve perché nel client (app.js) non aggiungiamo il testo subito,
+        // ma aspettiamo che il server ce lo rimandi indietro per essere sicuri che sia salvato.
         io.to(roomId).emit('receive-global-transcript', data);
     });
 

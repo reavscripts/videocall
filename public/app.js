@@ -514,57 +514,101 @@ function updateSelectedVisual(bgId) {
 
 document.addEventListener('DOMContentLoaded', initBackgroundSettings);
 
-// Funzione per inizializzare il riconoscimento vocale locale (Browser -> Testo)
+// Funzione per uccidere forzatamente il riconoscimento vocale
+function stopSpeechRecognition() {
+    if (recognition) {
+        try {
+            recognition.onend = null; // Rimuovi il listener per evitare il riavvio automatico
+            recognition.onerror = null;
+            recognition.stop();
+            console.log("[Speech] 🛑 Istanza precedente terminata forzatamente.");
+        } catch (e) {
+            console.warn("Errore nello stop forzato:", e);
+        }
+        recognition = null;
+    }
+}
+
+let isRecognitionRestarting = false; // Flag per evitare loop stretti
+
 function initSpeechRecognition() {
-    if (recognition) return;
-    
+    // 1. Pulizia preventiva: se esiste, uccidilo.
+    if (recognition) return; 
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    if (!SpeechRecognition) {
+        alert("Browser non supportato. Usa Chrome o Edge.");
+        return;
+    }
 
     recognition = new SpeechRecognition();
     recognition.lang = APP_LANGUAGE === 'zh' ? 'zh-CN' : (APP_LANGUAGE === 'it' ? 'it-IT' : 'en-US'); 
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.continuous = true; 
+    recognition.interimResults = true; 
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+        isRecognitionRestarting = false;
+        console.log("[Speech] 🟢 Microfono in ascolto...");
+    };
 
     recognition.onresult = (event) => {
-        let interimTranscript = '';
         let finalTranscript = '';
 
         for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
                 finalTranscript += event.results[i][0].transcript;
-            } else {
-                interimTranscript += event.results[i][0].transcript;
             }
         }
 
-        const txt = finalTranscript || interimTranscript;
+        // Se c'è testo definitivo, invialo
+        if (finalTranscript && socket && currentRoomId) {
+            
+            // Debug visivo in console per te
+            console.log(`[Speech] 📝 Catturato: "${finalTranscript}"`);
 
-        if (txt && socket && currentRoomId) {
-             // 1. LOGICA ESISTENTE (Sottotitoli Video / CC)
-             if (isTranscribingLocal) { 
-                 Object.keys(peerConnections).forEach(peerId => {
-                     socket.emit('transcription-result', peerId, txt, !!finalTranscript);
-                 });
-             }
+            // Logica Verbale (Meeting Minutes)
+            if (isGlobalMeetingRecording) {
+                const data = {
+                    nickname: userNickname,
+                    text: finalTranscript,
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                socket.emit('global-transcript-chunk', currentRoomId, data);
+            }
 
-             // 2. NUOVA LOGICA (Verbale Globale)
-             // Se è attivo il recording globale E il testo è definitivo (per evitare spam di interim)
-             if (isGlobalMeetingRecording && finalTranscript) {
-                 const data = {
-                     nickname: userNickname,
-                     text: finalTranscript,
-                     timestamp: new Date().toLocaleTimeString()
-                 };
-                 socket.emit('global-transcript-chunk', currentRoomId, data);
-             }
+            // Logica Sottotitoli (CC)
+            if (isTranscribingLocal) {
+                Object.keys(peerConnections).forEach(peerId => {
+                    socket.emit('transcription-result', peerId, finalTranscript, true);
+                });
+            }
         }
     };
 
-    recognition.onerror = (event) => { console.log('Speech error:', event.error); };
-    recognition.onend = () => { 
-        // Riavvia se una delle due modalità è attiva
-        if (isTranscribingLocal || isGlobalMeetingRecording) recognition.start(); 
+    recognition.onerror = (event) => {
+        if (event.error === 'no-speech' || event.error === 'aborted') return; // Ignora errori banali
+        console.warn("[Speech] Errore:", event.error);
+    };
+
+    recognition.onend = () => {
+        // Se il flag è ancora attivo, riavvia
+        if ((isTranscribingLocal || isGlobalMeetingRecording) && !isRecognitionRestarting) {
+            isRecognitionRestarting = true;
+            console.log("[Speech] 🔄 Riavvio automatico in corso...");
+            
+            // Riavvia dopo 500ms per evitare crash del browser
+            setTimeout(() => {
+                stopSpeechRecognition(); // Pulizia sicurezza
+                initSpeechRecognition(); // Ricrea istanza
+                try {
+                    if (recognition) recognition.start();
+                } catch(e) { console.warn("Riavvio fallito:", e); }
+            }, 500);
+        } else {
+            console.log("[Speech] 🔴 Sessione terminata.");
+            stopSpeechRecognition(); // Pulisci tutto
+        }
     };
 }
 
@@ -818,43 +862,84 @@ function updateLocalVideo(){
   }
 }
 
+// Funzione monitoraggio audio ottimizzata (Singleton Context)
 function monitorLocalAudio(start = true) {
-    if (!localStream || !isAudioEnabled) {
-        if (talkingInterval) { clearInterval(talkingInterval); talkingInterval = null; }
-         if (isLocalTalking && socket) {
-             isLocalTalking = false;
-             localFeedEl.classList.remove('is-talking');
-             socket.emit('audio-status-changed', currentRoomId, isLocalTalking);
-         }
+    // 1. Pulizia: Se dobbiamo fermare o se l'audio è disabilitato
+    if (!start || !localStream || !isAudioEnabled) {
+        if (talkingInterval) { 
+            clearInterval(talkingInterval); 
+            talkingInterval = null; 
+        }
+        
+        // Chiudiamo il context precedente per liberare risorse hardware
+        if (audioContext && audioContext.state !== 'closed') {
+            try {
+                audioContext.close();
+            } catch(e) { console.warn("Errore chiusura AudioContext", e); }
+        }
+        audioContext = null; // Reset variabile globale
+
+        if (isLocalTalking && socket) {
+            isLocalTalking = false;
+            localFeedEl.classList.remove('is-talking');
+            socket.emit('audio-status-changed', currentRoomId, isLocalTalking);
+        }
         return;
     }
+
+    // 2. Avvio: Crea il context solo se non esiste o è chiuso
     if (start && !talkingInterval) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 2048;
-        analyser.minDecibels = -90;
-        analyser.maxDecibels = 0;
-        analyser.smoothingTimeConstant = 0.85;
-        const source = audioContext.createMediaStreamSource(localStream);
-        source.connect(analyser);
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        talkingInterval = setInterval(() => {
-            analyser.getByteFrequencyData(dataArray);
-            let sum = 0;
-            for(let i = 0; i < bufferLength; i++) sum += dataArray[i];
-            const average = sum / bufferLength;
-            const db = 20 * Math.log10(average / 128) + 10; 
-            const currentlyTalking = db > AUDIO_THRESHOLD && isAudioEnabled;
-            if (currentlyTalking !== isLocalTalking) {
-                isLocalTalking = currentlyTalking;
-                localFeedEl.classList.toggle('is-talking', isLocalTalking);
-                if (socket) socket.emit('audio-status-changed', currentRoomId, isLocalTalking);
+        try {
+            // Crea nuovo context solo se necessario
+            if (!audioContext || audioContext.state === 'closed') {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
-        }, 100); 
-    } else if (!start && talkingInterval) {
-        clearInterval(talkingInterval);
-        talkingInterval = null;
+            
+            // Se il context è sospeso (autoplay policy), riattiviamolo
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 512; // Ridotto da 2048 per performance
+            analyser.minDecibels = -90;
+            analyser.maxDecibels = 0;
+            analyser.smoothingTimeConstant = 0.8; // Meno jitter
+
+            const source = audioContext.createMediaStreamSource(localStream);
+            source.connect(analyser);
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            talkingInterval = setInterval(() => {
+                // Controllo sicurezza: se il context è crashato, fermiamo tutto
+                if(!audioContext || audioContext.state === 'closed') {
+                    monitorLocalAudio(false);
+                    return;
+                }
+
+                analyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for(let i = 0; i < bufferLength; i++) sum += dataArray[i];
+                const average = sum / bufferLength;
+                
+                // Algoritmo calcolo volume
+                const db = average > 0 ? 20 * Math.log10(average / 128) + 10 : -100;
+                
+                const currentlyTalking = db > AUDIO_THRESHOLD && isAudioEnabled;
+
+                if (currentlyTalking !== isLocalTalking) {
+                    isLocalTalking = currentlyTalking;
+                    localFeedEl.classList.toggle('is-talking', isLocalTalking);
+                    if (socket) socket.emit('audio-status-changed', currentRoomId, isLocalTalking);
+                }
+            }, 100); 
+        } catch (e) {
+            console.error("Errore avvio monitoraggio audio:", e);
+            // Non crashare l'app, semplicemente disabilita l'effetto visivo
+            monitorLocalAudio(false);
+        }
     }
 }
 
@@ -1947,34 +2032,46 @@ function initializeSocket(){
   });
   
   socket.on('global-transcription-status', (isActive) => {
+        console.log("[Socket] Stato trascrizione globale:", isActive);
         isGlobalMeetingRecording = isActive;
 
         if (isActive) {
-            // AVVIO
-            meetingHistory = []; // Reset storico
-            transcriptContent.innerHTML = ''; // Pulisci UI
-            meetingTranscriptPanel.classList.remove('hidden'); // Mostra pannello
-            globalTranscriptBtn.classList.add('active-recording');
-            addChatMessage(t('system'), t('transcript_started'), false, 'system');
+            // === AVVIO ===
+            meetingHistory = []; // Resetta l'array (importante!)
+            transcriptContent.innerHTML = ''; 
+            meetingTranscriptPanel.classList.remove('hidden'); 
+            if(globalTranscriptBtn) globalTranscriptBtn.classList.add('active-recording');
             
-            // Avvia Speech Recognition locale (silenziosamente)
+            addChatMessage(t('system'), "🔴 Registrazione verbale avviata.", false, 'system');
+            
+            // Avvio pulito
+            stopSpeechRecognition(); 
             initSpeechRecognition();
             try { recognition.start(); } catch(e){}
 
         } else {
-            // STOP
-            globalTranscriptBtn.classList.remove('active-recording');
-            addChatMessage(t('system'), t('transcript_stopped'), false, 'system');
+            // === STOP ===
+            if(globalTranscriptBtn) globalTranscriptBtn.classList.remove('active-recording');
+            addChatMessage(t('system'), "⚫ Registrazione verbale fermata.", false, 'system');
             
-            // Se NON stiamo usando anche i sottotitoli personali, fermiamo il microfono
-            if (!isTranscribingLocal && recognition) recognition.stop();
-
-            // Chiedi download (solo se c'è qualcosa)
-            if (meetingHistory.length > 0) {
-                if (confirm(t('download_meeting'))) {
-                    downloadMeetingMinutes();
-                }
+            // Se non servono i sottotitoli, spegni il microfono
+            if (!isTranscribingLocal) {
+                stopSpeechRecognition();
             }
+
+            // Debug: Controlla se abbiamo dati
+            console.log("Totale righe salvate:", meetingHistory.length);
+
+            // Attendi 1 secondo per eventuali ultimi pacchetti di rete
+            setTimeout(() => {
+                if (meetingHistory.length > 0) {
+                    if (confirm("Verbale pronto. Vuoi scaricarlo ora?")) {
+                        downloadMeetingMinutes();
+                    }
+                } else {
+                    alert("Nessun testo rilevato durante la riunione (forse nessuno ha parlato?).");
+                }
+            }, 1000);
         }
     });
 
@@ -2362,3 +2459,4 @@ async function switchCamera() {
 if (switchCameraBtn) {
     switchCameraBtn.addEventListener('click', switchCamera);
 }
+// FINE
