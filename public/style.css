@@ -2093,6 +2093,18 @@ body.light-theme .system-msg-content {
     border: 1px solid #ffd740 !important;
 }
 
+.picmo__popupContainer {
+    z-index: 99999 !important; /* Altissimo per stare sopra al pannello chat (che è 3000) */
+    position: fixed !important;
+}
+
+/* Opzionale: Stile scuro per il picker per adattarsi al tuo tema */
+.picmo__picker {
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+}
+
+
 /* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
 @media (max-width: 768px) {
 

@@ -7,8 +7,6 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<script src="https://unpkg.com/picmo@latest/dist/umd/index.js"></script>
-<script src="https://unpkg.com/@picmo/popup-picker@latest/dist/umd/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
 <link rel="stylesheet" href="style.css" />
@@ -304,6 +302,48 @@
                 .catch((err) => console.log('SW errore:', err));
         });
     }
+</script>
+<script type="module">
+    // Importiamo direttamente dai server CDN ottimizzati
+    import { createPopup } from 'https://unpkg.com/@picmo/popup-picker@latest/dist/index.js?module';
+    import { createPicker } from 'https://unpkg.com/picmo@latest/dist/index.js?module';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const trigger = document.getElementById('emoji-toggle-btn');
+        const input = document.getElementById('chat-message-input');
+        
+        // Creazione del Popup
+        const picker = createPopup({
+            rootElement: document.body, // Si attacca al body
+        }, {
+            // Opzioni del Picker
+            theme: 'dark',
+            locale: 'it',
+            autoFocus: 'search',
+            showPreview: false
+        });
+
+        // Evento Click sul bottone faccina
+        trigger.addEventListener('click', () => {
+            picker.toggle();
+        });
+
+        // Evento Selezione Emoji
+        picker.addEventListener('emoji:select', (selection) => {
+            // Inserisce l'emoji dove c'è il cursore
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            const text = input.value;
+            const before = text.substring(0, start);
+            const after  = text.substring(end, text.length);
+            
+            input.value = before + selection.emoji + after;
+            
+            // Rimette il focus e sposta il cursore dopo l'emoji
+            input.selectionStart = input.selectionEnd = start + selection.emoji.length;
+            input.focus();
+        });
+    });
 </script>
 </body>
 </html>
