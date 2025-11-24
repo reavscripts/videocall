@@ -138,22 +138,178 @@ const iceConfiguration = {
 };
 
 const audioAssets = {
-    // Suono "Pop" leggero per la Chat
     chat: new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"), // (Stringa accorciata per leggibilità, userò una versione funzionante sotto)
     
-    // Suono "Ding" per File e Whiteboard
     alert: new Audio("data:audio/mp3;base64,//uQxAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//uQxAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"),
     
-    // Suono "Beep-Beep" per Registrazione
     rec: new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU") 
 };
 
-// Carichiamo suoni reali (brevi beep di sistema)
-// Nota: Per brevità qui uso URL dummy. 
-// Sotto ti fornisco la funzione playSound con suoni generati al volo o URL stabili.
-// PER SEMPLICITÀ USEREMO UN GENERATORE WEB AUDIO API (Nessun file necessario)
-
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+// ==========================================
+// 🌍 SISTEMA DI LOCALIZZAZIONE (i18n)
+// ==========================================
+
+const APP_LANGUAGE = navigator.language.split('-')[0];
+
+const TRANSLATIONS = {
+    // 🇮🇹 ITALIANO
+    it: {
+        // HTML Elements (ID o Classi)
+        ui: {
+            "join-button": "Entra nella Conferenza",
+            "room-id-input": { placeholder: "Nome della Stanza" },
+            "room-password-input": { placeholder: "Password Stanza (Opzionale)" },
+            "nickname-input": { placeholder: "Il tuo Nickname" },
+            "chat-panel h3": "💬 Chat", // Selettore CSS
+            "chat-message-input": { placeholder: "Scrivi un messaggio..." },
+            "send-chat-button": "Invia",
+            "settings-btn-overlay": { title: "Impostazioni" },
+            "settings-btn-room": { title: "Impostazioni" },
+            "show-chat-btn": { title: "Apri Chat" },
+            "share-room-link": { title: "Condividi Link Stanza" },
+            "toggle-audio-button": { title: "Muta/Attiva Audio" },
+            "toggle-video-button": { title: "Disattiva/Attiva Video" },
+            "switch-camera-button": { title: "Cambia Fotocamera" },
+            "more-options-btn": { title: "Altre Opzioni" },
+            "disconnect-button": { title: "Disconnetti" },
+            "transfer-file-button span:last-child": "Invia File",
+            "record-button span:last-child": "Registra",
+            "toggle-whiteboard-button span:last-child": "Lavagna",
+            "share-screen-button span:last-child": "Condividi Schermo",
+            "menu-dm-user span:last-child": "Messaggio Privato",
+            "menu-send-file span:last-child": "Invia File",
+            "menu-toggle-cc span:last-child": "Attiva Sottotitoli",
+            "menu-mute-user span:last-child": "Silenzia Audio",
+            "admin-header h3": "🛡️ Dashboard Admin",
+            "admin-login-btn": "Accedi",
+            "admin-refresh-btn": "Aggiorna Dati",
+            "admin-total-users": { prefix: "Utenti: " }, // Gestione speciale
+            "close-chat-btn": "← Torna alle webcam" // Creato dinamicamente
+        },
+        // Messaggi JavaScript (Alert, System Log)
+        js: {
+            "welcome": "Benvenuto in",
+            "user_joined": "è entrato.",
+            "user_left": "Utente uscito.",
+            "link_copied": "Link copiato negli appunti!",
+            "missing_data": "Dati mancanti",
+            "banned": "Sei stato espulso.",
+            "room_closed": "Stanza chiusa.",
+            "error_cam": "Controlla webcam/microfono",
+            "screen_share_mobile": "Non supportato su mobile.",
+            "no_participants": "Nessun partecipante.",
+            "download_transcript": "Trascrizione terminata. Vuoi scaricare il testo?",
+            "waiting_others": "In attesa di altri partecipanti...",
+            "you": "Tu",
+            "system": "Sistema"
+        }
+    },
+    // 🇪🇸 SPAGNOLO
+    es: {
+        ui: {
+            "join-button": "Unirse a la conferencia",
+            "room-id-input": { placeholder: "Nombre de la sala" },
+            "room-password-input": { placeholder: "Contraseña (Opcional)" },
+            "nickname-input": { placeholder: "Tu Apodo" },
+            "chat-panel h3": "💬 Chat",
+            "chat-message-input": { placeholder: "Escribe un mensaje..." },
+            "send-chat-button": "Enviar",
+            "settings-btn-overlay": { title: "Configuración" },
+            "show-chat-btn": { title: "Abrir Chat" },
+            "toggle-audio-button": { title: "Silenciar/Activar Audio" },
+            "disconnect-button": { title: "Desconectar" },
+            "transfer-file-button span:last-child": "Enviar Archivo",
+            "record-button span:last-child": "Grabar",
+            "toggle-whiteboard-button span:last-child": "Pizarra",
+            "share-screen-button span:last-child": "Compartir Pantalla",
+            "menu-toggle-cc span:last-child": "Activar Subtítulos"
+        },
+        js: {
+            "welcome": "Bienvenido a",
+            "user_joined": "ha entrado.",
+            "user_left": "Usuario salió.",
+            "link_copied": "¡Enlace copiado!",
+            "missing_data": "Faltan datos",
+            "waiting_others": "Esperando a otros participantes...",
+            "you": "Tú",
+            "system": "Sistema"
+        }
+    },
+    // 🇫🇷 FRANCESE
+    fr: {
+        ui: {
+            "join-button": "Rejoindre la conférence",
+            "room-id-input": { placeholder: "Nom de la salle" },
+            "nickname-input": { placeholder: "Votre Pseudo" },
+            "send-chat-button": "Envoyer",
+            "chat-message-input": { placeholder: "Écrire un message..." },
+            "toggle-whiteboard-button span:last-child": "Tableau blanc",
+            "disconnect-button": { title: "Déconnecter" }
+        },
+        js: {
+            "welcome": "Bienvenue dans",
+            "user_joined": "a rejoint.",
+            "waiting_others": "En attente d'autres participants...",
+            "you": "Toi",
+            "system": "Système"
+        }
+    },
+	// 🇨🇳 CINESE (Semplificato - Simplified)
+    zh: {
+        ui: {
+            "join-button": "加入会议", // Entra nella conferenza
+            "room-id-input": { placeholder: "会议室名称" }, // Nome stanza
+            "room-password-input": { placeholder: "会议密码 (可选)" }, // Password
+            "nickname-input": { placeholder: "您的昵称" }, // Nickname
+            "chat-panel h3": "💬 聊天", // Chat
+            "chat-message-input": { placeholder: "输入消息..." }, // Scrivi messaggio
+            "send-chat-button": "发送", // Invia
+            "settings-btn-overlay": { title: "设置" }, // Impostazioni
+            "settings-btn-room": { title: "设置" },
+            "show-chat-btn": { title: "打开聊天" }, // Apri chat
+            "share-room-link": { title: "分享会议链接" }, // Condividi link
+            "toggle-audio-button": { title: "静音/取消静音" }, // Muta audio
+            "toggle-video-button": { title: "开启/关闭视频" }, // Attiva video
+            "switch-camera-button": { title: "切换摄像头" }, // Cambia camera
+            "more-options-btn": { title: "更多选项" }, // Altro
+            "disconnect-button": { title: "断开连接" }, // Disconnetti
+            
+            // Menu Extra
+            "transfer-file-button span:last-child": "发送文件", // Invia file
+            "record-button span:last-child": "录制", // Registra
+            "toggle-whiteboard-button span:last-child": "白板", // Lavagna
+            "share-screen-button span:last-child": "共享屏幕", // Condividi schermo
+            
+            // Menu Contestuale & Admin
+            "menu-dm-user span:last-child": "私信", // Messaggio privato
+            "menu-send-file span:last-child": "发送文件", // Invia file a utente
+            "menu-toggle-cc span:last-child": "开启字幕", // Sottotitoli
+            "menu-mute-user span:last-child": "静音用户", // Silenzia utente
+            "admin-header h3": "🛡️ 管理员面板", // Admin Dashboard
+            "admin-login-btn": "登录", // Login
+            "admin-refresh-btn": "刷新数据", // Aggiorna
+            "close-chat-btn": "← 返回视频" // Torna al video
+        },
+        js: {
+            "welcome": "欢迎来到", // Benvenuto in
+            "user_joined": "已加入。", // è entrato
+            "user_left": "用户已离开。", // utente uscito
+            "link_copied": "链接已复制到剪贴板！", // Link copiato
+            "missing_data": "数据缺失", // Dati mancanti
+            "banned": "您已被踢出。", // Sei stato bannato
+            "room_closed": "会议室已关闭。", // Stanza chiusa
+            "error_cam": "请检查摄像头/麦克风", // Errore cam
+            "screen_share_mobile": "移动设备不支持此功能。", // No mobile screen share
+            "no_participants": "暂无参与者。", // Nessun partecipante
+            "download_transcript": "转录已完成。是否下载文本？", // Scaricare trascrizione?
+            "waiting_others": "等待其他参与者...", // In attesa...
+            "you": "您", // Tu
+            "system": "系统" // Sistema
+        }
+    }
+};
 
 function playNotificationSound(type) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -210,11 +366,16 @@ function playNotificationSound(type) {
 const availableBackgrounds = [
     { id: 'default', name: 'Default', value: '' }, // Valore vuoto = usa colore tema CSS
     { id: 'grad1', name: 'Tramonto', value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+	{ id: 'img4', name: 'Astratto', value: 'url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80")' },
     { id: 'grad2', name: 'Notte', value: 'linear-gradient(to top, #09203f 0%, #537895 100%)' },
+	{ id: 'moon', name: 'Moon', value: 'url("https://images.unsplash.com/photo-1517866184231-7ef94c2ea930?auto=format&fit=crop&w=1920&q=80")' },
+	{ id: 'earth', name: 'Earth', value: 'url("https://images.unsplash.com/photo-1656077217715-bdaeb06bd01f?auto=format&fit=crop&w=1920&q=80")' },
     { id: 'img1', name: 'Montagna', value: 'url("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80")' },
-    { id: 'img2', name: 'Cyberpunk', value: 'url("https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1920&q=80")' },
-    { id: 'img3', name: 'Ufficio', value: 'url("https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80")' },
-    { id: 'img4', name: 'Astratto', value: 'url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80")' }
+    { id: 'clrmountain', name: 'Color Mount', value: 'url("https://images.unsplash.com/photo-1503027075-f790a0a2dcb6?auto=format&fit=crop&w=1920&q=80")' },
+    { id: 'baloon', name: 'Baloons', value: 'url("https://images.unsplash.com/photo-1464692805480-a69dfaafdb0d?auto=format&fit=crop&w=1920&q=80")' },
+    { id: 'img2', name: 'JellyFish', value: 'url("https://images.unsplash.com/photo-1441555136638-e47c0158bfc9?auto=format&fit=crop&w=1920&q=80")' },
+	{ id: 'img5', name: 'Fish', value: 'url("https://images.unsplash.com/photo-1551103807-35843c283f14?auto=format&fit=crop&w=1920&q=80")' },
+    { id: 'img3', name: 'Turle', value: 'url("https://images.unsplash.com/photo-1437622368342-7a3d73a34c8f?auto=format&fit=crop&w=1920&q=80")' }
 ];
 
 const bgOptionsContainer = document.getElementById('background-options');
@@ -345,15 +506,63 @@ function initSpeechRecognition() {
 // ---------- Helpers ----------
 function log(...args){ console.log('[APP]',...args); }
 
+function t(key) {
+    if (TRANSLATIONS[APP_LANGUAGE] && TRANSLATIONS[APP_LANGUAGE].js[key]) {
+        return TRANSLATIONS[APP_LANGUAGE].js[key];
+    }
+    // Fallback: se la chiave non esiste o la lingua è EN, ritorna una default (o gestisci diversamente)
+    // Qui ritorno una mappa inglese di default per i messaggi JS critici se serve
+    const defaults = {
+        "welcome": "Welcome to",
+        "user_joined": "joined.",
+        "user_left": "User left.",
+        "link_copied": "Link copied to clipboard!",
+        "missing_data": "Missing data",
+        "waiting_others": "Waiting for other participants...",
+        "you": "You",
+        "system": "System"
+    };
+    return defaults[key] || key;
+}
+
+// Funzione principale che aggiorna il DOM
+function initLocalization() {
+    const dict = TRANSLATIONS[APP_LANGUAGE];
+    if (!dict || !dict.ui) return; // Se è inglese o lingua non supportata, lascia l'HTML così com'è
+
+    console.log(`[i18n] Applicazione lingua: ${APP_LANGUAGE}`);
+
+    for (const [selector, value] of Object.entries(dict.ui)) {
+        // Cerca per ID o selettore CSS
+        let el = document.getElementById(selector);
+        if (!el) el = document.querySelector(selector);
+
+        if (el) {
+            if (typeof value === 'string') {
+                el.innerText = value;
+            } else {
+                if (value.placeholder) el.placeholder = value.placeholder;
+                if (value.title) el.title = value.title;
+                if (value.prefix) {
+                    // Per elementi che hanno un numero dinamico dentro (es. Utenti: 0)
+                    // Questa logica va gestita a parte nell'aggiornamento dinamico, 
+                    // ma qui traduciamo l'etichetta statica se possibile.
+                }
+            }
+        }
+    }
+}
+
 function downloadTranscription(peerId, text) {
     const nickname = remoteNicknames[peerId] || "Utente";
-    const blob = new Blob([text], { type: 'text/plain' });
+    const blob = new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' });   
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `Trascrizione_${nickname}_${new Date().toLocaleTimeString()}.txt`;
     document.body.appendChild(a);
-    a.click();
+    a.click();  
+    // Pulizia
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
 }
@@ -512,7 +721,7 @@ function resetAndShowOverlay() {
     const placeholder = document.createElement('div');
     placeholder.id = 'remote-video-placeholder';
     placeholder.className = 'video-placeholder';
-    placeholder.textContent = 'In attesa di altri partecipanti...';
+    placeholder.textContent = t('waiting_others');
     videosGrid.insertBefore(placeholder, localFeedEl);
     
     localFeedEl.classList.remove('is-focused', 'is-talking');
@@ -1427,10 +1636,7 @@ function copyRoomLink(){
     navigator.clipboard.writeText(url).then(() => { 
         const originalText = shareRoomLinkButton.querySelector('.material-icons').textContent; // O il testo se non usi icone
         shareRoomLinkButton.classList.add('active'); // Feedback visivo opzionale
-        
-        // Mostra feedback "Copiato!"
-        // Nota: nel tuo codice originale modificavi .value, ma il bottone contiene un'icona span. 
-        // Meglio usare un tooltip o un alert temporaneo, ma qui adattiamo la logica esistente:
+
         alert("Link copiato negli appunti! " + (currentRoomPassword ? "(Include la password)" : ""));
     }).catch(err => {
         console.error('Errore copia:', err);
@@ -1456,7 +1662,7 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
 
     if (type === 'system') {
         cssClass = 'sender-system';
-        senderText = 'Sistema';
+        senderText = t('system');
     } else if (type === 'private') {
         cssClass = 'sender-private';
     } else {
@@ -1643,7 +1849,7 @@ function initializeSocket(){
   socket.on('connect', ()=> log('Connesso', socket.id));
 
   socket.on('nickname-in-use', (msg) => { alert(msg); resetAndShowOverlay(); if (socket) socket.disconnect(); socket = null; });
-  socket.on('welcome', (newPeerId, nickname, peers=[])=>{ remoteNicknames[newPeerId] = nickname; addChatMessage(userNickname, `Benvenuto in ${currentRoomId}!`, false, 'system'); peers.forEach(peer=>{ if(peer.id !== socket.id) { remoteNicknames[peer.id] = peer.nickname; createPeerConnection(peer.id); } }); setFocus('local', false); });
+  socket.on('welcome', (newPeerId, nickname, peers=[])=>{ remoteNicknames[newPeerId] = nickname; addChatMessage(userNickname, `${t('welcome')} ${currentRoomId}!`, false, 'system'); peers.forEach(peer=>{ if(peer.id !== socket.id) { remoteNicknames[peer.id] = peer.nickname; createPeerConnection(peer.id); } }); setFocus('local', false); });
   
   // Whiteboard events
   socket.on('wb-draw', (data) => { 
@@ -1709,7 +1915,7 @@ function initializeSocket(){
       }
   });
   // Standard events
-  socket.on('peer-joined', (peerId,nickname)=>{ remoteNicknames[peerId] = nickname; createPeerConnection(peerId); addChatMessage('Sistema', `${nickname} entrato.`, false, 'system'); });
+  socket.on('peer-joined', (peerId,nickname)=>{ remoteNicknames[peerId] = nickname; createPeerConnection(peerId); addChatMessage(t('system'), `${nickname} ${t('user_joined')}`, false, 'system'); });
   socket.on('peer-left', (peerId)=>{ removeRemoteFeed(peerId); addChatMessage('Sistema', `Utente uscito.`, false, 'system'); });
   socket.on('new-private-message', (s, m) => { addChatMessage(`Privato da ${s}`, m, false, 'private'); });
   socket.on('audio-status-changed', (pid, talk) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f) { f.classList.toggle('is-talking', talk); f.querySelector('.remote-mic-status').textContent = talk ? 'mic' : 'mic_off'; } });
@@ -1729,6 +1935,7 @@ function initializeSocket(){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+	initLocalization();
     const params = new URLSearchParams(window.location.search);
     const roomParam = params.get('room');
     const passParam = params.get('pass');
