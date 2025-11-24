@@ -2,7 +2,7 @@
   "name": "Video Conference Reav",
   "short_name": "VideoCall",
   "start_url": "/",
-  "display": "standalone",
+  "display": "browser",
   "background_color": "#0f0f10",
   "theme_color": "#00bcd4",
   "orientation": "portrait",
