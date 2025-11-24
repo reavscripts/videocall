@@ -26,9 +26,8 @@ body.light-theme {
 }
 
 html, body {
-	height: 100dvh; 
+    height: 100%;
     margin: 0;
-    overflow: hidden; /* Importante per evitare scroll indesiderati */
     background: var(--bg);
     color: var(--text-color);
     font-family: Roboto, Arial, sans-serif;
@@ -428,7 +427,7 @@ input:checked + .slider:before {
     font-size: 1em;
     font-weight: bold;
     cursor: pointer;
-    width: 100%;
+    width: 100%; /* Lo facciamo largo quanto il pannello per comodità */
     margin-top: 15px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     transition: transform 0.1s, background 0.2s;
@@ -444,7 +443,7 @@ input:checked + .slider:before {
 }
 
 .admin-user-item {
-    padding: 8px 0;
+    padding: 8px 0; /* Più spazio verticale tra gli utenti */
 }
 
 .btn-kick {
@@ -529,7 +528,7 @@ input:checked + .slider:before {
 }
 
 .btn-ban {
-    background: var(--danger); 
+    background: var(--danger); /* Rosso */
     color: #fff;
     border: none;
     padding: 6px 12px;
@@ -542,14 +541,14 @@ input:checked + .slider:before {
 }
 
 .btn-ban:hover {
-    background: #d32f2f; 
+    background: #d32f2f; /* Rosso più scuro */
 }
 
 #conference-container {
     display: flex;
     flex-direction: column;
     width: 100vw;
-    height: 100dvh;
+    height: 100vh;
     overflow: hidden;
 }
 
@@ -618,8 +617,9 @@ input:checked + .slider:before {
 }
 
 .video-feed {
-    background: #000;
+    background: #000; /* Sfondo nero essenziale per i video verticali */
     position: relative;
+    /* Assicuriamo che il contenitore non forzi il taglio */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -659,6 +659,7 @@ input:checked + .slider:before {
 .video-feed video {
     width: 100%;
     height: 100%;
+    /* contain: Mostra tutto il video, aggiungendo bande nere se necessario */
     object-fit: contain !important; 
     display: block;
 }
@@ -798,7 +799,7 @@ body.light-theme .sender-private {
 
 #chat-input-area {
     display: flex;
-    align-items: center; 
+    align-items: center; /* <--- AGGIUNTO: centra verticalmente input e bottone */
     padding: 10px;
     border-top: 1px solid var(--border-color);
     gap: 8px;
@@ -818,13 +819,13 @@ body.light-theme .sender-private {
 #send-chat-button {
     background: var(--primary-color);
     color: #fff;
-    border: 1px solid transparent; 
+    border: 1px solid transparent; /* <--- AGGIUNTO: compensa il bordo dell'input per uguale altezza */
     border-radius: 6px;
     padding: 10px 15px;
     font-size: 1em;
     font-weight: bold;
     cursor: pointer;
-    transition: background-color 0.2s; 
+    transition: background-color 0.2s; /* <--- Opzionale: rende più fluido l'hover */
 }
 
 #send-chat-button:hover {
@@ -1134,21 +1135,6 @@ body.light-theme .sender-private {
     height: 100%;
 }
 
-.video-feed.fullscreen-active .context-menu-trigger {
-        top: 80px !important; 
-        right: 15px !important;
-        z-index: 160 !important;
-        background-color: rgba(0, 0, 0, 0.7);
-        width: 40px;
-        height: 40px;
-    }
-
-
-    .video-feed.fullscreen-active .context-menu-trigger .material-icons {
-        font-size: 1.5em;
-        line-height: 40px;
-    }
-
 .video-feed.pip-mode {
     position: absolute;
     bottom: 100px;
@@ -1183,9 +1169,20 @@ body.light-theme .sender-private {
     position: relative; /* Necessario per posizionare il badge */
 }
 
+Certamente! Per implementare queste due funzionalità (Notifiche di messaggi non letti e Ricevute di lettura con lista visualizzabile), dobbiamo toccare tutti e tre i file principali: style.css, server.js e app.js.
+
+Ecco come procedere passo dopo passo.
+
+1. Modifiche allo Stile (style.css)
+Dobbiamo aggiungere lo stile per il "pallino rosso" (badge) sopra il pulsante della chat e per l'indicatore di lettura dentro i messaggi.
+
+Aggiungi questo codice alla fine del file style.css:
+
+CSS
+
 /* --- NOTIFICHE CHAT --- */
 #show-chat-btn {
-    position: relative; 
+    position: relative; /* Necessario per posizionare il badge */
 }
 
 .notification-badge {
@@ -1211,8 +1208,8 @@ body.light-theme .sender-private {
 /* --- RICEVUTE DI LETTURA --- */
 .chat-message {
     position: relative;
-    padding-bottom: 15px; 
-    cursor: pointer;
+    padding-bottom: 15px; /* Spazio per l'icona di lettura */
+    cursor: pointer; /* Indica che è cliccabile */
     transition: background 0.2s;
     border-radius: 4px;
     padding: 5px;
@@ -1238,7 +1235,7 @@ body.light-theme .sender-private {
 }
 
 .read-status.seen {
-    color: var(--primary-color);
+    color: var(--primary-color); /* Diventa blu/ciano quando letto */
 }
 
 /* Modale semplice per lista letture */
@@ -1274,132 +1271,121 @@ body.light-theme .sender-private {
     display: none !important;
 }
 
-/* Contenitore Sottotitoli */
-#subtitles-overlay {
-    position: absolute;
-    bottom: 100px; /* Sopra la barra controlli */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
-    text-align: center;
-    pointer-events: none; /* Permette di cliccare attraverso */
-    z-index: 500;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    justify-content: flex-end;
-    min-height: 50px;
-}
-
-.subtitle-line {
-    background: rgba(0, 0, 0, 0.7);
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 1.1em;
-    display: inline-block;
-    align-self: center;
-    animation: fadeIn 0.3s ease;
-    text-shadow: 0 1px 2px black;
-}
-
-.subtitle-line .speaker-name {
-    font-weight: bold;
-    color: var(--primary-color);
-    margin-right: 5px;
-}
-
-#toggle-transcription-btn.active {
-    background-color: var(--primary-color) !important;
-    color: white !important;
-}
-
-/* Classi di utilità per nascondere/mostrare in base al device */
-.mobile-only { display: none !important; }
-.desktop-only { display: flex !important; }
-
-/* Menu Strumenti Mobile (Nascosto di default) */
-#mobile-tools-menu {
+/* Posizionamento del menu sopra la barra di controllo */
+#extras-menu {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
+    bottom: 90px; /* Sopra la barra che è a bottom: 20px + altezza */
+    left: 50%;
+    transform: translateX(-50%) scale(0.9);
     background: var(--surface);
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-    box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
-    z-index: 2500; /* Sopra a tutto */
-    padding: 20px;
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    display: block !important; /* Override di .hidden standard per usare transform */
-}
-
-#mobile-tools-menu.active {
-    transform: translateY(0);
-}
-
-.mobile-tools-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 10px;
-}
-
-.mobile-tools-header h3 {
-    margin: 0;
-    color: var(--text-color);
-}
-
-#close-mobile-tools {
-    background: transparent;
-    border: none;
-    color: var(--text-color);
-    font-size: 1.2em;
-}
-
-.mobile-tools-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-}
-
-.tool-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    color: var(--muted);
-    font-size: 0.8em;
-    cursor: pointer;
-}
-
-.tool-icon {
-    width: 50px;
-    height: 50px;
-    background: var(--surface-2);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column; /* Lista verticale per chiarezza */
+    gap: 5px;
+    z-index: 2000; /* Sopra tutto */
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    min-width: 200px;
+}
+
+#extras-menu.active {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(-50%) scale(1);
+}
+
+/* Stile degli elementi dentro il menu */
+#extras-menu .menu-item {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 12px;
+    padding: 12px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-color);
     transition: background 0.2s;
+    font-size: 0.95em;
 }
 
-.tool-item .material-icons { font-size: 1.5em; }
-
-/* Stati Attivi per il menu mobile */
-.tool-item.active .tool-icon {
-    background: var(--primary-color);
-    color: #fff;
+#extras-menu .menu-item:hover {
+    background: var(--surface-2);
 }
-.tool-item.active span {
+
+#extras-menu .menu-item .material-icons {
+    font-size: 1.3em;
     color: var(--primary-color);
-    font-weight: bold;
 }
 
-/* --- OTTIMIZZAZIONE MOBILE --- */
+/* Gestione stati specifici dei bottoni spostati */
+#extras-menu #record-button.active .material-icons {
+    color: var(--danger);
+    animation: pulseRecord 1.5s infinite;
+}
+
+#extras-menu #toggle-whiteboard-button.active-toggle {
+    background: rgba(0, 188, 212, 0.2);
+}
+
+/* Badge notifica sulla lavagna nel menu */
+#extras-menu #toggle-whiteboard-button.has-notification::after {
+    top: 10px;
+    right: 10px;
+}
+
+/* Badge notifica sul pulsante "Altro" principale (se c'è una notifica dentro) */
+#more-options-btn.has-notification::after {
+    content: '';
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--danger);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+}
+
+.subtitle-overlay {
+    position: absolute;
+    bottom: 30px; /* Sopra l'etichetta del nome */
+    left: 5%;
+    width: 90%;
+    text-align: center;
+    pointer-events: none; /* Lascia cliccare il video sotto */
+    z-index: 20;
+    
+    /* Stile testo */
+    color: #fff;
+    font-size: 1.1em;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    
+    /* Sfondo semi-trasparente adattivo */
+    background: rgba(0, 0, 0, 0.6);
+    padding: 8px;
+    border-radius: 8px;
+    
+    /* Animazione apparizione */
+    transition: opacity 0.3s ease;
+    min-height: 1.5em; /* Altezza minima per evitare saltelli */
+}
+
+.subtitle-overlay.hidden {
+    opacity: 0;
+    display: block !important; /* Mantiene il layout ma invisibile */
+}
+
+/* Evidenzia il menu se attivo */
+#menu-toggle-cc.active-cc {
+    background: rgba(76, 175, 80, 0.2); /* Verde chiaro */
+    color: #4caf50;
+}
+
+/* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
 @media (max-width: 768px) {
 
     /* 1. Header (Intestazione) */
@@ -1438,7 +1424,7 @@ body.light-theme .sender-private {
         height: 100%;
         padding: 0;
         padding-top: 90px !important;
-		padding-bottom: env(safe-area-inset-bottom);
+        padding-bottom: 100px !important; /* Spazio per la barra in basso */
         padding-left: 10px;
         padding-right: 10px;
         background: transparent;
@@ -1461,10 +1447,10 @@ body.light-theme .sender-private {
 
     /* Fullscreen Mobile */
 	#videos-grid.has-fullscreen {
-        display: flex !important;      
-        flex-direction: column;        
-        align-items: flex-end;           
-        justify-content: flex-start;    
+        display: flex !important;        /* Usa Flexbox per gestire il layout */
+        flex-direction: column;          /* Impila gli elementi verticalmente */
+        align-items: flex-end;           /* Allinea tutto a DESTRA */
+        justify-content: flex-start;     /* Inizia dall'alto */
         
         position: fixed;
         top: 0;
@@ -1476,19 +1462,19 @@ body.light-theme .sender-private {
         
         /* Padding superiore per non finire sotto l'header e iniziare la lista PIP */
         padding-top: 80px !important; 
-        padding-right: 10px !important;  
-        padding-bottom: 100px !important; 
+        padding-right: 10px !important;  /* Margine destro per i PIP */
+        padding-bottom: 100px !important; /* Spazio per i controlli in basso */
         
-        overflow-y: auto; 
+        overflow-y: auto; /* Permette di scrollare se ci sono troppe webcam PIP */
     }
 
 	.video-feed.fullscreen-active {
-        position: absolute !important; 
+        position: absolute !important; /* Toglilo dal flusso flex */
         top: 0;
         left: 0;
         width: 100% !important;
         height: 100% !important;
-        z-index: 10; 
+        z-index: 10; /* Livello base (sfondo) */
         border-radius: 0 !important;
         margin: 0 !important;
     }
@@ -1501,16 +1487,20 @@ body.light-theme .sender-private {
 
     /* PIP Mode (Tu in piccolo) */
 	.video-feed.pip-mode {
+        /* Reset posizionamento assoluto precedente */
         position: relative !important; 
         left: auto !important;
         right: auto !important;
         top: auto !important;
         bottom: auto !important;
+        
+        /* Dimensioni e stile */
         width: 100px !important;
-        height: 135px !important; 
-        flex-shrink: 0;           
-        margin-bottom: 10px;    
-        z-index: 20;        
+        height: 135px !important; /* Aspect ratio circa 3:4 */
+        flex-shrink: 0;           /* Impedisce che si schiaccino */
+        margin-bottom: 10px;      /* Spazio tra un PIP e l'altro */
+        
+        z-index: 20;              /* Sopra il video fullscreen */
         border: 1px solid rgba(255, 255, 255, 0.3);
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
         border-radius: 8px;
@@ -1528,23 +1518,33 @@ body.light-theme .sender-private {
         background: rgba(20, 20, 20, 0.85);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.15);
+        
+        /* Larghezza sicura: 92% dello schermo, ma mai più di 400px */
         width: 92%;
         max-width: 400px; 
+        
+        /* Spaziatura interna minima */
         padding: 8px 5px;
+        
+        /* Distribuzione Flexbox */
         display: flex;
-        justify-content: space-between;
-        gap: 2px;      
+        justify-content: space-between; /* Spinge i pulsanti agli estremi in modo equo */
+        gap: 2px; /* Gap minimo */
+        
         z-index: 200;
-        border-radius: 50px;        
+        border-radius: 50px;
+        
+        /* Centratura orizzontale */
         left: 50%;
         transform: translateX(-50%);
     }
 
     #main-controls-bar button {
+        /* Ridotti a 36px per farne entrare 7 comodamente */
         width: 36px;
         height: 36px;
-        min-width: 36px; 
-        flex-shrink: 0; 
+        min-width: 36px; /* Impedisce lo schiacciamento */
+        flex-shrink: 0;  /* Impedisce lo schiacciamento */
         
         background: transparent;
         box-shadow: none;
@@ -1558,7 +1558,7 @@ body.light-theme .sender-private {
     }
 
     #main-controls-bar button .material-icons {
-        font-size: 1.3em; 
+        font-size: 1.3em; /* Icone ridimensionate proporzionalmente */
     }
 
     #main-controls-bar button:hover,
@@ -1576,17 +1576,17 @@ body.light-theme .sender-private {
         position: fixed;
         top: 0;
         left: 0;
-        width: 100% !important;    
-        min-width: 0 !important;  
-        height: 100dvh;         
+        width: 100% !important;    /* Forza la larghezza totale */
+        min-width: 0 !important;   /* Annulla il vincolo dei 300px desktop */
+        height: 100dvh;            /* Usa l'altezza dinamica del viewport (meglio per mobile) */
         background: var(--surface);
         transform: translateY(100%);
         transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-        z-index: 2000 !important;  
+        z-index: 2000 !important;  /* Z-INDEX ALITISSIMO: Deve coprire header, video e tutto */
         display: flex;
         flex-direction: column;
         border-left: none;
-        padding-top: env(safe-area-inset-top); 
+        padding-top: env(safe-area-inset-top); /* Rispetta il notch degli iPhone */
     }
 
     #chat-panel.active {
@@ -1622,14 +1622,15 @@ body.light-theme .sender-private {
 	#switch-camera-button {
         display: flex !important;
     }
-	
-	.mobile-only { display: flex !important; }
-    .desktop-only { display: none !important; }
+
+	#extras-menu {
+        width: 90%; /* Più largo su mobile */
+        bottom: 85px;
+    }
     
-    /* Aggiustamento barra controlli */
-    #main-controls-bar {
-        justify-content: space-around; /* Spazia meglio i 4 bottoni rimasti */
-        padding: 10px 15px;
+    #extras-menu .menu-item {
+        padding: 15px; /* Touch target più grandi */
+        font-size: 1.1em;
     }
     
     /* Mobile Whiteboard Adjustments */

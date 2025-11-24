@@ -198,7 +198,16 @@ io.on('connection', (socket) => {
         admins.forEach(adminId => io.to(adminId).emit('admin-data-update', stats));
     }
 
-    // ... Gestione Messaggi, WebRTC, Whiteboard invariata ...
+    // ... Gestione Messaggi, WebRTC, Whiteboard invariata ...    
+    // User A chiede a User B di iniziare a trascriversi
+    socket.on('request-transcription', (targetId, requesterId, enable) => {
+        io.to(targetId).emit('transcription-request', requesterId, enable);
+    });
+
+    // User B invia il testo trascritto a User A
+    socket.on('transcription-result', (targetId, text, isFinal) => {
+        io.to(targetId).emit('transcription-data', socket.id, text, isFinal);
+    });
 	socket.on('send-message', (r, s, m, msgId) => {
         // Se il client non invia ID (vecchie versioni), ne generiamo uno noi, ma meglio che lo faccia il client
         const finalId = msgId || Date.now().toString(); 
@@ -237,11 +246,6 @@ io.on('connection', (socket) => {
         if (roomId) socket.to(roomId).emit('peer-left', socket.id);
         broadcastAdminUpdate();
     });
-	// Gestione Trascrizione / Sottotitoli
-	socket.on('send-transcript', (roomId, nickname, text, isFinal) => {
-		// Invia a tutti gli altri nella stanza (tranne chi parla)
-		socket.to(roomId).emit('receive-transcript', socket.id, nickname, text, isFinal);
-	});
 });
 
 const PORT = process.env.PORT || 3000;
