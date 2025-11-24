@@ -471,6 +471,8 @@ const availableBackgrounds = [
     { id: 'img5', name: 'Snow Muntain', value: 'url("https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=1920&q=80")' },
     { id: 'img4', name: 'Abstract', value: 'url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80")' },
     { id: 'img_space', name: 'Space', value: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80")'},
+	{ id: 'img_jelly', name: 'Jelly Fish', value: 'url("https://plus.unsplash.com/premium_photo-1667232502018-211637ba130c?auto=format&fit=crop&w=1920&q=80")'},
+	{ id: 'img_fish', name: 'Fish', value: 'url("https://images.unsplash.com/photo-1514907283155-ea5f4094c70c?auto=format&fit=crop&w=1920&q=80")'},
     { id: 'img1', name: 'Mountain', value: 'url("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80")' },
 	{ id: 'img', name: 'Mongolfiere', value: 'url("https://images.unsplash.com/photo-1507608869274-d3177c8bb4c7?auto=format&fit=crop&w=1920&q=80")' },
 	{ id: 'space_galaxy', name: 'Milky Way', value: 'url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1920&q=80")' },
