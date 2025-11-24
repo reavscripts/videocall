@@ -330,6 +330,9 @@ const contextMenuEl = document.getElementById('remote-context-menu');
 const menuDmUser = document.getElementById('menu-dm-user');
 const menuMuteUser = document.getElementById('menu-mute-user');
 const menuSendFile = document.getElementById('menu-send-file');
+const subtitleSessions = {}; // { peerId: { active: boolean, history: [] } }
+const menuSubs = document.getElementById('menu-subs');
+const menuSubsText = document.getElementById('menu-subs-text');
 
 // ** SETTINGS CONTROLS **
 const settingsModal = document.getElementById('settings-modal');
@@ -682,9 +685,7 @@ function resetAndShowOverlay() {
     for (const key in videoSenders) delete videoSenders[key];
     for (const key in manuallyMutedPeers) delete manuallyMutedPeers[key];
 
-	const subtitleSessions = {}; // { peerId: { active: boolean, history: [] } }
-	const menuSubs = document.getElementById('menu-subs');
-	const menuSubsText = document.getElementById('menu-subs-text');
+	for (const key in subtitleSessions) delete subtitleSessions[key];
     
     isManualFocus = false;
     currentSpeakerId = null;
