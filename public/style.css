@@ -1707,6 +1707,22 @@ CSS
         padding: 15px; /* Touch target più grandi */
         font-size: 1.1em;
     }
+
+	.video-feed.fullscreen-active .context-menu-trigger {
+		top: 80px !important; /* Scende sotto la barra dei pulsanti (che è circa 60px) */
+		right: 15px !important; /* Un po' di margine dal bordo */
+		z-index: 200 !important; /* Assicura che sia cliccabile sopra il video */
+		background-color: rgba(0, 0, 0, 0.6); /* Sfondo scuro per vederlo meglio */
+		width: 40px; /* Leggermente più grande per facilitare il tocco */
+		height: 40px;
+	}
+
+	/* Opzionale: Assicuriamoci che l'etichetta del nome non dia fastidio in basso */
+	.video-feed.fullscreen-active .video-label {
+		bottom: 110px !important; /* Sposta il nome sopra la barra controlli inferiore */
+		left: 15px !important;
+		font-size: 1em !important;
+	}
     
     /* Mobile Whiteboard Adjustments */
 	.wb-toolbar {
