@@ -3,46 +3,54 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<meta name="theme-color" content="#00bcd4"> <title>Video Conference - WebRTC</title>
-<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a12"> <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
-<link rel="stylesheet" href="style.css" />
-<link rel="manifest" href="manifest.json">
+
+<title>#CHAN - Neural Uplink</title> <link rel="manifest" href="manifest.json">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
+
+<link rel="stylesheet" href="style.css" /> <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon/favicon-16x16.png">
 </head>
-<body>
-
-<button id="settings-btn-overlay" class="settings-floating-btn" title="Settings">
-    <span class="material-icons">settings</span>
-</button>
-
-<div id="nickname-overlay">
-    <img id="app-logo" src="images/logo.png" alt="Logo" />
-    <div class="card">
-        <h2>Join Conference</h2>
-        <input type="text" id="room-id-input" placeholder="Room Name" required />
-        <input type="password" id="room-password-input" placeholder="Room Password (Optional)" />
-        <input type="text" id="nickname-input" placeholder="Your Nickname" required />
-        <div class="row">
-            <button id="join-button">Join Conference</button>
+<body class="retro-terminal-theme"> <div id="nickname-overlay">
+    <div class="cyber-container">
+        <img id="app-logo" src="images/logo.png" alt="Logo" class="neon-glitch" />
+        <h1 class="terminal-title">SERVER UPLINK ESTABLISHED.</h1>
+        <div class="card terminal-card">
+            <h2 style="color: var(--neon-cyan)">> LOGIN SEQUENCE</h2>
+            <div class="input-group">
+                 <span class="input-prefix">ROOM_ID:</span>
+                 <input type="text" id="room-id-input" placeholder="channel_name" required class="terminal-input"/>
+            </div>
+             <div class="input-group">
+                 <span class="input-prefix">PASSKEY:</span>
+                <input type="password" id="room-password-input" placeholder="(Optional)" class="terminal-input"/>
+            </div>
+             <div class="input-group">
+                 <span class="input-prefix">HANDLE_:</span>
+                <input type="text" id="nickname-input" placeholder="Your Nickname" required class="terminal-input"/>
+            </div>
+            <div class="row">
+                <button id="join-button" class="cyber-button">INITIALIZE CONNECTION_</button>
+            </div>
         </div>
     </div>
 </div>
 
 <div id="settings-modal" class="hidden">
-    <div class="settings-content">
+    <div class="settings-content terminal-border">
         <div class="settings-header">
-            <h3>Settings</h3>
+            <h3>> SYSTEM CONFIG</h3>
             <button id="close-settings-btn"><span class="material-icons">close</span></button>
         </div>
         <div class="settings-body">
-            <div class="setting-item">
-                <span>Dark / Light Theme</span>
+             <div class="setting-item">
+                <span>Dark / Light Theme (Override)</span>
                 <label class="switch">
                     <input type="checkbox" id="theme-toggle">
                     <span class="slider round"></span>
@@ -56,253 +64,158 @@
             <hr class="separator">
             <div class="setting-item">
                 <span>Server Management</span>
-                <button id="open-admin-login" class="btn-secondary">Admin Login</button>
+                <button id="open-admin-login" class="btn-secondary cyber-button-small">Admin Login</button>
             </div>
         </div>
     </div>
 </div>
 
-<div id="admin-panel" class="hidden">
-    <div class="admin-header">
-        <h3>🛡️ Admin Dashboard</h3>
+<div id="admin-panel" class="hidden terminal-border">
+     <div class="admin-header">
+        <h3>🛡️ ROOT ACCESS</h3>
         <button id="close-admin-btn"><span class="material-icons">close</span></button>
     </div>
     <div class="admin-content">
         <div id="admin-login-view">
-            <input type="password" id="admin-password-input" placeholder="Admin Password" />
-            <button id="admin-login-btn">Login</button>
-            <p id="admin-msg" style="color: red; margin-top: 10px;"></p>
+            <input type="password" id="admin-password-input" placeholder="ROOT Password" class="terminal-input"/>
+            <button id="admin-login-btn" class="cyber-button-small">AUTHENTICATE</button>
+            <p id="admin-msg" style="color: var(--neon-pink); margin-top: 10px; font-family: var(--terminal-font);"></p>
         </div>
         <div id="admin-dashboard-view" class="hidden">
-            <div class="stats-bar">
-                <span>Users: <strong id="admin-total-users">0</strong></span>
-                <span style="margin-left:15px;">Banned IPs: <strong id="admin-banned-count" style="color:red;">0</strong></span>
+            <div class="stats-bar terminal-text">
+                <span>USERS: <strong id="admin-total-users" style="color:var(--neon-cyan)">0</strong></span>
+                <span style="margin-left:15px;">BANNED_IPS: <strong id="admin-banned-count" style="color:var(--neon-pink);">0</strong></span>
             </div>
             
-            <div class="admin-section-title">📜 Live Server Logs</div>
-            <div id="admin-logs-console">
+            <div class="admin-section-title">> SYSTEM LOGS</div>
+            <div id="admin-logs-console" class="terminal-console">
                 <div class="log-entry system">Waiting for events...</div>
             </div>
 
-            <div class="admin-section-title">🎛️ Room Management</div>
-            <div id="admin-rooms-list">
-                </div>
-            <button id="admin-refresh-btn">Refresh Data</button>
+            <div class="admin-section-title">> CHANNEL MANAGEMENT</div>
+            <div id="admin-rooms-list"></div>
+            <button id="admin-refresh-btn" class="cyber-button-small">REFRESH DATA</button>
         </div>
     </div>
 </div>
-
-<div id="conference-container" class="hidden">
-    <header id="room-header">
+<div id="conference-container" class="hidden split-layout">
+    <header id="room-header" class="terminal-header">
         <div class="header-left">
             <div class="room-title-wrapper">
-                <h3><span id="room-name-display"></span></h3>
+                <h3><span style="color: var(--neon-pink)">#</span><span id="room-name-display" class="neon-text"></span></h3>
             </div>
         </div>
 
         <div id="room-topic-container">
-            <div id="room-topic-display" class="hidden"></div>
+            <div id="room-topic-display" class="hidden terminal-topic"></div>
         </div>
         
         <div class="header-controls">
-            <button id="op-settings-btn" class="hidden" title="OP Command Console">
+            <button id="op-settings-btn" class="hidden terminal-icon-btn" title="OP Command Console">
                 <span class="material-icons">admin_panel_settings</span>
             </button>
-
-            <button id="show-chat-btn" title="Open Chat">
-                <span class="material-icons">chat</span>
-            </button>
-            <button id="share-room-link" title="Share Room Link">
+            <button id="share-room-link" class="terminal-icon-btn" title="Share Uplink">
                 <span class="material-icons">link</span>
             </button>
-            <button id="settings-btn-room" title="Settings">
+            <button id="settings-btn-room" class="terminal-icon-btn" title="Config">
                 <span class="material-icons">settings</span>
             </button>
         </div>
     </header>
 
-    <div id="op-modal" class="hidden">
-        <div class="op-modal-content">
-            <div class="op-header">
-                <h4><span class="material-icons" style="color: #ffd740;">tune</span> Gestione Stanza</h4>
-                <button id="close-op-modal" title="Chiudi"><span class="material-icons">close</span></button>
-            </div>
-            
-            <div class="op-body">
-                <div class="op-field-group">
-                    <label for="op-topic-input">Topic del giorno</label>
-                    <input type="text" id="op-topic-input" placeholder="Es: Riunione budget..." maxlength="100" autocomplete="off">
-                </div>
-
-                <div class="op-field-group">
-                    <label for="op-color-input">Colore Brand Stanza</label>
-                    <div class="color-picker-wrapper">
-                        <input type="color" id="op-color-input" value="#00b8ff">
-                        <span class="color-hint">Clicca per cambiare il colore del titolo</span>
+    <main id="main-split-area">
+        
+        <section id="video-section">
+             <div id="videos-grid">
+                <div id="local-feed" class="video-feed ratio-4-3 hidden neon-border" data-peer-id="local">
+                    <video id="local-video" autoplay playsinline muted></video>
+                    <div class="video-label terminal-label">
+                        <span id="local-mic-status" class="material-icons">mic</span>
+                        <span id="local-nickname-display">Tu</span> 
                     </div>
                 </div>
+                </div>
+             <div id="main-controls-bar" class="cyber-controls">
+                <button id="toggle-audio-button" class="cyber-ctrl-btn" title="Mute/Unmute Audio"><span class="material-icons">mic</span></button>
+                <button id="toggle-video-button" class="cyber-ctrl-btn" title="Disable/Enable Video"><span class="material-icons">videocam</span></button>
                 
-                <div class="op-field-group">
-                    <label for="op-password-input">Password Accesso (Opzionale)</label>
-                    <div class="input-with-icon">
-                        <span class="material-icons icon">lock_outline</span>
-                        <input type="password" id="op-password-input" placeholder="Lascia vuoto per accesso libero" autocomplete="off">
-                    </div>
-                    <small>Se impostata, apparirà un lucchetto 🔒 accanto al nome.</small>
-                </div>
+                <button id="switch-camera-button" class="mobile-only cyber-ctrl-btn" title="Switch Camera">
+                    <span class="material-icons">flip_camera_ios</span>
+                </button>
 
-                <div class="op-actions">
-                    <button id="op-save-btn">Applica Modifiche</button>
-                </div>
-            </div>
-        </div>
-    </div>
+                <button id="more-options-btn" class="cyber-ctrl-btn" title="Extras">
+                    <span class="material-icons">read_more</span>
+                </button>
 
-    <main id="main-area">
-        <section id="videos-grid">
-            <div id="local-feed" class="video-feed ratio-4-3 hidden" data-peer-id="local">
-                <video id="local-video" autoplay playsinline muted></video>
-				<div class="video-label">
-					<span id="local-mic-status" class="material-icons">mic</span>
-					<span id="local-nickname-display">Tu</span> 
-				</div>
+                <button id="disconnect-button" class="cyber-ctrl-btn danger" title="Disconnect"><span class="material-icons">call_end</span></button>
             </div>
         </section>
 
-        <div id="whiteboard-container" class="hidden">
-            <div class="wb-toolbar">
-                <div class="wb-colors">
-                    <div class="color-btn active" style="background: #ffffff;" data-color="#ffffff"></div>
-                    <div class="color-btn" style="background: #ff5252;" data-color="#ff5252"></div>
-                    <div class="color-btn" style="background: #448aff;" data-color="#448aff"></div>
-                    <div class="color-btn" style="background: #69f0ae;" data-color="#69f0ae"></div>
-                    <div class="color-btn" style="background: #ffd740;" data-color="#ffd740"></div>
-                </div>
-                <div class="wb-actions">
-                    <button id="wb-undo-btn" title="Undo Last Stroke"><span class="material-icons">undo</span></button>
-                    <button id="wb-clear-btn" title="Clear All"><span class="material-icons">delete</span></button>
-                    <button id="wb-close-btn" title="Close Whiteboard"><span class="material-icons">close</span></button>
-                </div>
+        <aside id="chat-terminal" class="terminal-panel">
+            <div class="terminal-header-bar">
+                > #CONNECTION_LOG
             </div>
-            <canvas id="whiteboard-canvas"></canvas>
-        </div>
-		<div id="meeting-transcript-panel" class="hidden">
-			<div class="transcript-header">
-				<h4>📝 Live Transcript</h4>
-				<button id="close-transcript-btn"><span class="material-icons">close</span></button>
-			</div>
-			<div id="transcript-content"></div>
-		</div>
-        <aside id="chat-panel" class="panel-column">
-            <h3>💬 Chat</h3>
-            <div id="messages-container"></div>
+            <div id="messages-container" class="terminal-body">
+                </div>
             
-            <div id="typing-indicator" class="hidden">
-                <span class="dots">
-                    <span>.</span><span>.</span><span>.</span>
-                </span>
-                <span id="typing-text">Qualcuno sta scrivendo</span>
+            <div id="typing-indicator" class="hidden terminal-typing">
+                <span id="typing-text">> Someone is typing_</span>
             </div>
 
-            <div id="chat-input-area">
-                <button id="emoji-toggle-btn" title="Inserisci Emoji">😀</button>
+            <div id="chat-input-area" class="terminal-input-area">
+                <span class="terminal-prompt">$</span>
+                <input type="text" id="chat-message-input" placeholder="Type command or message..." autocomplete="off" class="terminal-chat-input" />
                 
-                <input type="text" id="chat-message-input" placeholder="Scrivi un messaggio... (supporta Markdown)" autocomplete="off" />
-                <button id="send-chat-button">
-                    <span class="material-icons">send</span> </button>
+                <button id="emoji-toggle-btn" class="terminal-icon-btn small" title="Inserisci Emoji">☺</button>
+                
+                <button id="send-chat-button" class="terminal-send-btn">
+                    ENTER
+                </button>
             </div>
         </aside>
 
-		<div id="main-controls-bar">
-			<button id="toggle-audio-button" title="Mute/Unmute Audio"><span class="material-icons">mic</span></button>
-			<button id="toggle-video-button" title="Disable/Enable Video"><span class="material-icons">videocam</span></button>
-			
-			<button id="switch-camera-button" class="mobile-only" title="Switch Camera">
-				<span class="material-icons">flip_camera_ios</span>
-			</button>
-
-			<button id="more-options-btn" title="More Options">
-				<span class="material-icons">more_horiz</span>
-			</button>
-
-			<button id="disconnect-button" title="Disconnect"><span class="material-icons">call_end</span></button>
-		</div>
-
-		<div id="extras-menu" class="hidden">
-			<div class="menu-item" id="transfer-file-button">
-				<span class="material-icons">folder_open</span>
-				<span>Send File</span>
-			</div>
-			<div class="menu-item" id="record-button">
-				<span class="material-icons">fiber_manual_record</span>
-				<span>Record</span>
-			</div>
-			<div class="menu-item" id="global-transcript-btn">
-				<span class="material-icons">description</span>
-				<span>Meeting Minutes</span>
-			</div>
-			<div class="menu-item" id="toggle-whiteboard-button">
-				<span class="material-icons">draw</span>
-				<span>Whiteboard</span>
-			</div>
-			<div class="menu-item" id="share-screen-button">
-				<span class="material-icons">screen_share</span>
-				<span>Share Screen</span>
-			</div>
-		</div>
-    </main>
+    </main> <div id="whiteboard-container" class="hidden neon-border">
+        <div class="wb-toolbar">
+             <div class="wb-colors">
+                <div class="color-btn active" style="background: #ffffff;" data-color="#ffffff"></div>
+                <div class="color-btn" style="background: #ff00ff;" data-color="#ff00ff"></div> <div class="color-btn" style="background: #00f7ff;" data-color="#00f7ff"></div> <div class="color-btn" style="background: #0055ff;" data-color="#0055ff"></div> <div class="color-btn" style="background: #ffd740;" data-color="#ffd740"></div>
+            </div>
+            <div class="wb-actions">
+                <button id="wb-undo-btn" class="terminal-icon-btn"><span class="material-icons">undo</span></button>
+                <button id="wb-clear-btn" class="terminal-icon-btn"><span class="material-icons">delete</span></button>
+                <button id="wb-close-btn" class="terminal-icon-btn"><span class="material-icons">close</span></button>
+            </div>
+        </div>
+        <canvas id="whiteboard-canvas"></canvas>
+    </div>
+    
+    <div id="meeting-transcript-panel" class="hidden terminal-border">
+         </div>
 </div>
 
-<div id="file-transfer-container"></div>
-<input type="file" id="file-input" class="hidden" /> 
+<div id="extras-menu" class="hidden cyber-menu">
+    <div class="menu-item" id="transfer-file-button">
+		<span class="material-icons neon-icon-cyan">folder_open</span>
+		<span>Send File</span>
+	</div>
+    </div>
 
 <template id="remote-video-template">
-    <div class="video-feed ratio-4-3">
+    <div class="video-feed ratio-4-3 neon-border">
         <div class="video-content-wrapper">
             <video autoplay playsinline></video>
-            <div class="subtitle-overlay hidden"></div>
+            <div class="subtitle-overlay hidden terminal-text"></div>
         </div>
-        <div class="video-label">
+        <div class="video-label terminal-label">
             <span class="remote-mic-status material-icons">mic</span>
-            <span class="remote-nickname"></span>
+            <span class="remote-nickname terminal-font"></span>
         </div>
-        <button class="context-menu-trigger" title="User Options">
+        <button class="context-menu-trigger terminal-icon-btn small" title="User Options">
             <span class="material-icons">more_vert</span>
         </button>
     </div>
 </template>
 
-<div id="remote-context-menu" class="hidden">
-    <div id="menu-dm-user" class="menu-item">
-        <span class="material-icons">message</span> 
-        <span>Private Message to User</span>
-    </div>
-    <div id="menu-send-file" class="menu-item">
-        <span class="material-icons">attach_file</span>
-        <span>Send File to User</span>
-    </div>
-	<div id="menu-toggle-cc" class="menu-item">
-        <span class="material-icons">closed_caption</span>
-        <span>Enable Captions</span>
-    </div>
-    <div id="menu-mute-user" class="menu-item">
-        <span class="material-icons">volume_off</span> 
-        <span>Mute Audio</span>
-    </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
-<script src="app.js"></script>
-
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./service-worker.js')
-                .then((reg) => console.log('Service Worker registrato:', reg.scope))
-                .catch((err) => console.log('SW errore:', err));
-        });
-    }
-</script>
 <script type="module">
     // Importiamo direttamente dai server CDN ottimizzati
     import { createPopup } from 'https://unpkg.com/@picmo/popup-picker@latest/dist/index.js?module';
@@ -312,38 +225,41 @@
         const trigger = document.getElementById('emoji-toggle-btn');
         const input = document.getElementById('chat-message-input');
         
-        // Creazione del Popup
+        if (!trigger || !input) {
+            console.error("Elementi chat non trovati per Emoji Picker");
+            return;
+        }
+        
         const picker = createPopup({
-            rootElement: document.body, // Si attacca al body
+            rootElement: document.body,
+            triggerElement: trigger,
+            position: 'auto' 
         }, {
-            // Opzioni del Picker
             theme: 'dark',
             locale: 'it',
             autoFocus: 'search',
             showPreview: false
         });
 
-        // Evento Click sul bottone faccina
         trigger.addEventListener('click', () => {
             picker.toggle();
         });
 
-        // Evento Selezione Emoji
         picker.addEventListener('emoji:select', (selection) => {
-            // Inserisce l'emoji dove c'è il cursore
             const start = input.selectionStart;
             const end = input.selectionEnd;
             const text = input.value;
-            const before = text.substring(0, start);
-            const after  = text.substring(end, text.length);
-            
-            input.value = before + selection.emoji + after;
-            
-            // Rimette il focus e sposta il cursore dopo l'emoji
+            input.value = text.substring(0, start) + selection.emoji + text.substring(end, text.length);
             input.selectionStart = input.selectionEnd = start + selection.emoji.length;
             input.focus();
         });
     });
 </script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
+<script src="app.js"></script>
+
 </body>
 </html>
