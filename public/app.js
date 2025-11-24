@@ -1945,6 +1945,83 @@ if(downloadTranscriptBtn) {
     downloadTranscriptBtn.addEventListener('click', downloadTranscript);
 }
 
+// ==========================================
+// 📱 MOBILE TOOLS MENU LOGIC
+// ==========================================
+
+const mobileMoreBtn = document.getElementById('mobile-more-btn');
+const mobileToolsMenu = document.getElementById('mobile-tools-menu');
+const closeMobileTools = document.getElementById('close-mobile-tools');
+
+// Elementi del menu mobile
+const mobBtnSubs = document.getElementById('mob-btn-subs');
+const mobBtnFile = document.getElementById('mob-btn-file');
+const mobBtnRec = document.getElementById('mob-btn-rec');
+const mobBtnWb = document.getElementById('mob-btn-wb');
+const mobBtnDown = document.getElementById('mob-btn-down');
+
+// Riferimenti ai bottoni originali (desktop)
+const desktopSubsBtn = document.getElementById('toggle-transcription-btn');
+const desktopFileBtn = document.getElementById('transfer-file-button');
+const desktopRecBtn = document.getElementById('record-button');
+const desktopWbBtn = document.getElementById('toggle-whiteboard-button');
+const desktopDownBtn = document.getElementById('download-transcript-btn');
+
+// 1. Apri/Chiudi Menu
+if(mobileMoreBtn) {
+    mobileMoreBtn.addEventListener('click', () => {
+        mobileToolsMenu.classList.add('active');
+        syncMobileButtonStates(); // Aggiorna lo stato visivo (attivo/non attivo)
+    });
+}
+
+if(closeMobileTools) {
+    closeMobileTools.addEventListener('click', () => {
+        mobileToolsMenu.classList.remove('active');
+    });
+}
+
+// Chiudi se si clicca fuori (sulla parte scura del video)
+document.addEventListener('click', (e) => {
+    if (mobileToolsMenu.classList.contains('active') && 
+        !mobileToolsMenu.contains(e.target) && 
+        !mobileMoreBtn.contains(e.target)) {
+        mobileToolsMenu.classList.remove('active');
+    }
+});
+
+// 2. Mapping dei click (Mobile -> Desktop Function)
+// Usiamo .click() sui bottoni desktop originali per sfruttare la logica già esistente
+if(mobBtnSubs) mobBtnSubs.addEventListener('click', () => { desktopSubsBtn.click(); setTimeout(syncMobileButtonStates, 50); });
+if(mobBtnFile) mobBtnFile.addEventListener('click', () => { mobileToolsMenu.classList.remove('active'); desktopFileBtn.click(); });
+if(mobBtnRec) mobBtnRec.addEventListener('click', () => { desktopRecBtn.click(); setTimeout(syncMobileButtonStates, 50); });
+if(mobBtnWb) mobBtnWb.addEventListener('click', () => { mobileToolsMenu.classList.remove('active'); desktopWbBtn.click(); });
+if(mobBtnDown) mobBtnDown.addEventListener('click', () => { desktopDownBtn.click(); });
+
+// 3. Sincronizzazione Stati (Per colorare i bottoni mobile se attivi)
+function syncMobileButtonStates() {
+    // Sottotitoli
+    if (desktopSubsBtn && desktopSubsBtn.classList.contains('active')) {
+        mobBtnSubs.classList.add('active');
+    } else {
+        mobBtnSubs.classList.remove('active');
+    }
+
+    // Registrazione
+    if (desktopRecBtn && desktopRecBtn.classList.contains('active')) {
+        mobBtnRec.classList.add('active');
+    } else {
+        mobBtnRec.classList.remove('active');
+    }
+
+    // Lavagna
+    if (desktopWbBtn && desktopWbBtn.classList.contains('active')) {
+        mobBtnWb.classList.add('active');
+    } else {
+        mobBtnWb.classList.remove('active');
+    }
+}
+
 // --------------------------------------------------------
 // LISTENERS UI & CONTROLS
 // --------------------------------------------------------

@@ -1314,6 +1314,90 @@ body.light-theme .sender-private {
     color: white !important;
 }
 
+/* Classi di utilità per nascondere/mostrare in base al device */
+.mobile-only { display: none !important; }
+.desktop-only { display: flex !important; }
+
+/* Menu Strumenti Mobile (Nascosto di default) */
+#mobile-tools-menu {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--surface);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+    z-index: 2500; /* Sopra a tutto */
+    padding: 20px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: block !important; /* Override di .hidden standard per usare transform */
+}
+
+#mobile-tools-menu.active {
+    transform: translateY(0);
+}
+
+.mobile-tools-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.mobile-tools-header h3 {
+    margin: 0;
+    color: var(--text-color);
+}
+
+#close-mobile-tools {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    font-size: 1.2em;
+}
+
+.mobile-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+
+.tool-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 0.8em;
+    cursor: pointer;
+}
+
+.tool-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--surface-2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.tool-item .material-icons { font-size: 1.5em; }
+
+/* Stati Attivi per il menu mobile */
+.tool-item.active .tool-icon {
+    background: var(--primary-color);
+    color: #fff;
+}
+.tool-item.active span {
+    color: var(--primary-color);
+    font-weight: bold;
+}
 
 /* --- OTTIMIZZAZIONE MOBILE --- */
 @media (max-width: 768px) {
@@ -1537,6 +1621,15 @@ body.light-theme .sender-private {
 
 	#switch-camera-button {
         display: flex !important;
+    }
+	
+	.mobile-only { display: flex !important; }
+    .desktop-only { display: none !important; }
+    
+    /* Aggiustamento barra controlli */
+    #main-controls-bar {
+        justify-content: space-around; /* Spazia meglio i 4 bottoni rimasti */
+        padding: 10px 15px;
     }
     
     /* Mobile Whiteboard Adjustments */

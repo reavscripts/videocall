@@ -150,38 +150,74 @@
                 </div>
             </aside>
 
-            <div id="main-controls-bar">
-                <button id="toggle-audio-button" data-lang-title="mute_unmute" title="Mute/Unmute Audio">
-                    <span class="material-icons">mic</span>
-                </button>
-                <button id="toggle-video-button" data-lang-title="video_toggle" title="Enable/Disable Video">
-                    <span class="material-icons">videocam</span>
-                </button>
-                <button id="switch-camera-button" class="mobile-only" data-lang-title="switch_cam" title="Switch Camera">
-                    <span class="material-icons">flip_camera_ios</span>
-                </button>
-                <button id="transfer-file-button" data-lang-title="transfer_file" title="Transfer File">
-                    <span class="material-icons">folder_open</span>
-                </button>
-				<button id="toggle-transcription-btn" data-lang-title="toggle_subs" title="Toggle Subtitles">
+			<div id="main-controls-bar">
+				<button id="toggle-audio-button" data-lang-title="mute_unmute" title="Mute/Unmute Audio">
+					<span class="material-icons">mic</span>
+				</button>
+				<button id="toggle-video-button" data-lang-title="video_toggle" title="Enable/Disable Video">
+					<span class="material-icons">videocam</span>
+				</button>
+				<button id="switch-camera-button" class="mobile-only" data-lang-title="switch_cam" title="Switch Camera">
+					<span class="material-icons">flip_camera_ios</span>
+				</button>
+				
+				<button id="mobile-more-btn" class="mobile-only" title="More Options">
+					<span class="material-icons">more_vert</span> </button>
+
+				<button id="transfer-file-button" class="desktop-only" data-lang-title="transfer_file" title="Transfer File">
+					<span class="material-icons">folder_open</span>
+				</button>
+				
+				<button id="toggle-transcription-btn" class="desktop-only" data-lang-title="toggle_subs" title="Toggle Subtitles">
 					<span class="material-icons">closed_caption_off</span>
 				</button>
-				<button id="download-transcript-btn" title="Download Transcript">
+				
+				<button id="download-transcript-btn" class="desktop-only" title="Download Transcript">
 					<span class="material-icons">description</span>
 				</button>
-                <button id="record-button" class="off" data-lang-title="start_rec" title="Start Recording">
-                    <span class="material-icons">fiber_manual_record</span>
-                </button>
-                <button id="share-screen-button" data-lang-title="share_screen" title="Share Screen">
-                    <span class="material-icons">screen_share</span>
-                </button>
-                <button id="toggle-whiteboard-button" data-lang-title="toggle_wb" title="Toggle Whiteboard">
-                    <span class="material-icons">draw</span>
-                </button>
-                <button id="disconnect-button" data-lang-title="disconnect" title="Disconnect">
-                    <span class="material-icons">call_end</span>
-                </button>
-            </div>
+				<button id="record-button" class="off desktop-only" data-lang-title="start_rec" title="Start Recording">
+					<span class="material-icons">fiber_manual_record</span>
+				</button>
+				<button id="share-screen-button" class="desktop-only" data-lang-title="share_screen" title="Share Screen">
+					<span class="material-icons">screen_share</span>
+				</button>
+				<button id="toggle-whiteboard-button" class="desktop-only" data-lang-title="toggle_wb" title="Toggle Whiteboard">
+					<span class="material-icons">draw</span>
+				</button>
+
+				<button id="disconnect-button" data-lang-title="disconnect" title="Disconnect">
+					<span class="material-icons">call_end</span>
+				</button>
+			</div>
+
+			<div id="mobile-tools-menu" class="hidden">
+				<div class="mobile-tools-header">
+					<h3>Strumenti</h3>
+					<button id="close-mobile-tools"><span class="material-icons">close</span></button>
+				</div>
+				<div class="mobile-tools-grid">
+					<div class="tool-item" id="mob-btn-subs">
+						<div class="tool-icon"><span class="material-icons">closed_caption</span></div>
+						<span>Sottotitoli</span>
+					</div>
+					<div class="tool-item" id="mob-btn-file">
+						<div class="tool-icon"><span class="material-icons">folder</span></div>
+						<span>File</span>
+					</div>
+					<div class="tool-item" id="mob-btn-rec">
+						<div class="tool-icon"><span class="material-icons">fiber_manual_record</span></div>
+						<span>Rec</span>
+					</div>
+					<div class="tool-item" id="mob-btn-wb">
+						<div class="tool-icon"><span class="material-icons">draw</span></div>
+						<span>Lavagna</span>
+					</div>
+					<div class="tool-item" id="mob-btn-down">
+						<div class="tool-icon"><span class="material-icons">description</span></div>
+						<span>Scarica TXT</span>
+					</div>
+				</div>
+			</div>
 			<div id="subtitles-overlay" class="hidden"></div>
         </main>
     </div>
