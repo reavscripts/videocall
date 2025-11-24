@@ -1,7 +1,7 @@
 // app.js 
 
-//const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
-const RENDER_SERVER_URL = "http://localhost:3000";
+const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
+//const RENDER_SERVER_URL = "http://localhost:3000";
 
 // ---------- DOM & Controlli ----------
 const nicknameOverlay = document.getElementById('nickname-overlay');
