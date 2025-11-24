@@ -240,20 +240,25 @@
         </div>
     </template>
 
-    <div id="remote-context-menu" class="hidden">
-        <div id="menu-dm-user" class="menu-item">
-            <span class="material-icons">message</span> 
-            <span>Private Message</span>
-        </div>
-        <div id="menu-send-file" class="menu-item">
-            <span class="material-icons">attach_file</span>
-            <span data-lang="send_file_to">Send File to User</span>
-        </div>
-        <div id="menu-mute-user" class="menu-item">
-            <span class="material-icons">volume_off</span> 
-            <span>Mute Audio</span>
-        </div>
-    </div>
+	<div id="remote-context-menu" class="hidden">
+		<div id="menu-dm-user" class="menu-item">
+			<span class="material-icons">message</span> 
+			<span>Private Message</span>
+		</div>
+		<div id="menu-send-file" class="menu-item">
+			<span class="material-icons">attach_file</span>
+			<span data-lang="send_file_to">Send File to User</span>
+		</div>
+		
+		<div id="menu-subs" class="menu-item">
+			<span class="material-icons">subtitles</span>
+			<span id="menu-subs-text">Attiva Sottotitoli</span>
+		</div>
+		<div id="menu-mute-user" class="menu-item">
+			<span class="material-icons">volume_off</span> 
+			<span>Mute Audio</span>
+		</div>
+	</div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
 	<script src="app.js?v=2"></script>
 </body>

@@ -471,7 +471,7 @@ const availableBackgrounds = [
     { id: 'img5', name: 'Snow Muntain', value: 'url("https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=1920&q=80")' },
     { id: 'img4', name: 'Abstract', value: 'url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80")' },
     { id: 'img_space', name: 'Space', value: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80")'},
-	{ id: 'img_jelly', name: 'Jelly Fish', value: 'url("https://plus.unsplash.com/premium_photo-1667232502018-211637ba130c?auto=format&fit=crop&w=1920&q=80")'},
+	{ id: 'img_jelly', name: 'Jelly Fish', value: 'url("https://images.unsplash.com/photo-1441555136638-e47c0158bfc9?auto=format&fit=crop&w=1920&q=80")'},
 	{ id: 'img_fish', name: 'Fish', value: 'url("https://images.unsplash.com/photo-1514907283155-ea5f4094c70c?auto=format&fit=crop&w=1920&q=80")'},
     { id: 'img1', name: 'Mountain', value: 'url("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80")' },
 	{ id: 'img', name: 'Mongolfiere', value: 'url("https://images.unsplash.com/photo-1507608869274-d3177c8bb4c7?auto=format&fit=crop&w=1920&q=80")' },
@@ -681,6 +681,10 @@ function resetAndShowOverlay() {
     for (const key in iceCandidateQueues) delete iceCandidateQueues[key];
     for (const key in videoSenders) delete videoSenders[key];
     for (const key in manuallyMutedPeers) delete manuallyMutedPeers[key];
+
+	const subtitleSessions = {}; // { peerId: { active: boolean, history: [] } }
+	const menuSubs = document.getElementById('menu-subs');
+	const menuSubsText = document.getElementById('menu-subs-text');
     
     isManualFocus = false;
     currentSpeakerId = null;
@@ -779,6 +783,14 @@ function updateContextMenuState(peerId) {
     menuMuteUser.querySelector('span:last-child').textContent = isMuted ? t('unmute_user') : t('mute_user');
     const nickname = remoteNicknames[peerId] || 'User';
     menuDmUser.querySelector('span:last-child').textContent = `${t('private_msg_to')} ${nickname}`;
+
+    const session = subtitleSessions[peerId];
+    const isSubsActive = session && session.active;
+    
+    menuSubs.classList.toggle('active-toggle', isSubsActive);
+    // Cambia testo e icona in base allo stato
+    menuSubs.querySelector('.material-icons').textContent = isSubsActive ? 'subtitles_off' : 'subtitles';
+    menuSubsText.textContent = isSubsActive ? 'Disattiva Sottotitoli' : 'Attiva Sottotitoli';
 }
 
 function showContextMenu(peerId, x, y) {
@@ -1691,12 +1703,27 @@ function initializeSocket(){
   socket.on('audio-status-changed', (pid, talk) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f) { f.classList.toggle('is-talking', talk); f.querySelector('.remote-mic-status').textContent = talk ? 'mic' : 'mic_off'; } });
   socket.on('remote-stream-type-changed', (pid, ratio) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f){ f.classList.remove('ratio-4-3', 'ratio-16-9'); f.classList.add(`ratio-${ratio}`); } });
   socket.on('receive-transcript', (senderId, nickname, text, isFinal) => {
+    // 1. Verifica se ho attivato i sottotitoli per questo utente specifico
+    const session = subtitleSessions[senderId];
+    
+    // Se non ho attivato i sottotitoli per lui, ignoro il messaggio
+    if (!session || !session.active) return;
+
+    // 2. Aggiorna UI
     updateSubtitleUI(senderId, nickname, text, isFinal);
-    // Assicurati che il contenitore sia visibile se qualcuno parla
+    
+    // Assicurati che il contenitore sia visibile
     if(subtitlesOverlay.classList.contains('hidden')) {
         subtitlesOverlay.classList.remove('hidden');
     }
-});
+
+    // 3. Salva nella cronologia specifica dell'utente (solo se la frase è "final")
+    if (isFinal) {
+        const timestamp = new Date().toLocaleTimeString();
+        const logLine = `[${timestamp}] ${nickname}: ${text}`;
+        session.history.push(logLine);
+    }
+  });
 
   // WebRTC Signaling
   socket.on('offer', async (fid, o)=>{ const pc = createPeerConnection(fid); if(pc.signalingState !== 'stable') return; await pc.setRemoteDescription(new RTCSessionDescription(o)); if (iceCandidateQueues[fid]) { iceCandidateQueues[fid].forEach(c => pc.addIceCandidate(new RTCIceCandidate(c))); iceCandidateQueues[fid] = []; } const a = await pc.createAnswer(); await pc.setLocalDescription(a); socket.emit('answer', fid, pc.localDescription); });
@@ -2084,6 +2111,55 @@ menuMuteUser.addEventListener('click', () => {
         hideContextMenu();
     }
 });
+
+menuSubs.addEventListener('click', () => {
+    if (contextTargetPeerId) {
+        const peerId = contextTargetPeerId;
+        const nickname = remoteNicknames[peerId] || 'User';
+
+        // Inizializza la sessione se non esiste
+        if (!subtitleSessions[peerId]) {
+            subtitleSessions[peerId] = { active: false, history: [] };
+        }
+
+        const session = subtitleSessions[peerId];
+        session.active = !session.active; // Inverti stato
+
+        if (session.active) {
+            // Attivazione
+            alert(`Sottotitoli attivati per ${nickname}. (Nota: l'utente deve aver abilitato il microfono/trascrizione dal suo lato)`);
+        } else {
+            // Disattivazione -> Chiedi salvataggio
+            if (session.history.length > 0) {
+                const choice = confirm(`Hai disattivato i sottotitoli per ${nickname}.\nVuoi salvare la trascrizione di questa sessione?`);
+                if (choice) {
+                    saveSpecificTranscript(nickname, session.history);
+                }
+                // Pulisci la cronologia dopo aver deciso
+                session.history = [];
+            }
+        }
+        
+        hideContextMenu();
+    }
+});
+
+// Funzione helper per salvare il file specifico
+function saveSpecificTranscript(nickname, lines) {
+    if (!lines || lines.length === 0) return;
+    const blobData = lines.join('\n');
+    const blob = new Blob([blobData], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Transcript-${nickname}-${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
 
 menuDmUser.addEventListener('click', () => {
     if (contextTargetPeerId) {
