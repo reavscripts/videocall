@@ -17,7 +17,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // DATI IN MEMORIA
 const rooms = {}; // { roomId: { socketId: nickname } }
-// Nuove strutture dati
 const roomConfigs = {}; // { roomId: { password: '...', isLocked: false } }
 const roomMessages = {}; // { roomId: [ {sender, text, id, timestamp} ] }
 const bannedIPs = new Set(); // Set di stringhe IP
@@ -54,8 +53,9 @@ io.on('connection', (socket) => {
 
     logToAdmin(`Nuova connessione: ${socket.id} (IP: ${clientIp})`);
 
+    // --- EVENTO JOIN ROOM CORRETTO ---
     socket.on('join-room', (roomId, nickname, password = "") => {
-        // 1. CONTROLLO BAN (Di sicurezza)
+        // 1. CONTROLLO BAN
         if (bannedIPs.has(clientIp)) {
             socket.emit('error-message', 'Sei bannato.');
             return;
@@ -151,16 +151,21 @@ io.on('connection', (socket) => {
         });
 
         broadcastAdminUpdate();
-	});
-});
+    });
 
-	// --- GESTIONE OPERATORE STANZA (@) ---
+    // --- NUOVO: GESTIONE TYPING (STA SCRIVENDO...) ---
+    socket.on('typing-start', (roomId, nickname) => {
+        socket.to(roomId).emit('remote-typing-start', socket.id, nickname);
+    });
+
+    socket.on('typing-stop', (roomId) => {
+        socket.to(roomId).emit('remote-typing-stop', socket.id);
+    });
+
+    // --- GESTIONE OPERATORE STANZA (@) ---
     socket.on('op-update-settings', (roomId, newTopic, newPassword, newColor) => {
-        
-        // 1. Sicurezza: L'utente esiste nella stanza?
         if (!rooms[roomId] || !rooms[roomId][socket.id]) return;
 
-        // 2. Sicurezza: L'utente ha la @ nel nickname?
         const currentNick = rooms[roomId][socket.id];
         if (!currentNick.startsWith('@')) {
             socket.emit('error-message', "Non hai i permessi di Operatore (@).");
@@ -168,30 +173,24 @@ io.on('connection', (socket) => {
         }
 
         if (roomConfigs[roomId]) {
-            // --- A. CATTURA STATO PRECEDENTE (Fondamentale per il confronto) ---
             const oldTopic = roomConfigs[roomId].topic || "";
-            const oldHasPassword = !!roomConfigs[roomId].password; // Converti in booleano (true/false)
+            const oldHasPassword = !!roomConfigs[roomId].password; 
             const oldColor = roomConfigs[roomId].nameColor;
 
-            // --- B. APPLICA LE NUOVE MODIFICHE ---
             roomConfigs[roomId].topic = newTopic || "";
             roomConfigs[roomId].password = newPassword || ""; 
             roomConfigs[roomId].nameColor = newColor || "#00b8ff"; 
 
-            // --- C. CALCOLA LE DIFFERENZE ---
-            const newHasPassword = !!newPassword; // Stato attuale della password
+            const newHasPassword = !!newPassword; 
             
             const topicChanged = (oldTopic !== (newTopic || ""));
-            const colorChanged = (oldColor !== newColor);
-
-            let passwordAction = null; // 'added', 'removed', o null
+            
+            let passwordAction = null; 
             if (!oldHasPassword && newHasPassword) passwordAction = 'added';
             else if (oldHasPassword && !newHasPassword) passwordAction = 'removed';
             
-            // Log Admin
             logToAdmin(`OP ${currentNick} update ${roomId}: Topic=${topicChanged}, Pass=${passwordAction}, Color=${newColor}`);
 
-            // --- D. AVVISA TUTTI ---
             io.to(roomId).emit('room-info-updated', 
                 newTopic, 
                 newHasPassword, 
@@ -204,33 +203,17 @@ io.on('connection', (socket) => {
             broadcastAdminUpdate();
         }
     });
-	
-// --- GLOBAL MEETING TRANSCRIPTION ---
-
-    // 1. Toggle: Qualcuno avvia/ferma la registrazione globale
+    
+    // --- GLOBAL MEETING TRANSCRIPTION ---
     socket.on('toggle-global-transcription', (roomId, isActive) => {
-        console.log(`[SERVER-TRANSCRIPT] Toggle stato nella stanza ${roomId}: ${isActive}`);
-        
-        // Avvisa TUTTI nella stanza (incluso chi ha cliccato)
         io.to(roomId).emit('global-transcription-status', isActive);
     });
 
-    // 2. Data: Qualcuno ha parlato, invia il testo a TUTTI
     socket.on('global-transcript-chunk', (roomId, data) => {
-        // data = { nickname, text, timestamp }
-        
-        // Log di debug per vedere se il server riceve il testo
-        console.log(`[SERVER-TRANSCRIPT] Ricevuto testo da ${data.nickname} (${roomId}): "${data.text.substring(0, 20)}..."`);
-
-        // IMPORTANTE: Usiamo io.to(roomId) e NON socket.to(roomId).
-        // io.to manda il messaggio a TUTTI, incluso chi ha parlato.
-        // Questo serve perché nel client (app.js) non aggiungiamo il testo subito,
-        // ma aspettiamo che il server ce lo rimandi indietro per essere sicuri che sia salvato.
         io.to(roomId).emit('receive-global-transcript', data);
     });
 
-    // *** LOGICA ADMIN AGGIORNATA ***
-
+    // --- LOGICA ADMIN ---
     socket.on('admin-login', (password) => {
         if (password === ADMIN_PASSWORD) {
             admins.add(socket.id);
@@ -259,25 +242,21 @@ io.on('connection', (socket) => {
     socket.on('admin-toggle-lock', (roomId) => {
         if (!admins.has(socket.id) || !roomConfigs[roomId]) return;
         roomConfigs[roomId].isLocked = !roomConfigs[roomId].isLocked;
-        logToAdmin(`Stanza ${roomId} Lock: ${roomConfigs[roomId].isLocked}`);
         broadcastAdminUpdate();
     });
 
     socket.on('admin-set-password', (roomId, newPass) => {
         if (!admins.has(socket.id) || !roomConfigs[roomId]) return;
         roomConfigs[roomId].password = newPass;
-        logToAdmin(`Stanza ${roomId} Password impostata.`);
         broadcastAdminUpdate();
     });
 
-    // Kick e Close (Esistenti)
     socket.on('admin-kick-user', (targetSocketId) => {
         if (!admins.has(socket.id)) return;
         const targetSocket = io.sockets.sockets.get(targetSocketId);
         if (targetSocket) {
             targetSocket.emit('kicked-by-admin', "Espulso dall'admin.");
             targetSocket.disconnect(true);
-            logToAdmin(`Kick utente ${targetSocketId}`);
         }
         broadcastAdminUpdate();
     });
@@ -288,8 +267,7 @@ io.on('connection', (socket) => {
             sockets.forEach(s => { s.emit('room-closed-by-admin'); s.disconnect(true); });
         });
         delete rooms[targetRoomId];
-        delete roomConfigs[targetRoomId]; // Pulisci config
-        logToAdmin(`Stanza chiusa: ${targetRoomId}`);
+        delete roomConfigs[targetRoomId]; 
         broadcastAdminUpdate();
     });
 
@@ -301,7 +279,7 @@ io.on('connection', (socket) => {
         const stats = {
             totalUsers: io.engine.clientsCount,
             rooms: rooms,
-            configs: roomConfigs, // Inviamo anche le config
+            configs: roomConfigs, 
             bannedCount: bannedIPs.size
         };
         io.to(adminSocketId).emit('admin-data-update', stats);
@@ -318,18 +296,16 @@ io.on('connection', (socket) => {
         admins.forEach(adminId => io.to(adminId).emit('admin-data-update', stats));
     }
 
-    // ... Gestione Messaggi, WebRTC, Whiteboard invariata ...    
-    // User A chiede a User B di iniziare a trascriversi
+    // --- ALTRI EVENTI (WebRTC, Chat, etc.) ---
     socket.on('request-transcription', (targetId, requesterId, enable) => {
         io.to(targetId).emit('transcription-request', requesterId, enable);
     });
 
-    // User B invia il testo trascritto a User A
     socket.on('transcription-result', (targetId, text, isFinal) => {
         io.to(targetId).emit('transcription-data', socket.id, text, isFinal);
     });
-	
-	socket.on('send-message', (r, s, m, msgId) => {
+    
+    socket.on('send-message', (r, s, m, msgId) => {
         const finalId = msgId || Date.now().toString(); 
         
         if (!roomMessages[r]) roomMessages[r] = [];
@@ -339,43 +315,43 @@ io.on('connection', (socket) => {
             text: m,
             id: finalId,
             timestamp: Date.now(),
-            type: 'public' // <--- Aggiunto il tipo
+            type: 'public' 
         });
 
         if (roomMessages[r].length > 100) roomMessages[r].shift();
 
         socket.to(r).emit('new-message', s, m, finalId);
     });
-	
-	socket.on('msg-read', (roomId, messageId, readerNickname) => {
-        // Invia a tutti nella stanza (incluso chi l'ha inviato) che questo messaggio è stato letto
+    
+    socket.on('msg-read', (roomId, messageId, readerNickname) => {
         io.to(roomId).emit('msg-read-update', messageId, readerNickname);
     });
     socket.on('send-private-message', (r, rid, s, m) => io.to(rid).emit('new-private-message', s, m));
     socket.on('wb-draw', (r, d) => socket.to(r).emit('wb-draw', d));
     socket.on('wb-clear', (r) => io.to(r).emit('wb-clear'));
-    socket.on('wb-undo', (r) => io.to(r).emit('wb-undo')); // Semplificato per brevità
-    socket.on('wb-request-history', (r) => {}); // Gestione history qui se serve
+    socket.on('wb-undo', (r) => io.to(r).emit('wb-undo')); 
+    socket.on('wb-request-history', (r) => {}); 
     socket.on('offer', (id, o) => io.to(id).emit('offer', socket.id, o));
     socket.on('answer', (id, a) => io.to(id).emit('answer', socket.id, a));
     socket.on('candidate', (id, c) => io.to(id).emit('candidate', socket.id, c));
     socket.on('audio-status-changed', (r, t) => socket.to(r).emit('audio-status-changed', socket.id, t));
     socket.on('stream-type-changed', (r, ratio) => socket.to(r).emit('remote-stream-type-changed', socket.id, ratio));
 
+    // --- DISCONNECT ---
     socket.on('disconnect', () => {
         if (admins.has(socket.id)) admins.delete(socket.id);
         
         let roomId = null;
-        let nickname = null; // Variabile per salvare il nome
+        let nickname = null; 
 
         for (const id in rooms) {
             if (rooms[id][socket.id]) {
                 roomId = id;
-                nickname = rooms[id][socket.id]; // 1. SALVIAMO IL NICKNAME
+                nickname = rooms[id][socket.id]; 
                 
                 delete rooms[id][socket.id];
                 
-                // 2. SALVA MESSAGGIO "USCITO" NELLO STORICO
+                // SALVA MESSAGGIO "USCITO" NELLO STORICO
                 if (roomMessages[id]) {
                     roomMessages[id].push({
                         sender: 'Sistema',
@@ -386,7 +362,6 @@ io.on('connection', (socket) => {
                     });
                 }
 
-                // Se vuota cancella tutto
                 if (Object.keys(rooms[id]).length === 0) {
                     delete rooms[id];
                     delete roomConfigs[id];  
@@ -395,13 +370,15 @@ io.on('connection', (socket) => {
             }
         }
         
-        // 3. INVIA IL NICKNAME AL CLIENT (peer-left ora invia 2 argomenti)
-        if (roomId) socket.to(roomId).emit('peer-left', socket.id, nickname);
+        if (roomId) {
+            socket.to(roomId).emit('peer-left', socket.id, nickname);
+            // Invia anche stop typing per sicurezza
+            socket.to(roomId).emit('remote-typing-stop', socket.id);
+        }
         
         broadcastAdminUpdate();
     });
 });
-
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
