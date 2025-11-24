@@ -132,7 +132,13 @@
             </div>
             <canvas id="whiteboard-canvas"></canvas>
         </div>
-
+		<div id="meeting-transcript-panel" class="hidden">
+			<div class="transcript-header">
+				<h4>📝 Live Transcript</h4>
+				<button id="close-transcript-btn"><span class="material-icons">close</span></button>
+			</div>
+			<div id="transcript-content"></div>
+		</div>
         <aside id="chat-panel" class="panel-column">
             <h3>💬 Chat</h3>
             <div id="messages-container"></div>
@@ -165,6 +171,10 @@
 			<div class="menu-item" id="record-button">
 				<span class="material-icons">fiber_manual_record</span>
 				<span>Record</span>
+			</div>
+			<div class="menu-item" id="global-transcript-btn">
+				<span class="material-icons">description</span>
+				<span>Meeting Minutes</span> </div>
 			</div>
 			<div class="menu-item" id="toggle-whiteboard-button">
 				<span class="material-icons">draw</span>

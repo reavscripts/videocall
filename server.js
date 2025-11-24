@@ -109,6 +109,20 @@ io.on('connection', (socket) => {
         broadcastAdminUpdate();
     });
 
+	// --- GLOBAL MEETING TRANSCRIPTION ---
+
+    // 1. Toggle: Qualcuno avvia/ferma la registrazione globale
+    socket.on('toggle-global-transcription', (roomId, isActive) => {
+        // Avvisa TUTTI nella stanza di accendere/spegnere il loro speech recognition
+        io.to(roomId).emit('global-transcription-status', isActive);
+    });
+
+    // 2. Data: Qualcuno ha parlato, invia il testo a TUTTI (per salvarlo/visualizzarlo)
+    socket.on('global-transcript-chunk', (roomId, data) => {
+        // data = { senderId, nickname, text, timestamp }
+        io.to(roomId).emit('receive-global-transcript', data);
+    });
+
     // *** LOGICA ADMIN AGGIORNATA ***
 
     socket.on('admin-login', (password) => {

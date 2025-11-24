@@ -18,6 +18,13 @@ let recognition = null; // Istanza SpeechRecognition (se siamo noi a parlare)
 let isTranscribingLocal = false; // Se stiamo trascrivendo noi stessi per qualcuno
 const activeTranscriptions = {}; // { peerId: true/false } (Chi stiamo ascoltando)
 const transcriptionHistory = {}; // { peerId: "testo completo..." } per il download
+const globalTranscriptBtn = document.getElementById('global-transcript-btn');
+const meetingTranscriptPanel = document.getElementById('meeting-transcript-panel');
+const transcriptContent = document.getElementById('transcript-content');
+const closeTranscriptBtn = document.getElementById('close-transcript-btn');
+
+let isGlobalMeetingRecording = false; // Stato globale
+let meetingHistory = []; // Array per salvare tutto: {time, name, text}
 
 // Controlli Media (Globali)
 const toggleAudioButton = document.getElementById('toggle-audio-button');
@@ -162,7 +169,7 @@ const TRANSLATIONS = {
             "room-id-input": { placeholder: "Nome della Stanza" },
             "room-password-input": { placeholder: "Password Stanza (Opzionale)" },
             "nickname-input": { placeholder: "Il tuo Nickname" },
-            "chat-panel h3": "💬 Chat", // Selettore CSS
+            "chat-panel h3": "💬 Chat", 
             "chat-message-input": { placeholder: "Scrivi un messaggio..." },
             "send-chat-button": "Invia",
             "settings-btn-overlay": { title: "Impostazioni" },
@@ -174,21 +181,29 @@ const TRANSLATIONS = {
             "switch-camera-button": { title: "Cambia Fotocamera" },
             "more-options-btn": { title: "Altre Opzioni" },
             "disconnect-button": { title: "Disconnetti" },
+            
+            // Menu Extra
             "transfer-file-button span:last-child": "Invia File",
             "record-button span:last-child": "Registra",
             "toggle-whiteboard-button span:last-child": "Lavagna",
             "share-screen-button span:last-child": "Condividi Schermo",
+            "global-transcript-btn span:last-child": "Verbale Riunione", // NUOVO
+
+            // Menu Contestuale
             "menu-dm-user span:last-child": "Messaggio Privato",
             "menu-send-file span:last-child": "Invia File",
             "menu-toggle-cc span:last-child": "Attiva Sottotitoli",
             "menu-mute-user span:last-child": "Silenzia Audio",
+            
+            // Admin & Pannelli
             "admin-header h3": "🛡️ Dashboard Admin",
             "admin-login-btn": "Accedi",
             "admin-refresh-btn": "Aggiorna Dati",
-            "admin-total-users": { prefix: "Utenti: " }, // Gestione speciale
-            "close-chat-btn": "← Torna alle webcam" // Creato dinamicamente
+            "admin-total-users": { prefix: "Utenti: " },
+            "close-chat-btn": "← Torna alle webcam",
+            "transcript-header h4": "📝 Verbale Live" // NUOVO
         },
-        // Messaggi JavaScript (Alert, System Log)
+        // Messaggi JavaScript
         js: {
             "welcome": "Benvenuto in",
             "user_joined": "è entrato.",
@@ -203,7 +218,12 @@ const TRANSLATIONS = {
             "download_transcript": "Trascrizione terminata. Vuoi scaricare il testo?",
             "waiting_others": "In attesa di altri partecipanti...",
             "you": "Tu",
-            "system": "Sistema"
+            "system": "Sistema",
+            
+            // NUOVI MEETING MINUTES
+            "transcript_started": "Registrazione riunione avviata.",
+            "transcript_stopped": "Registrazione riunione fermata.",
+            "download_meeting": "Meeting terminato. Scaricare il verbale completo?"
         }
     },
     // 🇪🇸 SPAGNOLO
@@ -217,14 +237,25 @@ const TRANSLATIONS = {
             "chat-message-input": { placeholder: "Escribe un mensaje..." },
             "send-chat-button": "Enviar",
             "settings-btn-overlay": { title: "Configuración" },
+            "settings-btn-room": { title: "Configuración" },
             "show-chat-btn": { title: "Abrir Chat" },
             "toggle-audio-button": { title: "Silenciar/Activar Audio" },
+            "toggle-video-button": { title: "Activar/Desactivar Video" },
             "disconnect-button": { title: "Desconectar" },
+            "more-options-btn": { title: "Más opciones" },
+
             "transfer-file-button span:last-child": "Enviar Archivo",
             "record-button span:last-child": "Grabar",
             "toggle-whiteboard-button span:last-child": "Pizarra",
             "share-screen-button span:last-child": "Compartir Pantalla",
-            "menu-toggle-cc span:last-child": "Activar Subtítulos"
+            "global-transcript-btn span:last-child": "Acta de Reunión", // NUOVO
+
+            "menu-dm-user span:last-child": "Mensaje Privado",
+            "menu-send-file span:last-child": "Enviar Archivo",
+            "menu-toggle-cc span:last-child": "Activar Subtítulos",
+            "menu-mute-user span:last-child": "Silenciar Audio",
+
+            "transcript-header h4": "📝 Acta en Vivo" // NUOVO
         },
         js: {
             "welcome": "Bienvenido a",
@@ -234,7 +265,13 @@ const TRANSLATIONS = {
             "missing_data": "Faltan datos",
             "waiting_others": "Esperando a otros participantes...",
             "you": "Tú",
-            "system": "Sistema"
+            "system": "Sistema",
+            "download_transcript": "Transcripción finalizada. ¿Descargar texto?",
+            
+            // NUOVI
+            "transcript_started": "Grabación de reunión iniciada.",
+            "transcript_stopped": "Grabación de reunión detenida.",
+            "download_meeting": "Reunión finalizada. ¿Descargar el acta completa?"
         }
     },
     // 🇫🇷 FRANCESE
@@ -242,71 +279,98 @@ const TRANSLATIONS = {
         ui: {
             "join-button": "Rejoindre la conférence",
             "room-id-input": { placeholder: "Nom de la salle" },
+            "room-password-input": { placeholder: "Mot de passe (Optionnel)" },
             "nickname-input": { placeholder: "Votre Pseudo" },
+            "chat-panel h3": "💬 Chat",
             "send-chat-button": "Envoyer",
             "chat-message-input": { placeholder: "Écrire un message..." },
+            "settings-btn-overlay": { title: "Paramètres" },
+            "disconnect-button": { title: "Déconnecter" },
+            "more-options-btn": { title: "Plus d'options" },
+
+            "transfer-file-button span:last-child": "Envoyer un fichier",
+            "record-button span:last-child": "Enregistrer",
             "toggle-whiteboard-button span:last-child": "Tableau blanc",
-            "disconnect-button": { title: "Déconnecter" }
+            "share-screen-button span:last-child": "Partager l'écran",
+            "global-transcript-btn span:last-child": "Compte Rendu", // NUOVO
+
+            "menu-toggle-cc span:last-child": "Activer Sous-titres",
+            "transcript-header h4": "📝 Notes en Direct" // NUOVO
         },
         js: {
             "welcome": "Bienvenue dans",
             "user_joined": "a rejoint.",
+            "user_left": "Utilisateur parti.",
+            "link_copied": "Lien copié !",
             "waiting_others": "En attente d'autres participants...",
             "you": "Toi",
-            "system": "Système"
+            "system": "Système",
+            "download_transcript": "Transcription terminée. Télécharger ?",
+            
+            // NUOVI
+            "transcript_started": "Enregistrement de la réunion démarré.",
+            "transcript_stopped": "Enregistrement de la réunion arrêté.",
+            "download_meeting": "Réunion terminée. Télécharger le compte rendu ?"
         }
     },
-	// 🇨🇳 CINESE (Semplificato - Simplified)
+    // 🇨🇳 CINESE (Semplificato)
     zh: {
         ui: {
-            "join-button": "加入会议", // Entra nella conferenza
-            "room-id-input": { placeholder: "会议室名称" }, // Nome stanza
-            "room-password-input": { placeholder: "会议密码 (可选)" }, // Password
-            "nickname-input": { placeholder: "您的昵称" }, // Nickname
-            "chat-panel h3": "💬 聊天", // Chat
-            "chat-message-input": { placeholder: "输入消息..." }, // Scrivi messaggio
-            "send-chat-button": "发送", // Invia
-            "settings-btn-overlay": { title: "设置" }, // Impostazioni
+            "join-button": "加入会议",
+            "room-id-input": { placeholder: "会议室名称" },
+            "room-password-input": { placeholder: "会议密码 (可选)" },
+            "nickname-input": { placeholder: "您的昵称" },
+            "chat-panel h3": "💬 聊天",
+            "chat-message-input": { placeholder: "输入消息..." },
+            "send-chat-button": "发送",
+            "settings-btn-overlay": { title: "设置" },
             "settings-btn-room": { title: "设置" },
-            "show-chat-btn": { title: "打开聊天" }, // Apri chat
-            "share-room-link": { title: "分享会议链接" }, // Condividi link
-            "toggle-audio-button": { title: "静音/取消静音" }, // Muta audio
-            "toggle-video-button": { title: "开启/关闭视频" }, // Attiva video
-            "switch-camera-button": { title: "切换摄像头" }, // Cambia camera
-            "more-options-btn": { title: "更多选项" }, // Altro
-            "disconnect-button": { title: "断开连接" }, // Disconnetti
+            "show-chat-btn": { title: "打开聊天" },
+            "share-room-link": { title: "分享会议链接" },
+            "toggle-audio-button": { title: "静音/取消静音" },
+            "toggle-video-button": { title: "开启/关闭视频" },
+            "switch-camera-button": { title: "切换摄像头" },
+            "more-options-btn": { title: "更多选项" },
+            "disconnect-button": { title: "断开连接" },
             
             // Menu Extra
-            "transfer-file-button span:last-child": "发送文件", // Invia file
-            "record-button span:last-child": "录制", // Registra
-            "toggle-whiteboard-button span:last-child": "白板", // Lavagna
-            "share-screen-button span:last-child": "共享屏幕", // Condividi schermo
+            "transfer-file-button span:last-child": "发送文件",
+            "record-button span:last-child": "录制",
+            "toggle-whiteboard-button span:last-child": "白板",
+            "share-screen-button span:last-child": "共享屏幕",
+            "global-transcript-btn span:last-child": "会议纪要", // NUOVO
             
             // Menu Contestuale & Admin
-            "menu-dm-user span:last-child": "私信", // Messaggio privato
-            "menu-send-file span:last-child": "发送文件", // Invia file a utente
-            "menu-toggle-cc span:last-child": "开启字幕", // Sottotitoli
-            "menu-mute-user span:last-child": "静音用户", // Silenzia utente
-            "admin-header h3": "🛡️ 管理员面板", // Admin Dashboard
-            "admin-login-btn": "登录", // Login
-            "admin-refresh-btn": "刷新数据", // Aggiorna
-            "close-chat-btn": "← 返回视频" // Torna al video
+            "menu-dm-user span:last-child": "私信",
+            "menu-send-file span:last-child": "发送文件",
+            "menu-toggle-cc span:last-child": "开启字幕",
+            "menu-mute-user span:last-child": "静音用户",
+            "admin-header h3": "🛡️ 管理员面板",
+            "admin-login-btn": "登录",
+            "admin-refresh-btn": "刷新数据",
+            "close-chat-btn": "← 返回视频",
+            "transcript-header h4": "📝 实时纪要" // NUOVO
         },
         js: {
-            "welcome": "欢迎来到", // Benvenuto in
-            "user_joined": "已加入。", // è entrato
-            "user_left": "用户已离开。", // utente uscito
-            "link_copied": "链接已复制到剪贴板！", // Link copiato
-            "missing_data": "数据缺失", // Dati mancanti
-            "banned": "您已被踢出。", // Sei stato bannato
-            "room_closed": "会议室已关闭。", // Stanza chiusa
-            "error_cam": "请检查摄像头/麦克风", // Errore cam
-            "screen_share_mobile": "移动设备不支持此功能。", // No mobile screen share
-            "no_participants": "暂无参与者。", // Nessun partecipante
-            "download_transcript": "转录已完成。是否下载文本？", // Scaricare trascrizione?
-            "waiting_others": "等待其他参与者...", // In attesa...
-            "you": "您", // Tu
-            "system": "系统" // Sistema
+            "welcome": "欢迎来到",
+            "user_joined": "已加入。",
+            "user_left": "用户已离开。",
+            "link_copied": "链接已复制到剪贴板！",
+            "missing_data": "数据缺失",
+            "banned": "您已被踢出。",
+            "room_closed": "会议室已关闭。",
+            "error_cam": "请检查摄像头/麦克风",
+            "screen_share_mobile": "移动设备不支持此功能。",
+            "no_participants": "暂无参与者。",
+            "download_transcript": "转录已完成。是否下载文本？",
+            "waiting_others": "等待其他参与者...",
+            "you": "您",
+            "system": "系统",
+            
+            // NUOVI
+            "transcript_started": "会议录制已开始。",
+            "transcript_stopped": "会议录制已停止。",
+            "download_meeting": "会议结束。是否下载完整纪要？"
         }
     }
 };
@@ -455,13 +519,10 @@ function initSpeechRecognition() {
     if (recognition) return;
     
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-        console.warn("Speech API non supportata su questo browser.");
-        return;
-    }
+    if (!SpeechRecognition) return;
 
     recognition = new SpeechRecognition();
-    recognition.lang = 'it-IT'; // Puoi renderlo dinamico (es. navigator.language)
+    recognition.lang = APP_LANGUAGE === 'zh' ? 'zh-CN' : (APP_LANGUAGE === 'it' ? 'it-IT' : 'en-US'); 
     recognition.continuous = true;
     recognition.interimResults = true;
 
@@ -477,29 +538,33 @@ function initSpeechRecognition() {
             }
         }
 
-        // Invia i dati a chiunque sia connesso nella stanza (semplificazione efficace)
-        // O meglio: inviamo broadcast alla stanza, il server filtrerà o il client userà solo se attivo.
-        // In questo caso usiamo il socket esistente per inviare a TUTTI nella stanza il testo.
-        // Se vuoi inviare SOLO a chi l'ha chiesto, dovresti tenere una lista di richiedenti.
-        // Per semplicità e performance: inviamo broadcast nella stanza, chi ha i CC attivi lo vede.
-        
         const txt = finalTranscript || interimTranscript;
+
         if (txt && socket && currentRoomId) {
-             // Usiamo un evento broadcast alla stanza per efficienza
-             // (Nota: server.js deve essere configurato per inoltrare a to(room))
-             // Modifica: usiamo l'evento specifico creato prima punto-punto o broadcast.
-             // Per rispettare la richiesta "attivabile per user", inviamo a tutti, 
-             // ma solo chi ha attivato la UI lo vedrà.
-             Object.keys(peerConnections).forEach(peerId => {
-                 socket.emit('transcription-result', peerId, txt, !!finalTranscript);
-             });
+             // 1. LOGICA ESISTENTE (Sottotitoli Video / CC)
+             if (isTranscribingLocal) { 
+                 Object.keys(peerConnections).forEach(peerId => {
+                     socket.emit('transcription-result', peerId, txt, !!finalTranscript);
+                 });
+             }
+
+             // 2. NUOVA LOGICA (Verbale Globale)
+             // Se è attivo il recording globale E il testo è definitivo (per evitare spam di interim)
+             if (isGlobalMeetingRecording && finalTranscript) {
+                 const data = {
+                     nickname: userNickname,
+                     text: finalTranscript,
+                     timestamp: new Date().toLocaleTimeString()
+                 };
+                 socket.emit('global-transcript-chunk', currentRoomId, data);
+             }
         }
     };
 
     recognition.onerror = (event) => { console.log('Speech error:', event.error); };
     recognition.onend = () => { 
-        // Riavvia se dovrebbe essere ancora attivo
-        if (isTranscribingLocal) recognition.start(); 
+        // Riavvia se una delle due modalità è attiva
+        if (isTranscribingLocal || isGlobalMeetingRecording) recognition.start(); 
     };
 }
 
@@ -1509,6 +1574,51 @@ function updateCCMenuState(peerId) {
     }
 }
 
+// --- GESTIONE VERBALE RIUNIONE (GLOBAL TRANSCRIPT) ---
+
+if (globalTranscriptBtn) {
+    globalTranscriptBtn.addEventListener('click', () => {
+        if(extrasMenu) extrasMenu.classList.remove('active'); // Chiudi menu
+
+        // Toggle stato locale
+        const newState = !isGlobalMeetingRecording;
+        
+        // Invia comando al server (che lo dirà a tutti)
+        socket.emit('toggle-global-transcription', currentRoomId, newState);
+    });
+}
+
+// Chiudi solo il pannello visivo (ma continua a registrare sotto se attivo)
+if (closeTranscriptBtn) {
+    closeTranscriptBtn.addEventListener('click', () => {
+        meetingTranscriptPanel.classList.add('hidden');
+    });
+}
+
+// Funzione per scaricare il verbale (Meeting Minutes)
+function downloadMeetingMinutes() {
+    if (meetingHistory.length === 0) return;
+
+    let content = `VERBALE RIUNIONE - ${currentRoomId}\n`;
+    content += `Data: ${new Date().toLocaleDateString()}\n`;
+    content += `----------------------------------------\n\n`;
+
+    meetingHistory.forEach(item => {
+        content += `[${item.timestamp}] ${item.name}:\n${item.text}\n\n`;
+    });
+
+    // Usa la funzione di download con fix BOM (UTF-8)
+    const blob = new Blob(['\uFEFF' + content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Meeting_Minutes_${currentRoomId}_${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+}
+
 // ** ADMIN PANEL UI **
 openAdminLoginBtn.addEventListener('click', () => { 
     closeSettings(); // Chiudi modale impostazioni
@@ -1835,6 +1945,63 @@ function initializeSocket(){
           transcriptionHistory[senderId] += text + " ";
       }
   });
+  
+  socket.on('global-transcription-status', (isActive) => {
+        isGlobalMeetingRecording = isActive;
+
+        if (isActive) {
+            // AVVIO
+            meetingHistory = []; // Reset storico
+            transcriptContent.innerHTML = ''; // Pulisci UI
+            meetingTranscriptPanel.classList.remove('hidden'); // Mostra pannello
+            globalTranscriptBtn.classList.add('active-recording');
+            addChatMessage(t('system'), t('transcript_started'), false, 'system');
+            
+            // Avvia Speech Recognition locale (silenziosamente)
+            initSpeechRecognition();
+            try { recognition.start(); } catch(e){}
+
+        } else {
+            // STOP
+            globalTranscriptBtn.classList.remove('active-recording');
+            addChatMessage(t('system'), t('transcript_stopped'), false, 'system');
+            
+            // Se NON stiamo usando anche i sottotitoli personali, fermiamo il microfono
+            if (!isTranscribingLocal && recognition) recognition.stop();
+
+            // Chiedi download (solo se c'è qualcosa)
+            if (meetingHistory.length > 0) {
+                if (confirm(t('download_meeting'))) {
+                    downloadMeetingMinutes();
+                }
+            }
+        }
+    });
+
+    // 2. Riceviamo un pezzo di testo da qualcuno
+    socket.on('receive-global-transcript', (data) => {
+        // data: { nickname, text, timestamp }
+        
+        // 1. Salva in memoria
+        meetingHistory.push({
+            name: data.nickname,
+            text: data.text,
+            timestamp: data.timestamp
+        });
+
+        // 2. Aggiorna Pannello UI (Append)
+        const row = document.createElement('div');
+        row.className = 'transcript-line';
+        row.innerHTML = `
+            <span class="t-time">[${data.timestamp}]</span>
+            <span class="t-name">${data.nickname}:</span>
+            <span class="t-text">${data.text}</span>
+        `;
+        transcriptContent.appendChild(row);
+        
+        // Auto-scroll in basso
+        transcriptContent.scrollTop = transcriptContent.scrollHeight;
+    });
 
   // ** ADMIN EVENTS **
   socket.on('admin-log', (msg) => {

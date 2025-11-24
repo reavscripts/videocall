@@ -1385,6 +1385,81 @@ CSS
     color: #4caf50;
 }
 
+/* --- MEETING TRANSCRIPT PANEL --- */
+#meeting-transcript-panel {
+    position: absolute;
+    top: 80px;
+    left: 20px;
+    width: 300px;
+    max-height: 400px;
+    background: rgba(0, 0, 0, 0.7); /* Sfondo scuro semitrasparente */
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    z-index: 140; /* Sotto la chat ma sopra i video */
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+#meeting-transcript-panel.hidden {
+    display: none !important;
+}
+
+.transcript-header {
+    padding: 10px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px 12px 0 0;
+}
+
+.transcript-header h4 {
+    margin: 0;
+    font-size: 1em;
+    color: var(--primary-color);
+}
+
+.transcript-header button {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+}
+
+.transcript-header button:hover { color: #fff; }
+
+#transcript-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 15px;
+    font-size: 0.9em;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.transcript-line {
+    line-height: 1.4;
+}
+
+.t-time { color: var(--muted); font-size: 0.8em; margin-right: 5px; }
+.t-name { color: var(--accent-color); font-weight: bold; margin-right: 5px; }
+.t-text { color: #fff; }
+
+/* Indicatore attivo nel menu */
+#global-transcript-btn.active-recording {
+    background: rgba(244, 67, 54, 0.2);
+}
+#global-transcript-btn.active-recording .material-icons {
+    color: var(--danger);
+    animation: pulse 1.5s infinite;
+}
+
 /* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
 @media (max-width: 768px) {
 
