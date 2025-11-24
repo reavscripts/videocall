@@ -1374,53 +1374,77 @@ body.light-theme .sender-private {
     color: #4caf50;
 }
 
-/* --- MEETING TRANSCRIPT PANEL --- */
+/* --- MEETING TRANSCRIPT PANEL (Ottimizzato) --- */
 #meeting-transcript-panel {
-    position: absolute;
-    top: 80px;
-    left: 20px;
-    width: 300px;
-    max-height: 400px;
-    background: rgba(0, 0, 0, 0.7); /* Sfondo scuro semitrasparente */
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: fixed; /* Usa fixed per rimanere stabile durante lo scroll */
+    top: auto;       /* Rimuovi il posizionamento in alto */
+    bottom: 100px;   /* Posiziona in basso, sopra la barra controlli */
+    left: 20px;      /* Allineato a sinistra */
+    width: 320px;    /* Larghezza fissa su desktop */
+    max-height: 35vh; /* Altezza dinamica: max 35% dell'altezza schermo */
+    
+    background: rgba(20, 20, 20, 0.85); /* Sfondo leggermente più scuro e leggibile */
+    backdrop-filter: blur(12px);        /* Sfocatura sfondo aumentata */
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 12px;
+    
     display: flex;
     flex-direction: column;
-    z-index: 140; /* Sotto la chat ma sopra i video */
+    z-index: 140; 
     color: #fff;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    transition: transform 0.3s ease, opacity 0.3s ease;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
 }
 
 #meeting-transcript-panel.hidden {
     display: none !important;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .transcript-header {
-    padding: 10px 15px;
+    padding: 12px 15px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px 12px 0 0;
+    cursor: default; /* Indica che è l'intestazione */
 }
 
 .transcript-header h4 {
     margin: 0;
-    font-size: 1em;
+    font-size: 0.95em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
     color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .transcript-header button {
-    background: transparent;
+    background: rgba(255,255,255,0.1);
     border: none;
-    color: #aaa;
+    color: #fff;
     cursor: pointer;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
 }
 
-.transcript-header button:hover { color: #fff; }
+.transcript-header button:hover { 
+    background: var(--danger); 
+}
+
+.transcript-header button .material-icons {
+    font-size: 16px; /* Icona chiusura più piccola ed elegante */
+}
 
 #transcript-content {
     flex-grow: 1;
@@ -1429,16 +1453,34 @@ body.light-theme .sender-private {
     font-size: 0.9em;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+    scroll-behavior: smooth;
+}
+
+/* Scrollbar personalizzata sottile per il transcript */
+#transcript-content::-webkit-scrollbar {
+    width: 6px;
+}
+#transcript-content::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
 }
 
 .transcript-line {
-    line-height: 1.4;
+    line-height: 1.5;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 8px;
+}
+.transcript-line:last-child {
+    border-bottom: none;
 }
 
-.t-time { color: var(--muted); font-size: 0.8em; margin-right: 5px; }
-.t-name { color: var(--accent-color); font-weight: bold; margin-right: 5px; }
-.t-text { color: #fff; }
+.t-time { 
+    color: var(--muted); 
+    font-size: 0.75em; 
+    margin-right: 6px;
+    font-family: monospace;
+}
 
 /* Indicatore attivo nel menu */
 #global-transcript-btn.active-recording {
@@ -1713,6 +1755,18 @@ body.light-theme .sender-private {
 		font-size: 1em !important;
 	}
     
+	#meeting-transcript-panel {
+        left: 50%;
+        transform: translateX(-50%); /* Centrato orizzontalmente */
+        bottom: 90px; /* Appena sopra il menu "Altro" che si apre */
+        width: 94%;   /* Occupa quasi tutta la larghezza */
+        max-height: 25vh; /* Massimo 1/4 dello schermo per non coprire le facce */
+        font-size: 0.9em; /* Testo leggermente più piccolo */
+    }
+    
+    #meeting-transcript-panel.hidden {
+        transform: translateX(-50%) translateY(20px); /* Animazione uscita verso il basso */
+    }
     /* Mobile Whiteboard Adjustments */
 	.wb-toolbar {
         top: 90px !important;
