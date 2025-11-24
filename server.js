@@ -55,31 +55,32 @@ io.on('connection', (socket) => {
     logToAdmin(`Nuova connessione: ${socket.id} (IP: ${clientIp})`);
 
     socket.on('join-room', (roomId, nickname, password = "") => {
-        // 1. CONTROLLO BAN
-		if (bannedIPs.has(clientIp)) {
+        // 1. CONTROLLO BAN (Di sicurezza)
+        if (bannedIPs.has(clientIp)) {
             socket.emit('error-message', 'Sei bannato.');
             return;
         }
 
-        // --- LOGICA ADMIN STANZA (@) ---
-        let isRoomCreator = false;
-        // Se la stanza non esiste o è vuota, chi entra è il Creatore
-        if (!rooms[roomId] || Object.keys(rooms[roomId]).length === 0) {
-            isRoomCreator = true;
-        }
-
-        // Rimuoviamo eventuali @ messe dall'utente per evitare falsi admin
-        let finalNickname = nickname.replace(/^@/, ''); 
+        // --- A. LOGICA PRELIMINARE & CONTROLLI ---
         
-        // Se è il creatore, aggiungiamo la @
-        if (isRoomCreator) {
-            finalNickname = '@' + finalNickname;
+        // Verifica se la stanza esiste nella memoria, altrimenti preparala
+        if (!rooms[roomId]) {
+            rooms[roomId] = {};
         }
 
-        // Creazione Config se non esiste
+        // Determina se è il creatore (se la stanza è vuota ORA)
+        let isRoomCreator = (Object.keys(rooms[roomId]).length === 0);
+
+        // Sanitizzazione Nickname
+        let finalNickname = nickname.replace(/^@/, ''); // Rimuovi @ fake
+        if (isRoomCreator) {
+            finalNickname = '@' + finalNickname; // Aggiungi @ reale
+        }
+
+        // Gestione Configurazione (Password/Topic/Color)
         if (!roomConfigs[roomId]) {
             roomConfigs[roomId] = { 
-				password: password, 
+                password: password, 
                 isLocked: false,
                 topic: "",
                 nameColor: "#00b8ff" // Default Ciano
@@ -88,25 +89,35 @@ io.on('connection', (socket) => {
         }
         const config = roomConfigs[roomId];
 
-        // Controlli Accesso (Lock & Password)
-        if (config.isLocked) { socket.emit('error-message', 'Stanza bloccata.'); return; }
-        if (config.password && config.password !== password) { socket.emit('error-message', 'Password errata.'); return; }
+        // --- B. CONTROLLI DI ACCESSO (STOP se falliscono) ---
 
-        socket.join(roomId);
-        if (!rooms[roomId]) rooms[roomId] = {};
-        
-        // Controllo Nickname Duplicato
+        // 1. Controllo Lock
+        if (config.isLocked) { 
+            socket.emit('error-message', 'Stanza bloccata.'); 
+            return; 
+        }
+
+        // 2. Controllo Password
+        if (config.password && config.password !== password) { 
+            socket.emit('error-message', 'Password errata.'); 
+            return; 
+        }
+
+        // 3. Controllo Nickname Duplicato
         const nicknameExists = Object.values(rooms[roomId]).some(n => n.toLowerCase() === finalNickname.toLowerCase());
         if (nicknameExists) {
             socket.emit('nickname-in-use', `Il nickname '${finalNickname}' è già in uso.`);
             return;
         }
 
-        // Salvataggio Utente
-        rooms[roomId][socket.id] = finalNickname;
+        // --- C. ACCESSO EFFETTIVO (Solo ora facciamo join) ---
+
+        socket.join(roomId); // <-- JOIN Socket avviene SOLO SE i controlli passano
+        rooms[roomId][socket.id] = finalNickname; // Aggiungi alla lista utenti
+        
         logToAdmin(`User joined: ${finalNickname} -> ${roomId}`);
 
-        // Lista Utenti per il Client
+        // Preparazione lista partecipanti per il client
         const peers = Object.entries(rooms[roomId])
             .filter(([id]) => id !== socket.id)
             .map(([id, nick]) => ({ id, nickname: nick }));
@@ -129,7 +140,7 @@ io.on('connection', (socket) => {
             socket.emit('chat-history', roomMessages[roomId]);
         }
         
-        // 4. Salva messaggio "È entrato" nel DB (senza inviarlo live, ci pensa peer-joined/welcome)
+        // 4. Salva messaggio "È entrato" nello storico (SENZA inviarlo live)
         if (!roomMessages[roomId]) roomMessages[roomId] = [];
         roomMessages[roomId].push({
             sender: 'Sistema',
@@ -140,7 +151,8 @@ io.on('connection', (socket) => {
         });
 
         broadcastAdminUpdate();
-    });
+	});
+});
 
 	// --- GESTIONE OPERATORE STANZA (@) ---
     socket.on('op-update-settings', (roomId, newTopic, newPassword, newColor) => {

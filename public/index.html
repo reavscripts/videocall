@@ -7,9 +7,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest.json">
-
+<script src="https://unpkg.com/picmo@latest/dist/umd/index.js"></script>
+<script src="https://unpkg.com/@picmo/popup-picker@latest/dist/umd/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
 <link rel="stylesheet" href="style.css" />
+<link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon/favicon-16x16.png">
@@ -195,9 +198,20 @@
         <aside id="chat-panel" class="panel-column">
             <h3>💬 Chat</h3>
             <div id="messages-container"></div>
+            
+            <div id="typing-indicator" class="hidden">
+                <span class="dots">
+                    <span>.</span><span>.</span><span>.</span>
+                </span>
+                <span id="typing-text">Qualcuno sta scrivendo</span>
+            </div>
+
             <div id="chat-input-area">
-                <input type="text" id="chat-message-input" placeholder="Type a message..." />
-                <button id="send-chat-button">Send</button>
+                <button id="emoji-toggle-btn" title="Inserisci Emoji">😀</button>
+                
+                <input type="text" id="chat-message-input" placeholder="Scrivi un messaggio... (supporta Markdown)" autocomplete="off" />
+                <button id="send-chat-button">
+                    <span class="material-icons">send</span> </button>
             </div>
         </aside>
 

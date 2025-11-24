@@ -1995,6 +1995,20 @@ function initializeSocket(){
       location.reload();
   });
   
+// --- GESTIONE TYPING REMOTE ---
+    socket.on('remote-typing-start', (sid, nick) => {
+        activeTypers.add(nick);
+        updateTypingUI();
+    });
+
+    socket.on('remote-typing-stop', (sid) => {
+        // Recuperiamo il nick dalla mappa globale dei partecipanti
+        const nick = remoteNicknames[sid];
+        if (nick) {
+            activeTypers.delete(nick);
+            updateTypingUI();
+        }
+    });
 // --- SOCKET EVENTI TRASCRIZIONE ---
 
   // 1. Qualcuno mi chiede di attivare il MIO riconoscimento vocale
@@ -2688,6 +2702,24 @@ function applyRoomBrandColor(color) {
     
     // Aggiorna anche il Glow (Bagliore) con trasparenza
     titleEl.style.filter = `drop-shadow(0 0 15px ${color}80)`; // 80 hex = ~50% opacità
+}
+
+function updateTypingUI() {
+    const count = activeTypers.size;
+    if (count === 0) {
+        typingIndicator.classList.add('hidden');
+    } else {
+        typingIndicator.classList.remove('hidden');
+        if (count === 1) {
+            const [name] = activeTypers;
+            typingText.textContent = `${name} sta scrivendo...`;
+        } else {
+            typingText.textContent = `Più persone stanno scrivendo...`;
+        }
+        
+        // Scrolla in basso per mostrare l'indicatore se siamo vicini alla fine
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
 }
 
 // FINE DEL FILE
