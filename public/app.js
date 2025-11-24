@@ -1109,22 +1109,37 @@ function ensureRemoteFeed(socketId, nickname='Utente'){
 function removeRemoteFeed(socketId){
   const el = videosGrid.querySelector(`[data-peer-id="${socketId}"]`);
   if(el) el.remove();
+  
+  // Pulizia risorse completa
   if(peerConnections[socketId]) { peerConnections[socketId].close(); delete peerConnections[socketId]; }
   if (dataChannels[socketId]) { dataChannels[socketId].close(); delete dataChannels[socketId]; }
   delete fileChunks[socketId]; delete fileMetadata[socketId];
   delete remoteNicknames[socketId]; delete iceCandidateQueues[socketId];
   delete videoSenders[socketId]; delete manuallyMutedPeers[socketId]; 
+  
   if (currentSpeakerId === socketId) currentSpeakerId = null;
   if (autoFocusTimer) { clearTimeout(autoFocusTimer); autoFocusTimer = null; }
-  if(focusedPeerId === socketId)  
-  if(videosGrid.children.length === 1 && videosGrid.querySelector('#local-feed')){
+
+  // CORREZIONE FOCUS: Se esce l'utente che stavo guardando ingrandito, torna alla griglia
+  if(focusedPeerId === socketId) {
+      setFocus(null); 
+  }
+
+  // Se rimane solo il mio video locale, mostra il messaggio di attesa
+  const remoteVideos = videosGrid.querySelectorAll('.video-feed:not(#local-feed)');
+  if(remoteVideos.length === 0){
+    // Rimuovi eventuali placeholder vecchi per non duplicarli
+    const oldPh = document.getElementById('remote-video-placeholder');
+    if(oldPh) oldPh.remove();
+
     const placeholder = document.createElement('div');
     placeholder.id = 'remote-video-placeholder';
     placeholder.className = 'video-placeholder';
-    placeholder.textContent = 'In attesa di altri partecipanti...';
+    placeholder.textContent = t('waiting_others');
     videosGrid.insertBefore(placeholder, localFeedEl);
   }
 }
+
 // app.js - PARTE 2
 
 function toggleAudio(){
@@ -2113,7 +2128,7 @@ function initializeSocket(){
   socket.on('connect', ()=> log('Connesso', socket.id));
 
   socket.on('nickname-in-use', (msg) => { alert(msg); resetAndShowOverlay(); if (socket) socket.disconnect(); socket = null; });
-  socket.on('welcome', (newPeerId, nickname, peers=[])=>{ remoteNicknames[newPeerId] = nickname; addChatMessage(userNickname, `${t('welcome')} ${currentRoomId}!`, false, 'system'); peers.forEach(peer=>{ if(peer.id !== socket.id) { remoteNicknames[peer.id] = peer.nickname; createPeerConnection(peer.id); } }); setFocus('local', false); });
+  socket.on('welcome', (newPeerId, nickname, peers=[])=>{ remoteNicknames[newPeerId] = nickname; addChatMessage(userNickname, `${t('welcome')} ${currentRoomId}!`, false, 'system'); peers.forEach(peer=>{ if(peer.id !== socket.id) { remoteNicknames[peer.id] = peer.nickname; createPeerConnection(peer.id); } });  });
   
   // Whiteboard events
   socket.on('wb-draw', (data) => { 
