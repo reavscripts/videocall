@@ -7,7 +7,7 @@
     --text-color: #fff;
     --muted: #b0b0b0;
     --danger: #ef5350;
-    --panel-width-desktop: 300px;
+    --panel-width-desktop: 400px;
     --border-color: #333;
 }
 
@@ -554,12 +554,86 @@ input:checked + .slider:before {
 
 #room-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-between; /* Spinge sx e dx ai lati */
     align-items: center;
-    padding: 10px 20px;
+    padding: 0 20px;
+    height: 60px; /* Altezza fissa per stabilità */
     background: var(--surface);
     border-bottom: 1px solid var(--border-color);
-    z-index: 100;
+    position: relative; /* Necessario per il posizionamento assoluto del centro */
+}
+
+/* --- HEADER: TOPIC CENTRALE (MODERN MINIMAL) --- */
+#room-topic-container {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    text-align: center;
+    pointer-events: none;
+    z-index: 10;
+}
+
+#room-topic-display {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px; /* Spazio tra l'etichetta TOPIC e il testo */
+    
+    /* Sfondo: Nero profondo semi-trasparente */
+    background: rgba(15, 15, 15, 0.85);
+    backdrop-filter: blur(8px); /* Effetto sfocatura moderno */
+    
+    /* Nessun bordo colorato, solo una linea sottilissima per definizione */
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px; /* Angoli arrotondati morbidi */
+    
+    padding: 10px 24px; /* Spazioso */
+    
+    /* Ombra morbida per staccarlo dallo sfondo */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    
+    /* Testo Principale */
+    font-family: 'Roboto', 'Segoe UI', sans-serif; /* Font moderno, NO monospace */
+    font-size: 1.3em; /* Grande e visibile */
+    font-weight: 500;
+    color: #ffffff; /* Bianco puro per massima leggibilità */
+    letter-spacing: 0.3px;
+    
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    
+    transition: all 0.3s ease;
+}
+
+#room-topic-display.hidden {
+    opacity: 0 !important;
+    transform: translateY(-15px);
+    visibility: hidden;
+}
+
+/* L'etichetta "TOPIC" come prefisso elegante */
+#room-topic-display::before {
+    content: 'TOPIC';
+    
+    /* Stile minimale: Testo dorato piccolo */
+    font-size: 0.65em;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #ffd740; /* Oro */
+    
+    /* Linea divisoria verticale a destra dell'etichetta */
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    padding-right: 12px;
+    margin-right: 2px;
+    
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    height: 100%;
 }
 
 #room-header h3 {
@@ -740,6 +814,8 @@ input:checked + .slider:before {
     flex-direction: column;
     border-left: 1px solid var(--border-color);
     z-index: 150;
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, width 0.3s ease;
 }
 
 #chat-panel.hidden {
@@ -748,10 +824,13 @@ input:checked + .slider:before {
 
 #chat-panel h3 {
     margin: 0;
-    padding: 15px 20px;
+    padding: 20px 25px; /* Più spazioso */
     color: var(--primary-color);
     border-bottom: 1px solid var(--border-color);
-    font-size: 1.2em;
+    font-size: 1.4em; /* Titolo più grande */
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    background: var(--surface-2); /* Sfondo leggermente diverso per l'header */
 }
 
 #messages-container {
@@ -764,9 +843,9 @@ input:checked + .slider:before {
 }
 
 .chat-message {
-    font-size: 0.95em;
-    line-height: 1.4;
-    color: var(--text-color);
+    font-size: 1em; /* Testo un po' più grande (era 0.95em) */
+    line-height: 1.5;
+    padding: 8px 10px; /* Più respiro attorno ai messaggi */
 }
 
 .sender-me {
@@ -1491,6 +1570,423 @@ body.light-theme .sender-private {
     animation: pulse 1.5s infinite;
 }
 
+/* --- DIVISORE CHAT (CRONOLOGIA) --- */
+.chat-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 20px 0; /* Spazio sopra e sotto */
+    color: var(--muted);
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.8;
+}
+
+.chat-divider::before,
+.chat-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color); /* Linea dello stesso colore dei bordi */
+    opacity: 0.6;
+}
+
+.chat-divider span {
+    padding: 0 15px; /* Spazio attorno al testo */
+    font-weight: 600;
+    background: var(--surface); /* Sfondo uguale al pannello chat per coprire la riga */
+    border-radius: 10px;
+}
+
+/* --- STILE MESSAGGI DI SISTEMA (IRC / MINIMAL - LEFT ALIGN) --- */
+.message-system-wrapper {
+    display: flex;
+    justify-content: flex-start; /* <--- CAMBIATO: Allinea a sinistra */
+    margin: 4px 0;
+    width: 100%;
+    opacity: 0.9;
+}
+
+.system-msg-content {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.85em;
+    font-weight: normal;
+    color: #69f0ae; /* Verde Terminale */
+    
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    letter-spacing: 0.5px;
+    text-align: left; /* <--- CAMBIATO: Testo a sinistra */
+}
+
+.system-msg-content::before {
+    content: '*** ';
+    opacity: 0.6;
+    margin-right: 4px;
+}
+
+/* --- STILE TOPIC --- */
+.room-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#room-topic-display {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9em;
+    color: #69f0ae; /* Verde Terminale */
+    background: rgba(0, 20, 0, 0.6);
+    padding: 4px 12px;
+    border: 1px solid rgba(105, 240, 174, 0.3);
+    border-radius: 4px;
+    display: inline-block;
+    
+    /* Gestione testo lungo */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    
+    box-shadow: 0 0 10px rgba(105, 240, 174, 0.1);
+}
+
+#room-topic-display::before {
+    content: 'TOPIC: ';
+    opacity: 0.7;
+    font-weight: bold;
+}
+
+/* --- MODALE OP STILE IRC / TERMINALE --- */
+.op-modal-content.irc-theme {
+    background-color: #0a0a0a;
+    border: 2px solid #00ff00; /* Verde Hacker */
+    border-radius: 0; /* Squadrato */
+    font-family: 'Courier New', Courier, monospace;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+    width: 400px;
+    max-width: 95%;
+}
+
+
+/* --- PULSANTE OP (POWER MODE) --- */
+#op-settings-btn {
+    /* Stile base uguale agli altri bottoni header */
+    background: rgba(255, 215, 64, 0.15); /* Sfondo Oro leggero */
+    color: #ffd740; /* Colore Oro/Ambra */
+    border: 1px solid rgba(255, 215, 64, 0.3);
+    border-radius: 6px; /* Stesso raggio degli altri */
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(255, 215, 64, 0.1); /* Leggero alone dorato */
+}
+
+/* Hover: diventa più luminoso e solido */
+#op-settings-btn:hover {
+    background: #ffd740;
+    color: #000; /* Testo nero su oro per massimo contrasto (Power) */
+    box-shadow: 0 0 15px rgba(255, 215, 64, 0.6);
+    transform: translateY(-1px);
+}
+
+#op-settings-btn .material-icons {
+    font-size: 1.3em; /* Dimensione coerente con le altre icone */
+}
+
+/* Animazione Pulsazione (quando entri ed il sistema vuole attirare l'attenzione) */
+@keyframes opPowerPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 215, 64, 0.7); border-color: #ffd740; }
+    70% { box-shadow: 0 0 0 6px rgba(255, 215, 64, 0); border-color: #ffd740; }
+    100% { box-shadow: 0 0 0 0 rgba(255, 215, 64, 0); border-color: rgba(255, 215, 64, 0.3); }
+}
+
+.op-attention {
+    animation: opPowerPulse 2s infinite !important;
+    background-color: #ffd740 !important;
+    color: #000 !important;
+    font-weight: bold;
+}
+
+/* --- MODALE OP (DESIGN MINIMALE / MODERNO) --- */
+#op-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75); /* Sfondo leggermente più scuro per focus */
+    backdrop-filter: blur(5px);       /* Sfocatura sfondo dietro al modale */
+    z-index: 2500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.op-modal-content {
+    background: var(--surface);       /* Grigio scuro standard */
+    border: 1px solid var(--border-color);
+    border-radius: 16px;              /* Bordi più morbidi */
+    width: 380px;
+    max-width: 90%;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+}
+
+/* Header Ridisegnato: Centrato e Pulito */
+.op-header {
+    background: var(--surface);       /* Stesso colore del corpo per continuità */
+    padding: 20px 20px 10px 20px;     /* Più spazio sopra */
+    display: flex;
+    justify-content: center;          /* CENTRATO */
+    align-items: center;
+    position: relative;               /* Per posizionare la X assoluta */
+    border-bottom: none;              /* Rimuoviamo la linea divisoria dura */
+}
+
+.op-header h4 {
+    margin: 0;
+    color: var(--text-color);
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.2em;                 /* Un po' più grande */
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Bottone Chiudi (X) posizionato in alto a destra in modo discreto */
+.op-header button#close-op-modal {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.op-header button#close-op-modal:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+}
+
+/* Corpo del Modale */
+.op-body {
+    padding: 10px 25px 30px 25px;     /* Spaziatura bilanciata */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Etichette e Input */
+.op-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.op-field-group label {
+    font-size: 0.85em;
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;        /* Etichette maiuscole piccole ed eleganti */
+    letter-spacing: 0.5px;
+    margin-left: 2px;
+}
+
+.op-field-group input {
+    width: 100%;
+    background: var(--surface-2);     /* Input leggermente più chiari dello sfondo */
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 15px;
+    color: var(--text-color);
+    font-size: 0.95em;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+/* Focus Input: Bordo color Oro/Ambra delicato */
+.op-field-group input:focus {
+    border-color: #ffd740;
+    background: rgba(255, 215, 64, 0.05); /* Sfondo leggermente colorato al focus */
+}
+
+.op-field-group small {
+    font-size: 0.75em;
+    color: var(--muted);
+    opacity: 0.7;
+    margin-top: 4px;
+}
+
+/* Input con icona (Password) */
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon .icon {
+    position: absolute;
+    left: 12px;
+    font-size: 1.2em;
+    color: var(--muted);
+    pointer-events: none;
+}
+
+.input-with-icon input {
+    padding-left: 40px; /* Spazio per l'icona */
+}
+
+/* --- PULSANTE SALVA MINIMALE --- */
+.op-actions {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center; /* Bottone Centrato */
+}
+
+#op-save-btn {
+    /* Stile Minimale Scuro/Elegante */
+    background: var(--surface-2);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    
+    width: 100%;             /* Bottone largo quanto il modale */
+    padding: 12px 0;
+    border-radius: 8px;
+    
+    font-family: 'Roboto', sans-serif;
+    font-weight: 600;
+    font-size: 0.95em;
+    letter-spacing: 0.5px;
+    
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Hover: Diventa leggermente più chiaro/dorato */
+#op-save-btn:hover {
+    background: #ffd740;     /* Diventa Oro al passaggio */
+    color: #000;             /* Testo nero su Oro */
+    border-color: #ffd740;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+#op-save-btn:active {
+    transform: translateY(0);
+}
+
+/* Rimuoviamo il contenuto "save" generato dal CSS precedente che duplicava il testo */
+#op-save-btn::before {
+    content: none !important; 
+}
+
+.irc-input-group {
+    margin-bottom: 20px;
+}
+
+.irc-input-group label {
+    display: block;
+    color: #00ff00;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.irc-input-group input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid #333;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    font-size: 1.1em;
+    padding: 5px 0;
+    border-radius: 0;
+}
+
+.irc-input-group input:focus {
+    outline: none;
+    border-bottom: 2px solid #00ff00;
+    box-shadow: 0 4px 0 -2px rgba(0,255,0,0.2);
+}
+
+.irc-status-line {
+    color: #444;
+    font-size: 0.8em;
+    margin-bottom: 20px;
+}
+
+.blinking-cursor {
+    animation: blink 1s step-end infinite;
+    color: #00ff00;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+
+.irc-actions {
+    text-align: right;
+}
+
+#op-save-btn {
+    background: transparent;
+    color: #00ff00;
+    border: 2px solid #00ff00;
+    padding: 10px 20px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#op-save-btn:hover {
+    background: #00ff00;
+    color: #000;
+    box-shadow: 0 0 15px #00ff00;
+}
+
+
+.op-hint { font-size: 0.75em; color: var(--muted); margin-top: 5px; text-align: center; }
+
+/* Adattamento per tema chiaro (facoltativo) */
+body.light-theme .system-msg-content {
+    color: #00796b; /* Verde scuro su sfondo chiaro */
+    text-shadow: none;
+}
+
+/* Animazione per attirare l'attenzione dell'OP */
+@keyframes opPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 215, 64, 0.7); transform: scale(1); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 215, 64, 0); transform: scale(1.1); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 215, 64, 0); transform: scale(1); }
+}
+
+.op-attention {
+    animation: opPulse 2s infinite;
+    background-color: rgba(255, 215, 64, 0.2) !important;
+    border: 1px solid #ffd740 !important;
+}
+
 /* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
 @media (max-width: 768px) {
 
@@ -1767,6 +2263,18 @@ body.light-theme .sender-private {
     #meeting-transcript-panel.hidden {
         transform: translateX(-50%) translateY(20px); /* Animazione uscita verso il basso */
     }
+	
+	#room-topic-display {
+        font-size: 1em; /* Un po' più piccolo su mobile */
+        padding: 8px 16px;
+        width: 90%;
+        border-radius: 8px;
+    }
+    #room-topic-display::before {
+        font-size: 0.65em;
+        padding: 2px 6px;
+    }
+	
     /* Mobile Whiteboard Adjustments */
 	.wb-toolbar {
         top: 90px !important;

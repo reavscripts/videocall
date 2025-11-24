@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Video Conference - WebRTC</title>
-<link rel="stylesheet" href="style.css?v=1.44" />
+<link rel="stylesheet" href="style.css?v=1.5" />
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon/favicon-16x16.png">
@@ -89,9 +89,20 @@
 <div id="conference-container" class="hidden">
     <header id="room-header">
         <div class="header-left">
-            <h3>Room: <span id="room-name-display"></span></h3>
+            <div class="room-title-wrapper">
+                <h3><span id="room-name-display"></span></h3>
+            </div>
         </div>
+
+        <div id="room-topic-container">
+            <div id="room-topic-display" class="hidden"></div>
+        </div>
+        
         <div class="header-controls">
+            <button id="op-settings-btn" class="hidden" title="OP Command Console">
+                <span class="material-icons">admin_panel_settings</span>
+            </button>
+
             <button id="show-chat-btn" title="Open Chat">
                 <span class="material-icons">chat</span>
             </button>
@@ -104,14 +115,43 @@
         </div>
     </header>
 
+    <div id="op-modal" class="hidden">
+        <div class="op-modal-content">
+            <div class="op-header">
+                <h4><span class="material-icons" style="color: #ffd740;">tune</span> Gestione Stanza</h4>
+                <button id="close-op-modal" title="Chiudi"><span class="material-icons">close</span></button>
+            </div>
+            
+            <div class="op-body">
+                <div class="op-field-group">
+                    <label for="op-topic-input">Topic del giorno</label>
+                    <input type="text" id="op-topic-input" placeholder="Es: Riunione budget..." maxlength="100" autocomplete="off">
+                </div>
+                
+                <div class="op-field-group">
+                    <label for="op-password-input">Password Accesso (Opzionale)</label>
+                    <div class="input-with-icon">
+                        <span class="material-icons icon">lock_outline</span>
+                        <input type="password" id="op-password-input" placeholder="Lascia vuoto per accesso libero" autocomplete="off">
+                    </div>
+                    <small>Se impostata, apparirà un lucchetto 🔒 accanto al nome.</small>
+                </div>
+
+                <div class="op-actions">
+                    <button id="op-save-btn">Applica Modifiche</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <main id="main-area">
         <section id="videos-grid">
             <div id="local-feed" class="video-feed ratio-4-3 hidden" data-peer-id="local">
                 <video id="local-video" autoplay playsinline muted></video>
-                <div class="video-label">
-                    <span id="local-mic-status" class="material-icons">mic</span>
-                    You
-                </div>
+				<div class="video-label">
+					<span id="local-mic-status" class="material-icons">mic</span>
+					<span id="local-nickname-display">Tu</span> 
+				</div>
             </div>
         </section>
 
@@ -227,6 +267,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
-<script src="app.js?v=1.44"></script>
+<script src="app.js?v=1.5"></script>
 </body>
 </html>

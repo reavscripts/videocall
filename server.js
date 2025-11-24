@@ -19,6 +19,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const rooms = {}; // { roomId: { socketId: nickname } }
 // Nuove strutture dati
 const roomConfigs = {}; // { roomId: { password: '...', isLocked: false } }
+const roomMessages = {}; // { roomId: [ {sender, text, id, timestamp} ] }
 const bannedIPs = new Set(); // Set di stringhe IP
 const admins = new Set(); 
 
@@ -53,62 +54,127 @@ io.on('connection', (socket) => {
     logToAdmin(`Nuova connessione: ${socket.id} (IP: ${clientIp})`);
 
     socket.on('join-room', (roomId, nickname, password = "") => {
-        // 2. CONTROLLO BAN (Doppio check per sicurezza)
+        // 1. CONTROLLO BAN
 		if (bannedIPs.has(clientIp)) {
             socket.emit('error-message', 'Sei bannato.');
             return;
         }
 
+        // --- LOGICA ADMIN STANZA (@) ---
+        // Se la stanza non esiste o è vuota, chi entra è il Creatore
+        let isRoomCreator = false;
+        if (!rooms[roomId] || Object.keys(rooms[roomId]).length === 0) {
+            isRoomCreator = true;
+        }
+
+        // Rimuoviamo eventuali @ messe dall'utente per evitare falsi admin
+        let finalNickname = nickname.replace(/^@/, ''); 
+        
+        // Se è il creatore, aggiungiamo la @
+        if (isRoomCreator) {
+            finalNickname = '@' + finalNickname;
+        }
+        // -------------------------------
+
+        // Creazione Config se non esiste
         if (!roomConfigs[roomId]) {
-            // Se la stanza non esiste, la creo usando la password fornita dall'utente
             roomConfigs[roomId] = { 
-                password: password, // <--- ASSEGNA LA PASSWORD QUI
-                isLocked: false 
+                password: password, 
+                isLocked: false,
+                topic: "" // Campo Topic vuoto di default
             };
-            
-            if(password) {
-                logToAdmin(`Stanza ${roomId} creata con password.`);
-            }
+            if(password) logToAdmin(`Stanza ${roomId} creata con password.`);
         }
         const config = roomConfigs[roomId];
 
-        // 3. CONTROLLO ROOM LOCK
-        if (config.isLocked) {
-            socket.emit('error-message', 'Questa stanza è bloccata momentaneamente.');
-            return;
-        }
-
-        // 4. CONTROLLO PASSWORD
-        if (config.password && config.password !== password) {
-            socket.emit('error-message', 'Password della stanza errata.');
-            return;
-        }
+        // Controlli Accesso
+        if (config.isLocked) { socket.emit('error-message', 'Stanza bloccata.'); return; }
+        if (config.password && config.password !== password) { socket.emit('error-message', 'Password errata.'); return; }
 
         socket.join(roomId);
-
         if (!rooms[roomId]) rooms[roomId] = {};
         
-        // Controllo nickname duplicato
-        const nicknameExists = Object.values(rooms[roomId]).some(n => n.toLowerCase() === nickname.toLowerCase());
+        // Controllo nick duplicato
+        const nicknameExists = Object.values(rooms[roomId]).some(n => n.toLowerCase() === finalNickname.toLowerCase());
         if (nicknameExists) {
-            socket.emit('nickname-in-use', `Il nickname '${nickname}' è già in uso.`);
+            socket.emit('nickname-in-use', `Il nickname '${finalNickname}' è già in uso.`);
             return;
         }
 
-        rooms[roomId][socket.id] = nickname;
+        rooms[roomId][socket.id] = finalNickname;
         
-        logToAdmin(`User joined: ${nickname} -> ${roomId}`);
+        logToAdmin(`User joined: ${finalNickname} -> ${roomId}`);
 
         const peers = Object.entries(rooms[roomId])
             .filter(([id]) => id !== socket.id)
             .map(([id, nick]) => ({ id, nickname: nick }));
 
-        socket.emit('welcome', socket.id, nickname, peers);
-        socket.to(roomId).emit('peer-joined', socket.id, nickname);
+        // --- PUNTO CRUCIALE: Inviamo welcome con i dati OP ---
+        socket.emit('welcome', socket.id, finalNickname, peers, config.topic, !!config.password);
         
+        socket.to(roomId).emit('peer-joined', socket.id, finalNickname);
+        
+        // Invio Storico
+        if (roomMessages[roomId] && roomMessages[roomId].length > 0) {
+            socket.emit('chat-history', roomMessages[roomId]);
+        }
+        
+        // Messaggio Sistema
+        if (!roomMessages[roomId]) roomMessages[roomId] = [];
+        roomMessages[roomId].push({
+            sender: 'Sistema',
+            text: `${finalNickname} è entrato.`,
+            id: 'sys_' + Date.now(),
+            timestamp: Date.now(),
+            type: 'system'
+        });
+
         broadcastAdminUpdate();
     });
 
+// --- GESTIONE OPERATORE STANZA (@) ---
+    socket.on('op-update-settings', (roomId, newTopic, newPassword) => {
+        // 1. Sicurezza
+        if (!rooms[roomId] || !rooms[roomId][socket.id]) return;
+        const currentNick = rooms[roomId][socket.id];
+        if (!currentNick.startsWith('@')) {
+            socket.emit('error-message', "Non hai i permessi di Operatore (@).");
+            return;
+        }
+
+        if (roomConfigs[roomId]) {
+            // --- CALCOLO DIFFERENZE (DIFF) ---
+            const oldTopic = roomConfigs[roomId].topic || "";
+            const oldHasPassword = !!roomConfigs[roomId].password;
+            const newHasPassword = !!newPassword;
+
+            // Applica Modifiche
+            roomConfigs[roomId].topic = newTopic || "";
+            roomConfigs[roomId].password = newPassword || ""; 
+
+            // Determina cosa è cambiato
+            const topicChanged = (oldTopic !== (newTopic || ""));
+            
+            let passwordAction = null; // 'added', 'removed', o null (nessun cambio)
+            if (!oldHasPassword && newHasPassword) passwordAction = 'added';
+            else if (oldHasPassword && !newHasPassword) passwordAction = 'removed';
+            
+            // Log Admin
+            logToAdmin(`OP ${currentNick} update ${roomId}: Topic=${topicChanged}, Pass=${passwordAction}`);
+
+            // 4. Avvisa TUTTI inviando anche COSA è cambiato
+            io.to(roomId).emit('room-info-updated', 
+                newTopic, 
+                newHasPassword, 
+                topicChanged,    // <--- Nuovo Parametro
+                passwordAction   // <--- Nuovo Parametro
+            );
+            
+            socket.emit('op-settings-saved');
+            broadcastAdminUpdate();
+        }
+    });
+	
 // --- GLOBAL MEETING TRANSCRIPTION ---
 
     // 1. Toggle: Qualcuno avvia/ferma la registrazione globale
@@ -232,11 +298,25 @@ io.on('connection', (socket) => {
     socket.on('transcription-result', (targetId, text, isFinal) => {
         io.to(targetId).emit('transcription-data', socket.id, text, isFinal);
     });
+	
 	socket.on('send-message', (r, s, m, msgId) => {
-        // Se il client non invia ID (vecchie versioni), ne generiamo uno noi, ma meglio che lo faccia il client
         const finalId = msgId || Date.now().toString(); 
+        
+        if (!roomMessages[r]) roomMessages[r] = [];
+        
+        roomMessages[r].push({
+            sender: s,
+            text: m,
+            id: finalId,
+            timestamp: Date.now(),
+            type: 'public' // <--- Aggiunto il tipo
+        });
+
+        if (roomMessages[r].length > 100) roomMessages[r].shift();
+
         socket.to(r).emit('new-message', s, m, finalId);
     });
+	
 	socket.on('msg-read', (roomId, messageId, readerNickname) => {
         // Invia a tutti nella stanza (incluso chi l'ha inviato) che questo messaggio è stato letto
         io.to(roomId).emit('msg-read-update', messageId, readerNickname);
@@ -254,23 +334,44 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         if (admins.has(socket.id)) admins.delete(socket.id);
-        // Logica rimozione user...
+        
         let roomId = null;
+        let nickname = null; // Variabile per salvare il nome
+
         for (const id in rooms) {
             if (rooms[id][socket.id]) {
                 roomId = id;
+                nickname = rooms[id][socket.id]; // 1. SALVIAMO IL NICKNAME
+                
                 delete rooms[id][socket.id];
+                
+                // 2. SALVA MESSAGGIO "USCITO" NELLO STORICO
+                if (roomMessages[id]) {
+                    roomMessages[id].push({
+                        sender: 'Sistema',
+                        text: `${nickname} è uscito.`,
+                        id: 'sys_' + Date.now(),
+                        timestamp: Date.now(),
+                        type: 'system'
+                    });
+                }
+
+                // Se vuota cancella tutto
                 if (Object.keys(rooms[id]).length === 0) {
                     delete rooms[id];
-                    delete roomConfigs[id]; // Pulisci config se stanza vuota
+                    delete roomConfigs[id];  
                 }
                 break;
             }
         }
-        if (roomId) socket.to(roomId).emit('peer-left', socket.id);
+        
+        // 3. INVIA IL NICKNAME AL CLIENT (peer-left ora invia 2 argomenti)
+        if (roomId) socket.to(roomId).emit('peer-left', socket.id, nickname);
+        
         broadcastAdminUpdate();
     });
 });
+
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

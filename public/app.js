@@ -12,6 +12,15 @@ const videosGrid = document.getElementById('videos-grid');
 const localVideoEl = document.getElementById('local-video');
 const localFeedEl = document.getElementById('local-feed'); 
 
+// ** CONTROLLI OPERATORE (@) **
+const opSettingsBtn = document.getElementById('op-settings-btn');
+const opModal = document.getElementById('op-modal');
+const closeOpModalBtn = document.getElementById('close-op-modal');
+const opSaveBtn = document.getElementById('op-save-btn');
+const roomTopicDisplay = document.getElementById('room-topic-display');
+const opTopicInput = document.getElementById('op-topic-input');
+const opPasswordInput = document.getElementById('op-password-input');
+
 // VARIABILI SPEECH TO TEXT
 const menuToggleCC = document.getElementById('menu-toggle-cc');
 let recognition = null; // Istanza SpeechRecognition (se siamo noi a parlare)
@@ -434,6 +443,10 @@ const availableBackgrounds = [
     { id: 'grad2', name: 'Notte', value: 'linear-gradient(to top, #09203f 0%, #537895 100%)' },
 	{ id: 'moon', name: 'Moon', value: 'url("https://images.unsplash.com/photo-1517866184231-7ef94c2ea930?auto=format&fit=crop&w=1920&q=80")' },
 	{ id: 'earth', name: 'Earth', value: 'url("https://images.unsplash.com/photo-1656077217715-bdaeb06bd01f?auto=format&fit=crop&w=1920&q=80")' },
+	{ id: 'nebula1', name: 'Nebula 1', value: 'url("https://images.unsplash.com/photo-1716881139357-ddcb2f52940c?auto=format&fit=crop&w=1920&q=80")' },
+	{ id: 'nebula2', name: 'Nebula 2', value: 'url("https://images.unsplash.com/photo-1591972729866-028644a72183?auto=format&fit=crop&w=1920&q=80")' },
+	{ id: 'onepiece1', name: 'Luffy', value: 'url("https://images4.alphacoders.com/136/thumb-1920-1368242.png?auto=format&fit=crop&w=1920&q=80")' },
+	{ id: 'onepiece2', name: 'garp', value: 'url("https://images2.alphacoders.com/134/thumb-1920-1348840.jpeg?auto=format&fit=crop&w=1920&q=80")' },
     { id: 'img1', name: 'Montagna', value: 'url("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80")' },
     { id: 'clrmountain', name: 'Color Mount', value: 'url("https://images.unsplash.com/photo-1503027075-f790a0a2dcb6?auto=format&fit=crop&w=1920&q=80")' },
     { id: 'baloon', name: 'Baloons', value: 'url("https://images.unsplash.com/photo-1464692805480-a69dfaafdb0d?auto=format&fit=crop&w=1920&q=80")' },
@@ -1758,7 +1771,7 @@ function renderAdminDashboard(data) {
         if (config.isLocked) statusIcons += '🔒 ';
         if (config.password) statusIcons += '🔑 ';
 
-        header.innerHTML = `<span class="room-name">${statusIcons}${roomId}</span>`;
+        header.innerHTML = `<span class="room-name">${statusIcons}#${roomId}</span>`;
         
         // Container Controlli Stanza
         const controlsDiv = document.createElement('div');
@@ -1856,24 +1869,33 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
     const messageEl = document.createElement('div');
     messageEl.classList.add('chat-message');
 
-    // Se abbiamo un ID messaggio (quindi non è di sistema), configuriamo i dati per la lettura
-    if (msgId && type !== 'system') {
-        messageEl.dataset.messageId = msgId;
-        messageEl.dataset.readers = JSON.stringify([]); // Inizializziamo array vuoto
-        
-        // Aggiungiamo l'evento click per vedere chi ha letto
-        messageEl.addEventListener('click', () => showReadersDialog(msgId));
-        messageEl.style.cursor = 'pointer'; // Feedback visivo
+    // --- CASO 1: MESSAGGIO DI SISTEMA (Join/Leave) ---
+    // Lo stampiamo centrato, senza "Sistema:" davanti
+    if (type === 'system') {
+        messageEl.innerHTML = `
+            <div class="message-system-wrapper">
+                <span class="system-msg-content">${message}</span>
+            </div>
+        `;
+        messagesContainer.appendChild(messageEl);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return; // Ci fermiamo qui, non serve altro
     }
 
-    // Determina le classi CSS in base al tipo
+    // --- CASO 2: MESSAGGI NORMALI (Public/Private) ---
+    
+    // Configurazione ID per ricevute di lettura
+    if (msgId) {
+        messageEl.dataset.messageId = msgId;
+        messageEl.dataset.readers = JSON.stringify([]); 
+        messageEl.addEventListener('click', () => showReadersDialog(msgId));
+        messageEl.style.cursor = 'pointer'; 
+    }
+
     let cssClass;
     let senderText = sender;
 
-    if (type === 'system') {
-        cssClass = 'sender-system';
-        senderText = t('system');
-    } else if (type === 'private') {
+    if (type === 'private') {
         cssClass = 'sender-private';
     } else {
         cssClass = isLocal ? 'sender-me' : 'sender-remote';
@@ -1881,14 +1903,13 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
 
     // Costruzione del testo del mittente
     const prefix = isLocal 
-        ? `Tu${type === 'private' ? ` (DM a ${sender})` : ''}: ` 
+        ? `${userNickname}${type === 'private' ? ` (DM a ${sender})` : ''}: ` 
         : `${senderText}: `;
 
-    // Costruzione HTML del messaggio
     let htmlContent = `<span class="${cssClass}">${prefix}</span>${message}`;
 
-    // Aggiungiamo l'indicatore di lettura (spunte) solo se c'è un ID e non è di sistema
-    if (msgId && type !== 'system') {
+    // Aggiungiamo spunte di lettura solo se public
+    if (msgId) {
         htmlContent += `
             <div class="read-status" id="status-${msgId}">
                 <span class="read-count"></span>
@@ -1902,24 +1923,17 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
     // --- Logica Suoni e Notifiche ---
-    if (!isLocal && type !== 'system') {
-        // Suono di notifica
+    if (!isLocal) {
         playNotificationSound('chat');
-
-        // Controllo se la chat è visibile
-        // Consideriamo la chat aperta se il pannello è attivo (mobile) o non nascosto (desktop)
         const isChatVisible = (!chatPanel.classList.contains('hidden') && window.innerWidth > 768) || 
                               (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden'));
 
         if (isChatVisible) {
-            // Se la vedo, invio subito la conferma di lettura
             if (socket && currentRoomId && msgId) {
                 socket.emit('msg-read', currentRoomId, msgId, userNickname);
-                // Segniamo localmente come processato per non reinviarlo dopo
                 messageEl.classList.add('processed-read'); 
             }
         } else {
-            // Se la chat è chiusa, incremento il contatore badge
             unreadMessagesCount++;
             updateUnreadBadge();
         }
@@ -2128,7 +2142,83 @@ function initializeSocket(){
   socket.on('connect', ()=> log('Connesso', socket.id));
 
   socket.on('nickname-in-use', (msg) => { alert(msg); resetAndShowOverlay(); if (socket) socket.disconnect(); socket = null; });
-  socket.on('welcome', (newPeerId, nickname, peers=[])=>{ remoteNicknames[newPeerId] = nickname; addChatMessage(userNickname, `${t('welcome')} ${currentRoomId}!`, false, 'system'); peers.forEach(peer=>{ if(peer.id !== socket.id) { remoteNicknames[peer.id] = peer.nickname; createPeerConnection(peer.id); } });  });
+  
+  // Modifica la firma per ricevere anche topic e password
+  socket.on('welcome', (newPeerId, serverAssignedNickname, peers=[], topic="", hasPassword=false) => { 
+      userNickname = serverAssignedNickname;
+      const localLabel = document.getElementById('local-nickname-display');
+      if(localLabel) localLabel.textContent = userNickname;
+      
+      remoteNicknames[newPeerId] = serverAssignedNickname; 
+      
+      // Messaggio di benvenuto standard
+      addChatMessage(userNickname, `${t('welcome')} #${currentRoomId}!`, false, 'system'); 
+
+      // --- LOGICA UI OPERATORE ---
+      updateRoomInfoUI(topic, hasPassword);
+      
+      const opBtn = document.getElementById('op-settings-btn');
+      
+      if (userNickname.startsWith('@')) {
+          // 1. Mostra il bottone
+          opBtn.classList.remove('hidden');
+          
+          // 2. Fallo pulsare per attirare l'attenzione
+          opBtn.classList.add('op-attention');
+          
+          // 3. Pre-compila il valore del topic attuale nel modale
+          document.getElementById('op-topic-input').value = topic;
+
+          // 4. AVVISO ESPLICITO IN CHAT
+          setTimeout(() => {
+              addChatMessage('Sistema', '👑 Sei l\'Operatore (@). Clicca sullo scudo in alto per gestire Topic e Password.', false, 'system');
+          }, 500); // Leggero ritardo per farlo apparire dopo il benvenuto
+      } else {
+          opBtn.classList.add('hidden');
+          opBtn.classList.remove('op-attention');
+      }
+      // -------------------------------
+      
+      peers.forEach(peer=>{ 
+          if(peer.id !== socket.id) { 
+              remoteNicknames[peer.id] = peer.nickname; 
+              createPeerConnection(peer.id); 
+          } 
+      });  
+  });
+  
+  // Ora riceve anche 'topicChanged' (bool) e 'passwordAction' ('added'/'removed'/null)
+  socket.on('room-info-updated', (newTopic, hasPassword, topicChanged, passwordAction) => {
+      updateRoomInfoUI(newTopic, hasPassword);
+      
+      // Costruiamo il messaggio in modo intelligente
+      let parts = [];
+
+      // 1. Se il topic è cambiato
+      if (topicChanged) {
+          parts.push(`Topic aggiornato: "${newTopic || 'Nessuno'}"`);
+      }
+
+      // 2. Se la password è cambiata (solo se aggiunta o rimossa)
+      if (passwordAction === 'added') {
+          parts.push("La stanza è ora protetta da password 🔒");
+      } else if (passwordAction === 'removed') {
+          parts.push("Password rimossa (accesso libero) 🔓");
+      }
+
+      // 3. Mostra il messaggio SOLO se c'è qualcosa da dire
+      if (parts.length > 0) {
+          const finalMsg = parts.join(" | ");
+          addChatMessage('Sistema', finalMsg, false, 'system');
+      }
+  });
+
+  // Conferma personale per l'OP che il salvataggio è riuscito
+  socket.on('op-settings-saved', () => {
+      opModal.classList.add('hidden');
+      if(opPasswordInput) opPasswordInput.value = ''; // Pulisci campo password per sicurezza
+  });
+  
   
   // Whiteboard events
   socket.on('wb-draw', (data) => { 
@@ -2156,6 +2246,29 @@ function initializeSocket(){
       localWhiteboardHistory = []; 
       history.forEach(item => drawRemote(item)); 
       if (whiteboardContainer.classList.contains('hidden') && history.length > 0) toggleWhiteboardButton.classList.add('has-notification'); 
+  });
+  
+  // --- GESTIONE CRONOLOGIA CHAT (Versione Grafica) ---
+  socket.on('chat-history', (history) => {
+      // 1. Carica messaggi
+      history.forEach(msg => {
+          const isMe = (msg.sender === userNickname);
+          // Usa il tipo salvato dal server (system/public) o defaulta a 'public'
+          const msgType = msg.type || 'public';
+          
+          addChatMessage(msg.sender, msg.text, isMe, msgType, msg.id);
+      });
+
+      // 2. Divisore Grafico
+      const divider = document.createElement('div');
+      divider.className = 'chat-divider';
+      divider.innerHTML = '<span>Cronologia Precedente</span>';
+      
+      messagesContainer.appendChild(divider);
+      
+      setTimeout(() => {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }, 50);
   });
   
   socket.on('new-message', (sender, message, msgId) => {
@@ -2195,7 +2308,14 @@ function initializeSocket(){
   });
   // Standard events
   socket.on('peer-joined', (peerId,nickname)=>{ remoteNicknames[peerId] = nickname; createPeerConnection(peerId); addChatMessage(t('system'), `${nickname} ${t('user_joined')}`, false, 'system'); });
-  socket.on('peer-left', (peerId)=>{ removeRemoteFeed(peerId); addChatMessage('Sistema', `Utente uscito.`, false, 'system'); });
+  
+  socket.on('peer-left', (peerId, nickname)=>{ 
+      removeRemoteFeed(peerId); 
+      // Se il server manda il nick usalo, altrimenti fallback
+      const name = nickname || 'Utente';
+      addChatMessage(t('system'), `${name} è uscito.`, false, 'system'); 
+  });
+  
   socket.on('new-private-message', (s, m) => { addChatMessage(`Privato da ${s}`, m, false, 'private'); });
   socket.on('audio-status-changed', (pid, talk) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f) { f.classList.toggle('is-talking', talk); f.querySelector('.remote-mic-status').textContent = talk ? 'mic' : 'mic_off'; } });
   socket.on('remote-stream-type-changed', (pid, ratio) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f){ f.classList.remove('ratio-4-3', 'ratio-16-9'); f.classList.add(`ratio-${ratio}`); } });
@@ -2267,15 +2387,20 @@ joinButton.addEventListener('click', async ()=>{
   
   userNickname = nickname; 
   currentRoomId = roomId;
-  currentRoomPassword = password; // <--- SALVIAMO LA PASSWORD QUI
+  currentRoomPassword = password;
+  
+  // --- NUOVO: Aggiorna l'etichetta del video locale con il tuo nome ---
+  const localLabel = document.getElementById('local-nickname-display');
+  if(localLabel) localLabel.textContent = userNickname;
+  // -------------------------------------------------------------------
   
   await startLocalMedia(); 
   initializeSocket();
   
-  // INVIAMO ANCHE LA PASSWORD
   socket.emit('join-room', currentRoomId, userNickname, password); 
   
-  document.getElementById('room-name-display').textContent = roomId;
+  // Aggiungi '#' + prima di roomId (come da modifica precedente)
+  document.getElementById('room-name-display').textContent = '#' + roomId;
   showOverlay(false); 
 });
 
@@ -2473,4 +2598,78 @@ async function switchCamera() {
 if (switchCameraBtn) {
     switchCameraBtn.addEventListener('click', switchCamera);
 }
-// FINE
+
+// --------------------------------------------------------
+// LOGICA UI OPERATORE (Topic & Password)
+// --------------------------------------------------------
+
+// Apertura Modale OP
+if (opSettingsBtn) {
+    opSettingsBtn.addEventListener('click', () => {
+        // 1. Rimuovi l'animazione pulsante (se c'era)
+        opSettingsBtn.classList.remove('op-attention'); 
+        // 2. Apri il modale
+        opModal.classList.remove('hidden');
+    });
+}
+
+// Chiusura Modale OP
+if (closeOpModalBtn) {
+    closeOpModalBtn.addEventListener('click', () => {
+        opModal.classList.add('hidden');
+    });
+}
+
+// Salvataggio Impostazioni OP
+if (opSaveBtn) {
+    opSaveBtn.addEventListener('click', () => {
+        const newTopic = opTopicInput.value.trim();
+        const newPass = opPasswordInput.value.trim();
+        
+        if (socket && currentRoomId) {
+            socket.emit('op-update-settings', currentRoomId, newTopic, newPass);
+        }
+    });
+}
+
+// --------------------------------------------------------
+// FUNZIONI HELPER UTILITY
+// --------------------------------------------------------
+
+// Funzione helper per aggiornare l'interfaccia (Titolo e Topic)
+// Questa funzione viene richiamata dagli eventi socket dentro initializeSocket
+// Funzione helper per aggiornare l'interfaccia (Titolo e Topic)
+function updateRoomInfoUI(topic, isLocked) {
+    const topicDisplay = document.getElementById('room-topic-display');
+    const roomTitle = document.getElementById('room-name-display');
+
+    // 1. Aggiorna Topic
+    if (topicDisplay) {
+        if (topic && topic.trim() !== "") {
+            topicDisplay.textContent = topic;
+            topicDisplay.classList.remove('hidden');
+            topicDisplay.style.visibility = 'visible'; // Forza visibilità
+        } else {
+            topicDisplay.classList.add('hidden');
+            topicDisplay.style.visibility = 'hidden';
+        }
+    }
+
+    // 2. Aggiorna icona lucchetto nel titolo
+    if (roomTitle) {
+        let currentText = roomTitle.textContent;
+        // Rimuovi lucchetto vecchio se presente
+        if (currentText.includes('🔒 ')) {
+            currentText = currentText.replace('🔒 ', '');
+        }
+        
+        // Aggiungi lucchetto se bloccata
+        if (isLocked) {
+            roomTitle.textContent = '🔒 ' + currentText;
+        } else {
+            roomTitle.textContent = currentText;
+        }
+    }
+}
+
+// FINE DEL FILE
