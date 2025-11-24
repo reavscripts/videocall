@@ -1858,58 +1858,71 @@ function copyRoomLink(){
 }
 function addChatMessage(sender, message, isLocal = false, type = 'public', msgId = null) {
     const messageEl = document.createElement('div');
-    messageEl.classList.add('chat-message'); // Classe generica
+    messageEl.classList.add('chat-message');
 
-    // --- SYSTEM MESSAGE ---
+    // --- CASO 1: MESSAGGIO DI SISTEMA (Join/Leave) ---
+    // Lo stampiamo centrato, senza "Sistema:" davanti
     if (type === 'system') {
-        messageEl.innerHTML = `<div class="message-system-wrapper"><span class="system-msg-content">${message}</span></div>`;
+        messageEl.innerHTML = `
+            <div class="message-system-wrapper">
+                <span class="system-msg-content">${message}</span>
+            </div>
+        `;
         messagesContainer.appendChild(messageEl);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        return;
+        return; // Ci fermiamo qui, non serve altro
     }
 
-    // Configura ID e click per "Seen by"
+    // --- CASO 2: MESSAGGI NORMALI (Public/Private) ---
+    
+    // Configurazione ID per ricevute di lettura
     if (msgId) {
         messageEl.dataset.messageId = msgId;
         messageEl.dataset.readers = JSON.stringify([]); 
         messageEl.addEventListener('click', () => showReadersDialog(msgId));
+        messageEl.style.cursor = 'pointer'; 
     }
 
-    // Determina la classe del mittente per lo stile IRC (<Nick>)
-    let senderClass = 'sender-remote';
-    if (type === 'private') senderClass = 'sender-private';
-    else if (isLocal) senderClass = 'sender-me';
+    let cssClass;
+    let senderText = sender;
 
-    // 1. Parsing Markdown
-    const rawHtml = marked.parse(message, { breaks: true });
-    // 2. Sanitizzazione
-    const cleanHtml = DOMPurify.sanitize(rawHtml);
+    if (type === 'private') {
+        cssClass = 'sender-private';
+    } else {
+        cssClass = isLocal ? 'sender-me' : 'sender-remote';
+    }
 
-    // 3. Costruzione HTML stile IRC: <Nickname> Messaggio
-    // Nota: Le parentesi < > vengono aggiunte via CSS ::before/::after
-    let htmlContent = `
-        <span class="${senderClass}">${sender}</span>
-        <span class="chat-message-content">${cleanHtml}</span>
-    `;
+    // Costruzione del testo del mittente
+    const prefix = isLocal 
+        ? `${userNickname}${type === 'private' ? ` (DM a ${sender})` : ''}: ` 
+        : `${senderText}: `;
 
-    // Indicatore di lettura (piccolo checkmark)
-    if (msgId && type !== 'private' && isLocal) {
-         // Usa un colore neon per la spunta
-        htmlContent += `<span class="read-status" id="status-${msgId}" style="color: var(--neon-cyan); font-size: 0.8em; margin-left: 5px;">✓</span>`;
+    let htmlContent = `<span class="${cssClass}">${prefix}</span>${message}`;
+
+    // Aggiungiamo spunte di lettura solo se public
+    if (msgId) {
+        htmlContent += `
+            <div class="read-status" id="status-${msgId}">
+                <span class="read-count"></span>
+                <span class="material-icons" style="font-size: 14px;">done_all</span>
+            </div>
+        `;
     }
 
     messageEl.innerHTML = htmlContent;
     messagesContainer.appendChild(messageEl);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    // Logica suoni/notifiche (invariata)
+    // --- Logica Suoni e Notifiche ---
     if (!isLocal) {
         playNotificationSound('chat');
-        // Su desktop la chat è sempre visibile, quindi marchiamo come letto se la finestra è attiva
-        if (document.hasFocus()) {
+        const isChatVisible = (!chatPanel.classList.contains('hidden') && window.innerWidth > 768) || 
+                              (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden'));
+
+        if (isChatVisible) {
             if (socket && currentRoomId && msgId) {
                 socket.emit('msg-read', currentRoomId, msgId, userNickname);
-                // Opzionale: feedback visivo immediato
+                messageEl.classList.add('processed-read'); 
             }
         } else {
             unreadMessagesCount++;
@@ -2691,22 +2704,6 @@ function applyRoomBrandColor(color) {
     titleEl.style.filter = `drop-shadow(0 0 15px ${color}80)`; // 80 hex = ~50% opacità
 }
 
-function updateTypingUI() {
-    const count = activeTypers.size;
-    if (count === 0) {
-        typingIndicator.classList.add('hidden');
-    } else {
-        typingIndicator.classList.remove('hidden');
-        if (count === 1) {
-            const [name] = activeTypers;
-            typingText.textContent = `${name} sta scrivendo...`;
-        } else {
-            typingText.textContent = `Più persone stanno scrivendo...`;
-        }
-        
-        // Scrolla in basso per mostrare l'indicatore se siamo vicini alla fine
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-}
+
 
 // FINE DEL FILE

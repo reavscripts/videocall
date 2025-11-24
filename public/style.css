@@ -1,505 +1,2501 @@
-/* --- STILE #CHAN: NEON IRC MEETS ZOOM --- */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Roboto+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap');
 
 :root {
-    /* --- COLORI DAL LOGO.JPG (Neon Cyberpunk) --- */
-    --retro-bg-dark: #050508;   /* Sfondo nerissimo */
-    --retro-bg-light: #0a0a12;  /* Sfondo pannelli */
-    
-    --neon-cyan: #00f7ff;       /* Ciano elettrico (Primario) */
-    --neon-pink: #ff00ff;       /* Magenta neon (Secondario) */
-    --neon-blue: #0055ff;       /* Blu profondo (Accenti) */
-    --neon-purple: #bd00ff;     /* Viola (Sfumature) */
-    
-    --text-terminal: #e0e0e0;   /* Testo chiaro terminale */
-    --text-muted: #8a8a9b;      /* Testo secondario */
-
-    --success: var(--neon-cyan);
-    --danger: var(--neon-pink);
-
-    /* FONT */
-    --font-main: 'Montserrat', sans-serif;
-    --font-terminal: 'Roboto Mono', monospace; /* Per la chat IRC */
-
-    /* EFFETTI */
-    --neon-glow-cyan: 0 0 5px var(--neon-cyan), 0 0 10px var(--neon-cyan);
-    --neon-glow-pink: 0 0 5px var(--neon-pink), 0 0 10px var(--neon-pink);
-    --terminal-border: 1px solid var(--neon-blue);
+    --primary-color: #00bcd4;
+    --accent-color: #ff9800;
+    --bg: #0f0f10;
+    --surface: #1e1e1e;
+    --surface-2: #2a2a2a;
+    --text-color: #fff;
+    --muted: #b0b0b0;
+    --danger: #ef5350;
+    --panel-width-desktop: 400px;
+    --border-color: #333;
 }
 
-/* Override Tema Chiaro (Disabilitato per coerenza stilistica, o limitato) */
-[data-theme="light"] {
-    /* In questo design specifico, il tema chiaro romperebbe l'estetica neon.
-       Lo forziamo a rimanere scuro o creiamo una versione "high contrast" meno neon.
-       Per ora, manteniamo i colori scuri come base anche se lo switch è attivo. */
-     --retro-bg-dark: #1a1a2e;
-     --retro-bg-light: #222238;
+body.light-theme {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --surface-2: #e4e6eb;
+    --text-color: #1c1e21;
+    --muted: #65676b;
+    --border-color: #ccc;
+    --primary-color: #008ba3;
 }
 
+* {
+    box-sizing: border-box;
+}
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-body, html {
+html, body {
     height: 100%;
-    font-family: var(--font-main);
-    background-color: var(--retro-bg-dark);
-    color: var(--text-terminal);
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-color);
+    font-family: Roboto, Arial, sans-serif;
+    transition: background 0.3s ease, color 0.3s ease;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#nickname-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    z-index: 200;
+}
+
+#app-logo {
+    width: 180px;
+    height: auto;
+    margin-bottom: 10px;
+    animation: fadeIn 0.4s ease;
+}
+
+.card {
+    background: var(--surface);
+    padding: 28px;
+    border-radius: 10px;
+    width: 360px;
+    text-align: center;
+    animation: slideDown 0.4s ease;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card h2 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+.card input[type="text"],
+.card input[type="password"] {
+    width: calc(100% - 20px);
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--surface-2);
+    color: var(--text-color);
+    font-size: 1em;
+    outline: none;
+}
+
+.card input::placeholder {
+    color: var(--muted);
+}
+
+.card button {
+    background: var(--primary-color);
+    color: #fff;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.card button:hover {
+    background: var(--accent-color);
+}
+
+.settings-floating-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--surface);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 201;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+#settings-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1200;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.settings-content {
+    background: var(--surface);
+    width: 90%;
+    max-width: 400px;
+    border-radius: 12px;
     overflow: hidden;
-    /* Sfondo sottile a griglia stile TRON/Retro */
-    background-image: 
-        linear-gradient(rgba(0, 85, 255, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 85, 255, 0.1) 1px, transparent 1px);
-    background-size: 30px 30px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color);
 }
 
-/* --- UTILITY NEON & TERMINAL --- */
-.neon-text {
-    color: var(--neon-cyan);
-    text-shadow: var(--neon-glow-cyan);
+.settings-header {
+    background: var(--surface-2);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
 }
-.neon-border {
-    border: 1px solid var(--neon-cyan);
-    box-shadow: inset 0 0 5px var(--neon-cyan);
+
+.settings-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+    color: var(--text-color);
 }
-.terminal-font { font-family: var(--font-terminal); }
-.terminal-border { border: 1px solid var(--neon-blue); background: var(--retro-bg-light); }
-.hidden { display: none !important; }
 
+.settings-header button {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+}
 
-/* --- LAYOUT PRINCIPALE IBRIDO (SPLIT VIEW) --- */
+.settings-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-color);
+}
+
+.bg-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.bg-option {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.bg-option:hover {
+    transform: scale(1.05);
+}
+
+.bg-option.selected {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 8px var(--primary-color);
+}
+
+.bg-option.default-bg {
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+}
+
+.separator {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 5px 0;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+.btn-secondary {
+    background: var(--surface-2) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--border-color) !important;
+    font-size: 0.9em !important;
+    padding: 8px 15px !important;
+}
+
+.btn-secondary:hover {
+    background: var(--border-color) !important;
+}
+
+#admin-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 600px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    z-index: 4000 !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeIn 0.3s ease;
+}
+
+.admin-header {
+    background: #2c3e50;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #444;
+}
+
+.admin-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 1.2em;
+}
+
+#close-admin-btn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+}
+
+.admin-content {
+    padding: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: var(--surface);
+}
+
+#admin-login-view {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#admin-password-input {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--text-color);
+}
+
+#admin-login-btn {
+    padding: 10px;
+    background: var(--primary-color);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.stats-bar {
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    color: var(--muted);
+}
+
+#admin-rooms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.admin-room-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--text-color);
+}
+
+.room-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+}
+
+.room-name {
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.btn-close-room {
+    background: var(--danger);
+    color: white;
+    border: none;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-left: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.btn-close-room:hover {
+    background: #c62828;
+}
+
+.admin-user-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#admin-refresh-btn {
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%; /* Lo facciamo largo quanto il pannello per comodità */
+    margin-top: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    transition: transform 0.1s, background 0.2s;
+}
+
+#admin-refresh-btn:hover {
+    background: var(--accent-color);
+    transform: translateY(-1px);
+}
+
+#admin-refresh-btn:active {
+    transform: translateY(1px);
+}
+
+.admin-user-item {
+    padding: 8px 0; /* Più spazio verticale tra gli utenti */
+}
+
+.btn-kick {
+    background: var(--surface-2);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 500;
+    transition: all 0.2s;
+    margin-right: 5px;
+}
+
+.btn-kick:hover {
+    background: var(--muted);
+    color: #fff;
+}
+
+#admin-logs-console {
+    background: #000;
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+    padding: 10px;
+    border-radius: 6px;
+    height: 150px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    border: 1px solid #333;
+    font-size: 0.85em;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.log-entry {
+    border-bottom: 1px solid #111;
+    padding-bottom: 2px;
+}
+
+.admin-section-title {
+    font-weight: bold;
+    color: var(--muted);
+    margin: 10px 0 5px 0;
+    text-transform: uppercase;
+    font-size: 0.8em;
+    letter-spacing: 1px;
+}
+
+.btn-admin-action {
+    height: 32px;
+    min-width: 32px;
+    padding: 0 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: opacity 0.2s;
+}
+
+.btn-admin-action:hover {
+    opacity: 0.9;
+}
+
+.btn-admin-action .material-icons {
+    font-size: 1.1em;
+}
+
+.btn-lock {
+    background: #ff9800;
+}
+
+.btn-lock.locked {
+    background: #d32f2f;
+}
+
+.btn-pass {
+    background: #2196f3;
+}
+
+.btn-ban {
+    background: var(--danger); /* Rosso */
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.btn-ban:hover {
+    background: #d32f2f; /* Rosso più scuro */
+}
+
 #conference-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
 }
 
-/* L'header stile "barra di stato" */
-.terminal-header {
-    height: 50px;
-    background: var(--retro-bg-light);
-    border-bottom: 2px solid var(--neon-blue);
+#room-header {
     display: flex;
+    justify-content: space-between; /* Spinge sx e dx ai lati */
     align-items: center;
-    padding: 0 15px;
-    font-family: var(--font-terminal);
-    justify-content: space-between;
+    padding: 0 20px;
+    height: 60px; /* Altezza fissa per stabilità */
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-color);
+    position: relative; /* Necessario per il posizionamento assoluto del centro */
+}
+
+/* --- HEADER: TOPIC CENTRALE (STYLE MATCHING ROOM NAME) --- */
+#room-topic-container {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    text-align: center;
+    pointer-events: none;
     z-index: 10;
 }
-.room-title-wrapper h3 {
-    font-weight: 400;
-    letter-spacing: 1px;
+
+#room-topic-display {
+    /* Font e Stile identico al Room Name */
+    font-family: 'Montserrat', sans-serif; 
+    font-weight: 800;        
+    font-size: 1.3em;       
+    letter-spacing: -0.5px; 
     text-transform: uppercase;
-}
-
-/* Area Principale divisa */
-#main-split-area {
-    flex: 1;
-    display: flex;
+    
+    /* GRADIENTE: Electric Violet -> Bright Cyan (Lo stesso del nome) */
+    background: linear-gradient(to right, #bd00ff 0%, #00b8ff 100%);
+    
+    /* Applicazione gradiente al testo */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    
+    /* Glow colorato (leggermente ridotto rispetto al titolo principale) */
+    filter: drop-shadow(0 0 10px rgba(189, 0, 255, 0.3));
+    
+    /* Reset dei vecchi stili a "pillola" */
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    backdrop-filter: none;
+    
+    max-width: 100%;
+    white-space: nowrap;
     overflow: hidden;
-    position: relative; /* Per posizionare i controlli */
+    text-overflow: ellipsis;
+    display: inline-block;
+    vertical-align: middle;
 }
 
-/* COLONNA SINISTRA: VIDEO (65% larghezza) */
-#video-section {
-    flex: 0.65;
+#room-topic-display.hidden {
+    opacity: 0 !important;
+    visibility: hidden;
+}
+
+/* Modifichiamo il prefisso per essere testo semplice integrato nel gradiente */
+#room-topic-display::before {
+    content: '// '; /* Simbolo minimal invece della scritta TOPIC dorata */
+    margin-right: 5px;
+    
+    /* Assicuriamoci che erediti il gradiente */
+    background: none;
+    -webkit-text-fill-color: inherit;
+    color: inherit;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    font-size: 1em;
+    font-weight: 900;
+}
+
+#room-header h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.1em;
+}
+
+.room-title-wrapper h3 {
+    margin: 0;
+    line-height: 1;
     display: flex;
-    flex-direction: column;
-    position: relative;
-    padding: 10px;
-    background: rgba(0,0,0,0.2);
+    align-items: center;
 }
 
-#videos-grid {
-    flex: 1;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-content: center;
-    justify-content: center;
-    overflow-y: auto;
-}
-
-/* Video Feeds stile Neon */
-.video-feed {
-    position: relative;
-    background: #000;
-    border-radius: 4px;
-    overflow: hidden;
-    /* Bordo luminoso */
-    border: 2px solid transparent;
+#room-name-display {
+    /* Nuovo Font: Geometrico e Moderno */
+    font-family: 'Montserrat', sans-serif; 
+    font-weight: 900;        /* Peso massimo per impatto */
+    font-size: 1.9rem;       /* Grande */
+    letter-spacing: -0.5px;  /* Lettere vicine per compattezza */
+    text-transform: uppercase; /* Tutto maiuscolo stile LOGO */
+    
+    /* NUOVO GRADIENTE: Electric Violet -> Bright Cyan */
+    background: linear-gradient(to right, #bd00ff 0%, #00b8ff 100%);
+    
+    /* Applicazione gradiente al testo */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent; 
+    
+    /* Glow colorato per staccarlo dallo sfondo */
+    filter: drop-shadow(0 0 15px rgba(189, 0, 255, 0.4));
+    
+    /* Posizionamento */
+    padding-right: 10px;
+    cursor: default;
     transition: all 0.3s ease;
 }
 
-/* Effetto "Talking" (Bordo che si illumina) */
-.video-feed.is-speaking {
-    border-color: var(--neon-pink);
-    box-shadow: 0 0 15px var(--neon-pink);
+/* Hover: Effetto "Accensione" */
+#room-name-display:hover {
+    filter: drop-shadow(0 0 25px rgba(0, 184, 255, 0.6));
+    transform: scale(1.02) skewX(-5deg); /* Leggera inclinazione dinamica */
 }
-/* Bordo standard (quando non parla) */
-.video-feed:not(.is-speaking) {
-     border-color: rgba(0, 247, 255, 0.3); /* Ciano tenue */
+
+.header-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.header-controls button,
+.header-controls input[type="button"] {
+    background: var(--surface-2);
+    color: var(--text-color);
+    border: none;
+    border-radius: 5px;
+    padding: 8px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.header-controls button:hover {
+    background: var(--border-color);
+}
+
+#main-area {
+    flex-grow: 1;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+}
+
+#videos-grid {
+    flex-grow: 1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    background: transparent;
+    overflow-y: auto;
+    transition: margin-right 0.3s ease;
+}
+
+.video-feed {
+    background: #000; /* Sfondo nero essenziale per i video verticali */
+    position: relative;
+    /* Assicuriamo che il contenitore non forzi il taglio */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.video-feed.ratio-4-3 {
+    width: 240px;
+    height: 180px;
+}
+
+.video-feed.ratio-16-9 {
+    width: 240px;
+    height: 135px;
+}
+
+.video-feed.is-focused video {
+    object-fit: contain !important;
+    background: #000;
+}
+
+.video-feed.is-focused.ratio-4-3 {
+    width: 640px;
+    height: 480px;
+}
+
+.video-feed.is-focused.ratio-16-9 {
+    width: 800px;
+    height: 450px;
+}
+
+.video-feed.is-talking {
+    border-color: #4caf50 !important;
+    box-shadow: 0 0 10px #4caf50;
 }
 
 .video-feed video {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    /* contain: Mostra tutto il video, aggiungendo bande nere se necessario */
+    object-fit: contain !important; 
+    display: block;
 }
 
-/* Etichette stile Terminale sui video */
-.terminal-label {
+#remote-video-placeholder {
+    width: 300px;
+    height: 225px;
+    background-color: var(--surface-2);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--muted);
+    font-size: 1.1em;
+    text-align: center;
+}
+
+.video-label {
     position: absolute;
     bottom: 5px;
     left: 5px;
-    background: rgba(0,0,0,0.7);
-    border: 1px solid var(--neon-blue);
-    color: var(--neon-cyan);
-    padding: 2px 6px;
-    font-family: var(--font-terminal);
-    font-size: 0.8rem;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
     display: flex;
     align-items: center;
     gap: 5px;
 }
-.remote-mic-status { font-size: 1rem; }
-.remote-mic-status.active { color: var(--neon-pink); }
 
-
-/* COLONNA DESTRA: TERMINALE IRC (35% larghezza) */
-.terminal-panel {
-    flex: 0.35;
-    min-width: 300px;
-    background: var(--retro-bg-light);
-    border-left: 2px solid var(--neon-blue);
-    display: flex;
-    flex-direction: column;
-    font-family: var(--font-terminal); /* FONT IRC CRUCIALE */
+#record-button.active {
+    background-color: var(--danger) !important;
+    color: white !important;
+    animation: pulseRecord 1.5s infinite;
 }
 
-.terminal-header-bar {
-    padding: 8px 15px;
-    background: rgba(0, 85, 255, 0.2);
-    color: var(--neon-cyan);
-    font-size: 0.9rem;
-    border-bottom: 1px solid var(--neon-blue);
+@keyframes pulseRecord {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(239, 83, 80, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 83, 80, 0);
+    }
 }
 
-.terminal-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    /* Scrollbar stile terminale */
-    scrollbar-width: thin;
-    scrollbar-color: var(--neon-blue) var(--retro-bg-dark);
-}
-
-/* STILE MESSAGGI IRC */
-.chat-message {
-    margin-bottom: 4px;
-    line-height: 1.4;
-    font-size: 0.95rem;
-    animation: fadeIn 0.2s ease-in;
-    /* Nessuna bolla, solo testo */
-    background: none !important; 
-    padding: 0 !important;
-    max-width: 100% !important;
-    align-self: flex-start !important;
-}
-
-/* Formato: [HH:MM] <Nickname> Messaggio */
-.chat-message-content {
-    word-break: break-word;
-    color: var(--text-terminal);
-}
-
-/* Mittente Remoto: <Nick> */
-.sender-remote {
-    font-weight: bold;
-    color: var(--neon-pink); /* Colore diverso per gli altri */
-}
-.sender-remote::before { content: '<'; color: var(--text-muted); }
-.sender-remote::after { content: '> '; color: var(--text-muted); }
-
-/* Mittente Locale (Tu): <Nick> */
-.sender-me {
-    font-weight: bold;
-    color: var(--neon-cyan); /* Colore per te */
-}
-.sender-me::before { content: '<'; color: var(--text-muted); }
-.sender-me::after { content: '> '; color: var(--text-muted); }
-
-/* Messaggi Privati (DM) */
-.sender-private {
-    color: var(--neon-purple);
-}
-.sender-private::before { content: '[DM]<'; }
-
-/* Messaggi di Sistema: *** Messaggio *** */
-.message-system-wrapper {
-    text-align: center;
-    color: var(--text-muted);
-    font-style: italic;
-    font-size: 0.85rem;
-    margin: 10px 0;
-}
-.system-msg-content::before { content: '*** '; color: var(--neon-blue); }
-.system-msg-content::after { content: ' ***'; color: var(--neon-blue); }
-
-
-/* Area Input Terminale */
-.terminal-input-area {
-    padding: 10px;
-    background: rgba(0,0,0,0.3);
-    border-top: 1px solid var(--neon-blue);
-    display: flex;
-    align-items: center;
-}
-
-.terminal-prompt {
-    color: var(--neon-cyan);
-    margin-right: 8px;
-    font-weight: bold;
-}
-
-.terminal-chat-input {
-    flex: 1;
-    background: transparent;
+.context-menu-trigger {
+    position: absolute;
+    top: 5px;
+    right: 50px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
     border: none;
-    color: var(--text-terminal);
-    font-family: var(--font-terminal);
-    font-size: 1rem;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 1.2em;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.video-feed:hover .context-menu-trigger {
+    opacity: 1;
+}
+
+#chat-panel {
+    width: var(--panel-width-desktop);
+    min-width: var(--panel-width-desktop);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border-color);
+    z-index: 150;
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, width 0.3s ease;
+}
+
+#chat-panel.hidden {
+    display: none !important;
+}
+
+#chat-panel h3 {
+    margin: 0;
+    padding: 20px 25px; /* Più spazioso */
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 1.4em; /* Titolo più grande */
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    background: var(--surface-2); /* Sfondo leggermente diverso per l'header */
+}
+
+#messages-container {
+    flex-grow: 1;
+    padding: 15px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chat-message {
+    font-size: 1em; /* Testo un po' più grande (era 0.95em) */
+    line-height: 1.5;
+    padding: 8px 10px; /* Più respiro attorno ai messaggi */
+}
+
+.sender-me {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.sender-remote {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+.sender-system {
+    color: #FFEB3B;
+    font-weight: bold;
+}
+
+body.light-theme .sender-system {
+    color: #dcb400;
+}
+
+.sender-private {
+    color: #8BC34A;
+    font-weight: bold;
+}
+
+body.light-theme .sender-private {
+    color: #558b2f;
+}
+
+#chat-input-area {
+    display: flex;
+    align-items: center; /* <--- AGGIUNTO: centra verticalmente input e bottone */
+    padding: 10px;
+    border-top: 1px solid var(--border-color);
+    gap: 8px;
+}
+
+#chat-message-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--surface-2);
+    color: var(--text-color);
+    font-size: 1em;
     outline: none;
 }
 
-.terminal-send-btn {
-    background: transparent;
-    border: 1px solid var(--neon-cyan);
-    color: var(--neon-cyan);
-    padding: 5px 10px;
-    font-family: var(--font-terminal);
+#send-chat-button {
+    background: var(--primary-color);
+    color: #fff;
+    border: 1px solid transparent; /* <--- AGGIUNTO: compensa il bordo dell'input per uguale altezza */
+    border-radius: 6px;
+    padding: 10px 15px;
+    font-size: 1em;
+    font-weight: bold;
     cursor: pointer;
-    margin-left: 5px;
-    transition: all 0.2s;
-}
-.terminal-send-btn:hover {
-    background: var(--neon-cyan);
-    color: var(--retro-bg-dark);
+    transition: background-color 0.2s; /* <--- Opzionale: rende più fluido l'hover */
 }
 
+#send-chat-button:hover {
+    background: var(--accent-color);
+}
 
-/* --- CONTROLLI CYBERPUNK (Stile Meet ma Neon) --- */
-.cyber-controls {
-    position: absolute;
+#main-controls-bar {
+    position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     gap: 15px;
-    padding: 10px 20px;
-    /* Sfondo di vetro scuro */
-    background: rgba(10, 10, 18, 0.8); 
-    border: 1px solid var(--neon-blue);
-    border-radius: 30px;
-    box-shadow: 0 0 20px rgba(0, 85, 255, 0.3);
-    z-index: 100;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 12px 20px;
+    border-radius: 12px;
+    z-index: 200;
 }
 
-.cyber-ctrl-btn {
-    width: 50px;
-    height: 50px;
+#main-controls-bar button {
+    background: var(--surface);
+    color: var(--text-color);
+    border: none;
     border-radius: 50%;
-    border: 2px solid var(--neon-cyan);
-    background: rgba(0,0,0,0.5);
-    color: var(--neon-cyan);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+#main-controls-bar button:hover {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+#main-controls-bar button .material-icons {
+    font-size: 1.8em;
+}
+
+#disconnect-button {
+    background: var(--danger) !important;
+    color: white !important;
+}
+
+#disconnect-button:hover {
+    background: #c62828 !important;
+}
+
+#remote-context-menu {
+    position: fixed;
+    background: var(--surface);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+    overflow: hidden;
+    padding: 5px 0;
+    min-width: 180px;
+    border: 1px solid var(--border-color);
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background-color 0.15s ease;
+    color: var(--text-color);
+}
+
+.menu-item:hover {
+    background: var(--surface-2);
+}
+
+.menu-item .material-icons {
+    font-size: 1.2em;
+}
+
+.menu-item.active-toggle {
+    background: rgba(0, 188, 212, 0.2);
+    font-weight: bold;
+}
+
+#whiteboard-container {
+    position: absolute;
+    inset: 0;
+    z-index: 140;
+    background: rgba(15, 15, 16, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.wb-toolbar {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e1e1e;
+    padding: 10px 20px;
+    border-radius: 10px;
+    display: flex;
+    gap: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 150;
+}
+
+.wb-colors {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border-right: 1px solid #444;
+    padding-right: 20px;
+}
+
+.color-btn {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.2s;
+}
+
+.color-btn:hover {
+    transform: scale(1.1);
+}
+
+.color-btn.active {
+    border-color: #fff;
+    transform: scale(1.2);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+.wb-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.wb-actions button {
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.wb-actions button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#whiteboard-canvas {
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.file-transfer-status {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px;
+    font-size: 0.8em;
+    z-index: 10;
+}
+
+#file-transfer-container {
+    position: absolute;
+    bottom: 100px;
+    right: 20px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 160;
+    pointer-events: none;
+}
+
+.file-toast {
+    background: var(--surface);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    pointer-events: auto;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.file-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+.file-name {
+    font-weight: bold;
+    color: var(--primary-color);
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-percent {
+    color: var(--muted);
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent-color);
+    transition: width 0.2s;
+}
+
+#toggle-whiteboard-button.has-notification {
+    position: relative !important;
+    background-color: #333;
+    overflow: visible !important;
+}
+
+#toggle-whiteboard-button.has-notification::after {
+    content: '';
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 12px;
+    height: 12px;
+    background-color: #ff5252;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    z-index: 10;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.95);
+        opacity: 1;
+    }
+}
+
+#videos-grid.has-fullscreen {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    overflow: hidden;
+}
+
+.video-feed.fullscreen-active {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 10;
+    border-radius: 0;
+    border: none;
+}
+
+.video-feed.fullscreen-active video {
+    object-fit: contain !important;
+    width: 100%;
+    height: 100%;
+}
+
+.video-feed.pip-mode {
+    position: absolute;
+    bottom: 100px;
+    left: 20px;
+    width: 180px !important;
+    height: 135px !important;
+    z-index: 20;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.video-feed.pip-mode:nth-of-type(1) {
+    left: 20px;
+}
+
+.video-feed.pip-mode:nth-of-type(2) {
+    left: 210px;
+}
+
+.video-feed.pip-mode:nth-of-type(3) {
+    left: 400px;
+}
+
+.video-feed.pip-mode .video-label {
+    font-size: 0.7em;
+    padding: 2px 5px;
+}
+
+#show-chat-btn {
+    position: relative; /* Necessario per posizionare il badge */
+}
+
+/* --- NOTIFICHE CHAT --- */
+#show-chat-btn {
+    position: relative; /* Necessario per posizionare il badge */
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: var(--danger);
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.75em;
+    font-weight: bold;
+    border: 2px solid var(--surface-2);
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 10;
+}
+
+@keyframes popIn {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+}
+
+/* --- RICEVUTE DI LETTURA --- */
+.chat-message {
+    position: relative;
+    padding-bottom: 15px; /* Spazio per l'icona di lettura */
+    cursor: pointer; /* Indica che è cliccabile */
+    transition: background 0.2s;
+    border-radius: 4px;
+    padding: 5px;
+}
+
+.chat-message:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.read-status {
+    font-size: 0.7em;
+    color: var(--muted);
+    position: absolute;
+    bottom: 0px;
+    right: 5px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.read-status .material-icons {
+    font-size: 1.1em;
+}
+
+.read-status.seen {
+    color: var(--primary-color); /* Diventa blu/ciano quando letto */
+}
+
+/* Modale semplice per lista letture */
+.readers-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 3000;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.readers-dialog {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    border-radius: 8px;
+    min-width: 250px;
+    max-width: 80%;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    color: var(--text-color);
+}
+
+.readers-list {
+    margin: 10px 0;
+    padding-left: 20px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#switch-camera-button {
+    display: none !important;
+}
+
+/* Posizionamento del menu sopra la barra di controllo */
+#extras-menu {
+    position: fixed;
+    bottom: 90px; /* Sopra la barra che è a bottom: 20px + altezza */
+    left: 50%;
+    transform: translateX(-50%) scale(0.9);
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column; /* Lista verticale per chiarezza */
+    gap: 5px;
+	z-index: 2500 !important; /* Era 2000, ora sta sotto la chat ma sopra i video */
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    min-width: 200px;
+}
+
+#extras-menu.active {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(-50%) scale(1);
+}
+
+/* Stile degli elementi dentro il menu */
+#extras-menu .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    text-shadow: var(--neon-glow-cyan);
-    box-shadow: inset 0 0 5px var(--neon-cyan);
+    color: var(--text-color);
+    transition: background 0.2s;
+    font-size: 0.95em;
 }
 
-.cyber-ctrl-btn:hover {
-    background: var(--neon-cyan);
-    color: var(--retro-bg-dark);
-    box-shadow: var(--neon-glow-cyan);
+#extras-menu .menu-item:hover {
+    background: var(--surface-2);
 }
 
-/* Stato disattivato (es. Mute) */
-.cyber-ctrl-btn.muted, .cyber-ctrl-btn.video-off {
-    border-color: var(--neon-pink);
-    color: var(--neon-pink);
-    text-shadow: var(--neon-glow-pink);
-    box-shadow: inset 0 0 5px var(--neon-pink);
-}
-.cyber-ctrl-btn.muted:hover, .cyber-ctrl-btn.video-off:hover {
-    background: var(--neon-pink);
-    color: var(--retro-bg-dark);
-     box-shadow: var(--neon-glow-pink);
+#extras-menu .menu-item .material-icons {
+    font-size: 1.3em;
+    color: var(--primary-color);
 }
 
-.cyber-ctrl-btn.danger {
-    border-color: #ff0000;
-    color: #ff0000;
-}
-.cyber-ctrl-btn.danger:hover {
-    background: #ff0000;
-    color: white;
+/* Gestione stati specifici dei bottoni spostati */
+#extras-menu #record-button.active .material-icons {
+    color: var(--danger);
+    animation: pulseRecord 1.5s infinite;
 }
 
-
-/* --- MODALI E OVERLAY STILE CYBER --- */
-.cyber-container {
-    background: var(--retro-bg-light);
-    border: 2px solid var(--neon-blue);
-    box-shadow: 0 0 30px rgba(0, 85, 255, 0.5);
-    padding: 30px;
-    border-radius: 10px; /* Angoli leggermente smussati ma tech */
-    text-align: center;
-    max-width: 450px;
-    width: 90%;
-    position: relative;
-    overflow: hidden;
+#extras-menu #toggle-whiteboard-button.active-toggle {
+    background: rgba(0, 188, 212, 0.2);
 }
 
-/* Effetto scansione sul container */
-.cyber-container::before {
+/* Badge notifica sulla lavagna nel menu */
+#extras-menu #toggle-whiteboard-button.has-notification::after {
+    top: 10px;
+    right: 10px;
+}
+
+/* Badge notifica sul pulsante "Altro" principale (se c'è una notifica dentro) */
+#more-options-btn.has-notification::after {
     content: '';
     position: absolute;
-    top: -50%; left: -50%; width: 200%; height: 200%;
-    background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 85, 255, 0.1) 3px,
-        rgba(0, 85, 255, 0.1) 4px
-    );
-    animation: scanline 10s linear infinite;
+    top: 0px;
+    right: 0px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--danger);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+}
+
+.subtitle-overlay {
+    position: absolute;
+    bottom: 30px; /* Sopra l'etichetta del nome */
+    left: 5%;
+    width: 90%;
+    text-align: center;
+    pointer-events: none; /* Lascia cliccare il video sotto */
+    z-index: 20;
+    
+    /* Stile testo */
+    color: #fff;
+    font-size: 1.1em;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    
+    /* Sfondo semi-trasparente adattivo */
+    background: rgba(0, 0, 0, 0.6);
+    padding: 8px;
+    border-radius: 8px;
+    
+    /* Animazione apparizione */
+    transition: opacity 0.3s ease;
+    min-height: 1.5em; /* Altezza minima per evitare saltelli */
+}
+
+.subtitle-overlay.hidden {
+    opacity: 0;
+    display: block !important; /* Mantiene il layout ma invisibile */
+}
+
+/* Evidenzia il menu se attivo */
+#menu-toggle-cc.active-cc {
+    background: rgba(76, 175, 80, 0.2); /* Verde chiaro */
+    color: #4caf50;
+}
+
+/* --- MEETING TRANSCRIPT PANEL (Ottimizzato) --- */
+#meeting-transcript-panel {
+    position: fixed; /* Usa fixed per rimanere stabile durante lo scroll */
+    top: auto;       /* Rimuovi il posizionamento in alto */
+    bottom: 100px;   /* Posiziona in basso, sopra la barra controlli */
+    left: 20px;      /* Allineato a sinistra */
+    width: 320px;    /* Larghezza fissa su desktop */
+    max-height: 35vh; /* Altezza dinamica: max 35% dell'altezza schermo */
+    
+    background: rgba(20, 20, 20, 0.85); /* Sfondo leggermente più scuro e leggibile */
+    backdrop-filter: blur(12px);        /* Sfocatura sfondo aumentata */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    
+    display: flex;
+    flex-direction: column;
+    z-index: 140; 
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
+}
+
+#meeting-transcript-panel.hidden {
+    display: none !important;
+    opacity: 0;
     pointer-events: none;
 }
-@keyframes scanline { from { transform: translateY(0); } to { transform: translateY(20%); } }
 
-.terminal-title {
-    font-family: var(--font-terminal);
-    color: var(--neon-cyan);
-    margin-bottom: 20px;
-    font-size: 1.2rem;
-    letter-spacing: 2px;
+.transcript-header {
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px 12px 0 0;
+    cursor: default; /* Indica che è l'intestazione */
 }
 
-.terminal-input {
-    width: 100%;
-    padding: 12px;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid var(--neon-blue);
-    color: var(--neon-cyan);
-    font-family: var(--font-terminal);
-    margin-bottom: 15px;
-    transition: all 0.3s;
-}
-.terminal-input:focus {
-    border-color: var(--neon-pink);
-    box-shadow: var(--neon-glow-pink);
-    outline: none;
-}
-.input-group { text-align: left; margin-bottom: 5px; }
-.input-prefix { color: var(--text-muted); font-family: var(--font-terminal); font-size: 0.8rem; }
-
-.cyber-button {
-    width: 100%;
-    padding: 15px;
-    background: transparent;
-    border: 2px solid var(--neon-pink);
-    color: var(--neon-pink);
-    font-family: var(--font-terminal);
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s;
+.transcript-header h4 {
+    margin: 0;
+    font-size: 0.95em;
     text-transform: uppercase;
-    letter-spacing: 2px;
-    position: relative;
+    letter-spacing: 1px;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.transcript-header button {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.transcript-header button:hover { 
+    background: var(--danger); 
+}
+
+.transcript-header button .material-icons {
+    font-size: 16px; /* Icona chiusura più piccola ed elegante */
+}
+
+#transcript-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 15px;
+    font-size: 0.9em;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+}
+
+/* Scrollbar personalizzata sottile per il transcript */
+#transcript-content::-webkit-scrollbar {
+    width: 6px;
+}
+#transcript-content::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+}
+
+.transcript-line {
+    line-height: 1.5;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 8px;
+}
+.transcript-line:last-child {
+    border-bottom: none;
+}
+
+.t-time { 
+    color: var(--muted); 
+    font-size: 0.75em; 
+    margin-right: 6px;
+    font-family: monospace;
+}
+
+/* Indicatore attivo nel menu */
+#global-transcript-btn.active-recording {
+    background: rgba(244, 67, 54, 0.2);
+}
+#global-transcript-btn.active-recording .material-icons {
+    color: var(--danger);
+    animation: pulse 1.5s infinite;
+}
+
+/* --- DIVISORE CHAT (CRONOLOGIA) --- */
+.chat-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 20px 0; /* Spazio sopra e sotto */
+    color: var(--muted);
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.8;
+}
+
+.chat-divider::before,
+.chat-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color); /* Linea dello stesso colore dei bordi */
+    opacity: 0.6;
+}
+
+.chat-divider span {
+    padding: 0 15px; /* Spazio attorno al testo */
+    font-weight: 600;
+    background: var(--surface); /* Sfondo uguale al pannello chat per coprire la riga */
+    border-radius: 10px;
+}
+
+/* --- STILE MESSAGGI DI SISTEMA (IRC / MINIMAL - LEFT ALIGN) --- */
+.message-system-wrapper {
+    display: flex;
+    justify-content: flex-start; /* <--- CAMBIATO: Allinea a sinistra */
+    margin: 4px 0;
+    width: 100%;
+    opacity: 0.9;
+}
+
+.system-msg-content {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.85em;
+    font-weight: normal;
+    color: #69f0ae; /* Verde Terminale */
+    
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    letter-spacing: 0.5px;
+    text-align: left; /* <--- CAMBIATO: Testo a sinistra */
+}
+
+.system-msg-content::before {
+    content: '*** ';
+    opacity: 0.6;
+    margin-right: 4px;
+}
+
+/* --- STILE TOPIC --- */
+.room-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 3. Aggiustiamo il Topic per mobile mantenendo il gradiente */
+    #room-topic-display {
+        width: 92%; 
+        max-width: 92%;
+        
+        /* Layout */
+        display: block !important; /* Block per gestire meglio il text-overflow */
+        text-align: center;
+        
+        /* Sovrascriviamo lo stile "pillola" precedente */
+        background: linear-gradient(to right, #bd00ff 0%, #00b8ff 100%) !important;
+        background-color: transparent !important;
+        backdrop-filter: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        
+        /* Testo Gradiente */
+        -webkit-background-clip: text !important;
+        background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        
+        /* Font */
+        font-family: 'Montserrat', sans-serif !important;
+        font-size: 1.1em !important; 
+        font-weight: 800 !important;
+        
+        /* Glow */
+        filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.6)) !important;
+        
+        /* Gestione Testo */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Rimuoviamo il badge dorato anche su mobile */
+    #room-topic-display::before {
+        content: '// ';
+        background: none !important;
+        color: inherit !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        border: none !important;
+        font-size: 1em !important;
+        display: inline !important;
+        -webkit-text-fill-color: inherit !important;
+    }
+	
+/* --- MODALE OP STILE IRC / TERMINALE --- */
+.op-modal-content.irc-theme {
+    background-color: #0a0a0a;
+    border: 2px solid #00ff00; /* Verde Hacker */
+    border-radius: 0; /* Squadrato */
+    font-family: 'Courier New', Courier, monospace;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+    width: 400px;
+    max-width: 95%;
+}
+
+
+/* --- PULSANTE OP (POWER MODE) --- */
+#op-settings-btn {
+    /* Stile base uguale agli altri bottoni header */
+    background: rgba(255, 215, 64, 0.15); /* Sfondo Oro leggero */
+    color: #ffd740; /* Colore Oro/Ambra */
+    border: 1px solid rgba(255, 215, 64, 0.3);
+    border-radius: 6px; /* Stesso raggio degli altri */
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(255, 215, 64, 0.1); /* Leggero alone dorato */
+}
+
+/* Hover: diventa più luminoso e solido */
+#op-settings-btn:hover {
+    background: #ffd740;
+    color: #000; /* Testo nero su oro per massimo contrasto (Power) */
+    box-shadow: 0 0 15px rgba(255, 215, 64, 0.6);
+    transform: translateY(-1px);
+}
+
+#op-settings-btn .material-icons {
+    font-size: 1.3em; /* Dimensione coerente con le altre icone */
+}
+
+/* Animazione Pulsazione (quando entri ed il sistema vuole attirare l'attenzione) */
+@keyframes opPowerPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 215, 64, 0.7); border-color: #ffd740; }
+    70% { box-shadow: 0 0 0 6px rgba(255, 215, 64, 0); border-color: #ffd740; }
+    100% { box-shadow: 0 0 0 0 rgba(255, 215, 64, 0); border-color: rgba(255, 215, 64, 0.3); }
+}
+
+.op-attention {
+    animation: opPowerPulse 2s infinite !important;
+    background-color: #ffd740 !important;
+    color: #000 !important;
+    font-weight: bold;
+}
+
+/* --- MODALE OP (DESIGN MINIMALE / MODERNO) --- */
+#op-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75); /* Sfondo leggermente più scuro per focus */
+    backdrop-filter: blur(5px);       /* Sfocatura sfondo dietro al modale */
+    z-index: 2500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.op-modal-content {
+    background: var(--surface);       /* Grigio scuro standard */
+    border: 1px solid var(--border-color);
+    border-radius: 16px;              /* Bordi più morbidi */
+    width: 380px;
+    max-width: 90%;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
     overflow: hidden;
-}
-.cyber-button:hover {
-    background: var(--neon-pink);
-    color: var(--retro-bg-light);
-    box-shadow: var(--neon-glow-pink);
+    transform: translateY(0);
+    transition: transform 0.3s ease;
 }
 
-
-/* --- ADATTAMENTI MOBILE --- */
-@media (max-width: 768px) {
-    /* Su mobile, non usiamo lo split view.
-       La chat torna ad essere un pannello a comparsa per salvare spazio */
-    #main-split-area {
-        flex-direction: column;
-    }
-    
-    #video-section {
-        flex: 1; /* Prende tutto lo spazio */
-    }
-
-    /* La chat diventa un overlay su mobile */
-    .terminal-panel {
-        position: fixed;
-        top: 50px; /* Sotto l'header */
-        right: 0;
-        bottom: 0;
-        width: 85%; /* Non tutto schermo */
-        z-index: 200;
-        border-left: 2px solid var(--neon-pink);
-        transform: translateX(100%); /* Nascosta di default */
-        transition: transform 0.3s ease-in-out;
-        background: rgba(10, 10, 18, 0.95); /* Più opaca su mobile */
-    }
-    
-    /* Classe per mostrare la chat su mobile (dovrai aggiungerla via JS se vuoi un bottone toggle) */
-    .terminal-panel.mobile-active {
-        transform: translateX(0);
-    }
-
-    /* Controlli più compatti su mobile */
-    .cyber-controls {
-        bottom: 10px;
-        padding: 8px 15px;
-        gap: 10px;
-    }
-    .cyber-ctrl-btn {
-        width: 40px; height: 40px;
-    }
-    
-    /* Riabilita il bottone chat nell'header SOLO su mobile se necessario */
-    /* (Nel tuo HTML attuale l'ho rimosso, se vuoi il toggle mobile devi rimetterlo) */
+/* Header Ridisegnato: Centrato e Pulito */
+.op-header {
+    background: var(--surface);       /* Stesso colore del corpo per continuità */
+    padding: 20px 20px 10px 20px;     /* Più spazio sopra */
+    display: flex;
+    justify-content: center;          /* CENTRATO */
+    align-items: center;
+    position: relative;               /* Per posizionare la X assoluta */
+    border-bottom: none;              /* Rimuoviamo la linea divisoria dura */
 }
 
-/* --- FIX EMOJI PICKER Z-INDEX & STYLE --- */
+.op-header h4 {
+    margin: 0;
+    color: var(--text-color);
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.2em;                 /* Un po' più grande */
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Bottone Chiudi (X) posizionato in alto a destra in modo discreto */
+.op-header button#close-op-modal {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.op-header button#close-op-modal:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+}
+
+/* Corpo del Modale */
+.op-body {
+    padding: 10px 25px 30px 25px;     /* Spaziatura bilanciata */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Etichette e Input */
+.op-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.op-field-group label {
+    font-size: 0.85em;
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;        /* Etichette maiuscole piccole ed eleganti */
+    letter-spacing: 0.5px;
+    margin-left: 2px;
+}
+
+.op-field-group input {
+    width: 100%;
+    background: var(--surface-2);     /* Input leggermente più chiari dello sfondo */
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 15px;
+    color: var(--text-color);
+    font-size: 0.95em;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+/* Focus Input: Bordo color Oro/Ambra delicato */
+.op-field-group input:focus {
+    border-color: #ffd740;
+    background: rgba(255, 215, 64, 0.05); /* Sfondo leggermente colorato al focus */
+}
+
+.op-field-group small {
+    font-size: 0.75em;
+    color: var(--muted);
+    opacity: 0.7;
+    margin-top: 4px;
+}
+
+/* --- COLOR PICKER STYLES --- */
+.color-picker-wrapper {
+    position: relative;
+    width: 100%;
+    height: 45px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+}
+
+.color-picker-wrapper:hover {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+/* Input colore espanso per coprire tutto il wrapper */
+#op-color-input {
+    -webkit-appearance: none;
+    border: none;
+    width: 150%; /* Più largo per nascondere i bordi nativi */
+    height: 150%;
+    position: absolute;
+    top: -25%;
+    left: -25%;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    background: none;
+}
+
+/* Hint testo sopra il colore */
+.color-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none; /* Lascia passare il click all'input */
+    color: #fff;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.1); /* Leggero velo per leggere il testo */
+}
+
+/* Input con icona (Password) */
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon .icon {
+    position: absolute;
+    left: 12px;
+    font-size: 1.2em;
+    color: var(--muted);
+    pointer-events: none;
+}
+
+.input-with-icon input {
+    padding-left: 40px; /* Spazio per l'icona */
+}
+
+/* --- PULSANTE SALVA MINIMALE --- */
+.op-actions {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center; /* Bottone Centrato */
+}
+
+#op-save-btn {
+    /* Stile Minimale Scuro/Elegante */
+    background: var(--surface-2);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    
+    width: 100%;             /* Bottone largo quanto il modale */
+    padding: 12px 0;
+    border-radius: 8px;
+    
+    font-family: 'Roboto', sans-serif;
+    font-weight: 600;
+    font-size: 0.95em;
+    letter-spacing: 0.5px;
+    
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Hover: Diventa leggermente più chiaro/dorato */
+#op-save-btn:hover {
+    background: #ffd740;     /* Diventa Oro al passaggio */
+    color: #000;             /* Testo nero su Oro */
+    border-color: #ffd740;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+#op-save-btn:active {
+    transform: translateY(0);
+}
+
+/* Rimuoviamo il contenuto "save" generato dal CSS precedente che duplicava il testo */
+#op-save-btn::before {
+    content: none !important; 
+}
+
+.irc-input-group {
+    margin-bottom: 20px;
+}
+
+.irc-input-group label {
+    display: block;
+    color: #00ff00;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.irc-input-group input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid #333;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    font-size: 1.1em;
+    padding: 5px 0;
+    border-radius: 0;
+}
+
+.irc-input-group input:focus {
+    outline: none;
+    border-bottom: 2px solid #00ff00;
+    box-shadow: 0 4px 0 -2px rgba(0,255,0,0.2);
+}
+
+.irc-status-line {
+    color: #444;
+    font-size: 0.8em;
+    margin-bottom: 20px;
+}
+
+.blinking-cursor {
+    animation: blink 1s step-end infinite;
+    color: #00ff00;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+
+.irc-actions {
+    text-align: right;
+}
+
+#op-save-btn {
+    background: transparent;
+    color: #00ff00;
+    border: 2px solid #00ff00;
+    padding: 10px 20px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#op-save-btn:hover {
+    background: #00ff00;
+    color: #000;
+    box-shadow: 0 0 15px #00ff00;
+}
+
+
+.op-hint { font-size: 0.75em; color: var(--muted); margin-top: 5px; text-align: center; }
+
+/* Adattamento per tema chiaro (facoltativo) */
+body.light-theme .system-msg-content {
+    color: #00796b; /* Verde scuro su sfondo chiaro */
+    text-shadow: none;
+}
+
+/* Animazione per attirare l'attenzione dell'OP */
+@keyframes opPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 215, 64, 0.7); transform: scale(1); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 215, 64, 0); transform: scale(1.1); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 215, 64, 0); transform: scale(1); }
+}
+
+.op-attention {
+    animation: opPulse 2s infinite;
+    background-color: rgba(255, 215, 64, 0.2) !important;
+    border: 1px solid #ffd740 !important;
+}
+
 .picmo__popupContainer {
-    z-index: 99999 !important;
+    z-index: 99999 !important; /* Altissimo per stare sopra al pannello chat (che è 3000) */
     position: fixed !important;
 }
-/* Stile Cyberpunk per il picker */
+
+/* Opzionale: Stile scuro per il picker per adattarsi al tuo tema */
 .picmo__picker {
-    border: 2px solid var(--neon-cyan) !important;
-    background: var(--retro-bg-light) !important;
-    box-shadow: var(--neon-glow-cyan) !important;
-    font-family: var(--font-main) !important;
-}
-.picmo__searchContainer input {
-    background: rgba(0,0,0,0.3) !important;
-    border: 1px solid var(--neon-blue) !important;
-    color: var(--neon-cyan) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
 }
 
-/* Animazioni */
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-.neon-glitch { animation: glitch-anim 3s infinite linear alternate-reverse; }
-@keyframes glitch-anim {
-  0% { text-shadow: -2px 3px 0 var(--neon-pink), 2px -3px 0 var(--neon-cyan); }
-  20% { text-shadow: 2px -2px 0 var(--neon-pink), -2px 2px 0 var(--neon-cyan); }
-  100% { text-shadow: 1px 1px 0 var(--neon-pink), -1px -1px 0 var(--neon-cyan); }
+
+/* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
+@media (max-width: 768px) {
+
+    /* 1. Header (Intestazione) */
+    #room-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 150;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+        border-bottom: none;
+        padding-top: 15px;
+    }
+
+    #room-header h3 {
+        font-size: 0.9em;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    }
+
+    /* 2. Layout Principale */
+    #conference-container {
+        height: 100dvh;
+    }
+
+    #main-area {
+        height: 100%;
+        padding: 0;
+    }
+
+    /* 3. Griglia Video */
+    #videos-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        padding-top: 90px !important;
+        padding-bottom: 100px !important; /* Spazio per la barra in basso */
+        padding-left: 10px;
+        padding-right: 10px;
+        background: transparent;
+        overflow-y: auto;
+        align-content: start;
+    }
+
+    .video-feed {
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        aspect-ratio: 3/4;
+        object-fit: cover;
+        border-radius: 12px;
+    }
+
+    .context-menu-trigger {
+        opacity: 1 !important;
+    }
+
+    /* Fullscreen Mobile */
+	#videos-grid.has-fullscreen {
+        display: flex !important;        /* Usa Flexbox per gestire il layout */
+        flex-direction: column;          /* Impila gli elementi verticalmente */
+        align-items: flex-end;           /* Allinea tutto a DESTRA */
+        justify-content: flex-start;     /* Inizia dall'alto */
+        
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw !important;
+        height: 100dvh !important;
+        z-index: 50;
+        background: #000;
+        
+        /* Padding superiore per non finire sotto l'header e iniziare la lista PIP */
+        padding-top: 80px !important; 
+        padding-right: 10px !important;  /* Margine destro per i PIP */
+        padding-bottom: 100px !important; /* Spazio per i controlli in basso */
+        
+        overflow-y: auto; /* Permette di scrollare se ci sono troppe webcam PIP */
+    }
+
+	.video-feed.fullscreen-active {
+        position: absolute !important; /* Toglilo dal flusso flex */
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 10; /* Livello base (sfondo) */
+        border-radius: 0 !important;
+        margin: 0 !important;
+    }
+
+	.video-feed.fullscreen-active video {
+        object-fit: contain !important;
+        width: 100%;
+        height: 100%;
+    }
+
+    /* PIP Mode (Tu in piccolo) */
+	.video-feed.pip-mode {
+        /* Reset posizionamento assoluto precedente */
+        position: relative !important; 
+        left: auto !important;
+        right: auto !important;
+        top: auto !important;
+        bottom: auto !important;
+        
+        /* Dimensioni e stile */
+        width: 100px !important;
+        height: 135px !important; /* Aspect ratio circa 3:4 */
+        flex-shrink: 0;           /* Impedisce che si schiaccino */
+        margin-bottom: 10px;      /* Spazio tra un PIP e l'altro */
+        
+        z-index: 20;              /* Sopra il video fullscreen */
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        border-radius: 8px;
+        background: #000;
+    }
+    
+	.video-feed.pip-mode .video-label,
+    .video-feed.pip-mode .context-menu-trigger {
+        display: none !important;
+    }
+
+    /* 4. BARRA CONTROLLI (FIX DIMENSIONI) */
+    #main-controls-bar {
+        bottom: 20px;
+        background: rgba(20, 20, 20, 0.85);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        
+        /* Larghezza sicura: 92% dello schermo, ma mai più di 400px */
+        width: 92%;
+        max-width: 400px; 
+        
+        /* Spaziatura interna minima */
+        padding: 8px 5px;
+        
+        /* Distribuzione Flexbox */
+        display: flex;
+        justify-content: space-between; /* Spinge i pulsanti agli estremi in modo equo */
+        gap: 2px; /* Gap minimo */
+        
+        z-index: 200;
+        border-radius: 50px;
+        
+        /* Centratura orizzontale */
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    #main-controls-bar button {
+        /* Ridotti a 36px per farne entrare 7 comodamente */
+        width: 36px;
+        height: 36px;
+        min-width: 36px; /* Impedisce lo schiacciamento */
+        flex-shrink: 0;  /* Impedisce lo schiacciamento */
+        
+        background: transparent;
+        box-shadow: none;
+        border-radius: 50%;
+        padding: 0;
+        margin: 0;
+        
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #main-controls-bar button .material-icons {
+        font-size: 1.3em; /* Icone ridimensionate proporzionalmente */
+    }
+
+    #main-controls-bar button:hover,
+    #main-controls-bar button.active {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    #disconnect-button {
+        background: var(--danger) !important;
+        box-shadow: 0 2px 8px rgba(239, 83, 80, 0.4) !important;
+    }
+
+    /* Chat Panel Mobile */
+    #chat-panel {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100% !important;    /* Forza la larghezza totale */
+        min-width: 0 !important;   /* Annulla il vincolo dei 300px desktop */
+        height: 100dvh;            /* Usa l'altezza dinamica del viewport (meglio per mobile) */
+        background: var(--surface);
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        z-index: 3000 !important;  /* Z-INDEX ALITISSIMO: Deve coprire header, video e tutto */
+        display: flex;
+        flex-direction: column;
+        border-left: none;
+        padding-top: env(safe-area-inset-top); /* Rispetta il notch degli iPhone */
+    }
+
+    #chat-panel.active {
+        transform: translateY(0);
+    }
+	
+	#chat-panel h3 {
+        display: none; 
+    }
+
+	#chat-input-area {
+        padding-bottom: max(15px, env(safe-area-inset-bottom));
+        background: var(--surface-2);
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Stile per il pulsante "Torna alle webcam" generato dal JS */
+    #close-chat-btn {
+        background-color: var(--surface-2) !important;
+        color: var(--primary-color) !important;
+        border: 1px solid var(--border-color) !important;
+        margin: 10px !important;
+        width: calc(100% - 20px) !important;
+        padding: 12px !important;
+        font-size: 1em !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: bold;
+    }
+
+	#switch-camera-button {
+        display: flex !important;
+    }
+
+	#extras-menu {
+        width: 90%; /* Più largo su mobile */
+        bottom: 85px;
+    }
+    
+    #extras-menu .menu-item {
+        padding: 15px; /* Touch target più grandi */
+        font-size: 1.1em;
+    }
+
+	.video-feed.fullscreen-active .context-menu-trigger {
+		top: 80px !important; /* Scende sotto la barra dei pulsanti (che è circa 60px) */
+		right: 15px !important; /* Un po' di margine dal bordo */
+		z-index: 200 !important; /* Assicura che sia cliccabile sopra il video */
+		background-color: rgba(0, 0, 0, 0.6); /* Sfondo scuro per vederlo meglio */
+		width: 40px; /* Leggermente più grande per facilitare il tocco */
+		height: 40px;
+	}
+
+	/* Opzionale: Assicuriamoci che l'etichetta del nome non dia fastidio in basso */
+	.video-feed.fullscreen-active .video-label {
+		bottom: 110px !important; /* Sposta il nome sopra la barra controlli inferiore */
+		left: 15px !important;
+		font-size: 1em !important;
+	}
+    
+	#meeting-transcript-panel {
+        left: 50%;
+        transform: translateX(-50%); /* Centrato orizzontalmente */
+        bottom: 90px; /* Appena sopra il menu "Altro" che si apre */
+        width: 94%;   /* Occupa quasi tutta la larghezza */
+        max-height: 25vh; /* Massimo 1/4 dello schermo per non coprire le facce */
+        font-size: 0.9em; /* Testo leggermente più piccolo */
+    }
+    
+    #meeting-transcript-panel.hidden {
+        transform: translateX(-50%) translateY(20px); /* Animazione uscita verso il basso */
+    }
+
+
+    /* 1. L'Header deve adattarsi in altezza (non più fisso a 60px) */
+    #room-header {
+        height: auto !important;     /* Altezza automatica per contenere due righe */
+        min-height: 60px;
+        flex-wrap: wrap;             /* Permette agli elementi di andare a capo */
+        gap: 10px;                   /* Spazio verticale tra la riga bottoni e il topic */
+        padding-bottom: 12px;        /* Spazio extra sotto */
+    }
+
+    /* 2. Il contenitore del Topic smette di essere assoluto */
+    #room-topic-container {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        transform: none !important;
+        width: 100% !important;
+        margin-top: -5px !important; /* Lo avvicina un po' al titolo */
+        margin-bottom: 5px !important;
+        padding: 0 10px !important;
+        order: 3;
+        display: flex;
+        justify-content: center;
+        z-index: 15;
+    }
+
+    /* 2. Stile del Testo: Rimuoviamo il box scuro e mettiamo il gradiente */
+    #room-topic-display {
+        width: 100%;
+        max-width: 100%;
+        text-align: center;
+        
+        /* RESET TOTALE DEL VECCHIO STILE "PILLOLA" */
+        background-color: transparent !important;
+        border: none !important;          /* Toglie la riga gialla */
+        border-bottom: none !important;   /* Sicurezza extra */
+        box-shadow: none !important;      /* Toglie l'ombra scura */
+        backdrop-filter: none !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        
+        /* APPLICAZIONE NUOVO STILE GRADIENTE */
+        background: linear-gradient(to right, #bd00ff 0%, #00b8ff 100%) !important;
+        -webkit-background-clip: text !important;
+        background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        color: transparent !important; /* Fallback */
+        
+        /* Font e Tipografia */
+        font-family: 'Montserrat', sans-serif !important;
+        font-size: 1.1em !important; 
+        font-weight: 800 !important;
+        letter-spacing: -0.5px !important;
+        
+        /* Effetti Luce */
+        filter: drop-shadow(0 0 5px rgba(189, 0, 255, 0.4)) !important;
+        
+        /* Gestione testo lungo */
+        display: block !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* 3. Aggiustiamo il prefisso "//" */
+    #room-topic-display::before {
+        content: '// ';
+        /* Eredita il gradiente del padre */
+        background: none !important;
+        -webkit-text-fill-color: inherit !important;
+        font-weight: 900 !important;
+        margin-right: 4px;
+        
+        /* Rimuovi vecchi stili badge */
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        font-size: 1em !important;
+    }
+	
+	#room-name-display {
+        font-size: 1.6rem; /* Un po' più grande per impatto */
+        
+        /* 1. FORZIAMO IL MOTORE DI RENDERIZZAZIONE */
+        -webkit-background-clip: text !important;
+        background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;     
+        filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8)) !important;
+        text-shadow: none !important; /* Rimuove eventuali ombre nere dell'header che scuriscono il testo */
+        position: relative;
+        z-index: 160;    
+        /* Fix rendering iOS */
+        transform: translateZ(0);
+    }
+    
+    /* Sistemiamo il padding per allinearlo visivamente col resto */
+    .header-left {
+        padding-left: 5px;
+    }
+
+    /* 4. Aumentiamo il padding del Grid Video affinché non finisca sotto l'header più alto */
+    #videos-grid {
+        /* Aumentato da 90px a 130px perché ora l'header è su due righe */
+        padding-top: 130px !important; 
+    }
+	
+    /* Mobile Whiteboard Adjustments */
+	.wb-toolbar {
+        top: 90px !important;
+        padding: 8px 12px;
+        width: 90%;
+        justify-content: space-between;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    .wb-colors { padding-right: 10px; gap: 5px; }
+    .color-btn { width: 28px; height: 28px; }
 }
