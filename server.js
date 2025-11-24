@@ -237,6 +237,11 @@ io.on('connection', (socket) => {
         if (roomId) socket.to(roomId).emit('peer-left', socket.id);
         broadcastAdminUpdate();
     });
+	// Gestione Trascrizione / Sottotitoli
+	socket.on('send-transcript', (roomId, nickname, text, isFinal) => {
+		// Invia a tutti gli altri nella stanza (tranne chi parla)
+		socket.to(roomId).emit('receive-transcript', socket.id, nickname, text, isFinal);
+	});
 });
 
 const PORT = process.env.PORT || 3000;

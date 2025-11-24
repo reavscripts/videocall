@@ -1686,7 +1686,14 @@ function initializeSocket(){
   socket.on('new-private-message', (s, m) => { addChatMessage(`${t('private_msg_to')} ${s}`, m, false, 'private'); });
   socket.on('audio-status-changed', (pid, talk) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f) { f.classList.toggle('is-talking', talk); f.querySelector('.remote-mic-status').textContent = talk ? 'mic' : 'mic_off'; } });
   socket.on('remote-stream-type-changed', (pid, ratio) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f){ f.classList.remove('ratio-4-3', 'ratio-16-9'); f.classList.add(`ratio-${ratio}`); } });
-  
+  socket.on('receive-transcript', (senderId, nickname, text, isFinal) => {
+    updateSubtitleUI(senderId, nickname, text, isFinal);
+    // Assicurati che il contenitore sia visibile se qualcuno parla
+    if(subtitlesOverlay.classList.contains('hidden')) {
+        subtitlesOverlay.classList.remove('hidden');
+    }
+});
+
   // WebRTC Signaling
   socket.on('offer', async (fid, o)=>{ const pc = createPeerConnection(fid); if(pc.signalingState !== 'stable') return; await pc.setRemoteDescription(new RTCSessionDescription(o)); if (iceCandidateQueues[fid]) { iceCandidateQueues[fid].forEach(c => pc.addIceCandidate(new RTCIceCandidate(c))); iceCandidateQueues[fid] = []; } const a = await pc.createAnswer(); await pc.setLocalDescription(a); socket.emit('answer', fid, pc.localDescription); });
   socket.on('answer', async (fid, a)=>{ const pc = peerConnections[fid]; if(pc && pc.signalingState === 'have-local-offer') { await pc.setRemoteDescription(new RTCSessionDescription(a)); if (iceCandidateQueues[fid]) { iceCandidateQueues[fid].forEach(c => pc.addIceCandidate(new RTCIceCandidate(c))); iceCandidateQueues[fid] = []; } } });
@@ -1779,6 +1786,137 @@ joinButton.addEventListener('click', async () => {
 localFeedEl.addEventListener('click', () => {
     toggleFocus('local');
 });
+
+// ==========================================
+// 📝 TRANSCRIPTION / SPEECH-TO-TEXT LOGIC
+// ==========================================
+
+const toggleTranscriptionBtn = document.getElementById('toggle-transcription-btn');
+const subtitlesOverlay = document.getElementById('subtitles-overlay');
+
+let recognition = null;
+let isTranscribing = false;
+let subClearTimer = null;
+
+// Verifica supporto browser (Chrome/Edge/Safari supportano webkitSpeechRecognition)
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    // Usa la lingua rilevata dal sistema (es. "it-IT") o fallback su 'en-US'
+    recognition.lang = navigator.language || 'en-US'; 
+    recognition.continuous = true;      // Continua ad ascoltare anche dopo le pause
+    recognition.interimResults = true;  // Mostra i risultati mentre parli
+
+    recognition.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                interimTranscript += event.results[i][0].transcript;
+            }
+        }
+
+        // Se c'è testo, invialo
+        const textToSend = finalTranscript || interimTranscript;
+        if (textToSend.trim().length > 0 && socket && currentRoomId) {
+            const isFinal = !!finalTranscript;
+            
+            // 1. Mostra i MIEI sottotitoli localmente
+            updateSubtitleUI('local', t('you'), textToSend, isFinal);
+            
+            // 2. Invia agli altri
+            socket.emit('send-transcript', currentRoomId, userNickname, textToSend, isFinal);
+        }
+    };
+
+    recognition.onerror = (event) => {
+        console.error("Speech recognition error", event.error);
+        if (event.error === 'not-allowed') {
+            alert("Microphone access blocked for speech recognition.");
+            stopTranscription();
+        }
+    };
+
+    recognition.onend = () => {
+        // Se si ferma ma il flag è attivo, riavvialo (succede spesso su Chrome dopo un po' di silenzio)
+        if (isTranscribing) {
+            try { recognition.start(); } catch(e){}
+        }
+    };
+} else {
+    // Nascondi il pulsante se il browser non supporta la feature (es. Firefox)
+    if(toggleTranscriptionBtn) toggleTranscriptionBtn.style.display = 'none';
+    console.warn("Web Speech API not supported in this browser.");
+}
+
+// --- Funzioni di Controllo ---
+
+function toggleTranscription() {
+    if (!recognition) return;
+
+    isTranscribing = !isTranscribing;
+    const icon = toggleTranscriptionBtn.querySelector('.material-icons');
+
+    if (isTranscribing) {
+        recognition.start();
+        toggleTranscriptionBtn.classList.add('active');
+        icon.textContent = 'closed_caption'; // Icona "CC attivo"
+        subtitlesOverlay.classList.remove('hidden');
+        addChatMessage(t('system'), 'Transcription started (visible to others).', true, 'system');
+    } else {
+        recognition.stop();
+        toggleTranscriptionBtn.classList.remove('active');
+        icon.textContent = 'closed_caption_off'; // Icona "CC spento"
+        subtitlesOverlay.classList.add('hidden');
+        subtitlesOverlay.innerHTML = ''; // Pulisci schermo
+    }
+}
+
+function stopTranscription() {
+    isTranscribing = false;
+    if(recognition) recognition.stop();
+    if(toggleTranscriptionBtn) {
+        toggleTranscriptionBtn.classList.remove('active');
+        toggleTranscriptionBtn.querySelector('.material-icons').textContent = 'closed_caption_off';
+    }
+}
+
+// --- Gestione UI Sottotitoli ---
+
+function updateSubtitleUI(id, nickname, text, isFinal) {
+    // Cerchiamo se esiste già una riga per questo utente
+    let line = document.getElementById(`sub-line-${id}`);
+    
+    if (!line) {
+        line = document.createElement('div');
+        line.id = `sub-line-${id}`;
+        line.className = 'subtitle-line';
+        subtitlesOverlay.appendChild(line);
+    }
+
+    // Aggiorna il testo
+    line.innerHTML = `<span class="speaker-name">${nickname}:</span> ${text}`;
+
+    // Se la frase è finita, rimuovila dopo 3 secondi
+    if (isFinal) {
+        setTimeout(() => {
+            if (line && line.parentNode) line.remove();
+        }, 4000);
+    }
+    
+    // Auto-scroll (non necessario con flex-end, ma utile per sicurezza)
+    subtitlesOverlay.scrollTop = subtitlesOverlay.scrollHeight;
+}
+
+// --- Event Listener ---
+
+if(toggleTranscriptionBtn) {
+    toggleTranscriptionBtn.addEventListener('click', toggleTranscription);
+}
 
 // --------------------------------------------------------
 // LISTENERS UI & CONTROLS

@@ -1274,6 +1274,47 @@ body.light-theme .sender-private {
     display: none !important;
 }
 
+/* Contenitore Sottotitoli */
+#subtitles-overlay {
+    position: absolute;
+    bottom: 100px; /* Sopra la barra controlli */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    text-align: center;
+    pointer-events: none; /* Permette di cliccare attraverso */
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    justify-content: flex-end;
+    min-height: 50px;
+}
+
+.subtitle-line {
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 1.1em;
+    display: inline-block;
+    align-self: center;
+    animation: fadeIn 0.3s ease;
+    text-shadow: 0 1px 2px black;
+}
+
+.subtitle-line .speaker-name {
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-right: 5px;
+}
+
+#toggle-transcription-btn.active {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+
 /* --- OTTIMIZZAZIONE MOBILE --- */
 @media (max-width: 768px) {
 
