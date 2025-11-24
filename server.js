@@ -23,6 +23,7 @@ const roomMessages = {}; // { roomId: [ {sender, text, id, timestamp} ] }
 const bannedIPs = new Set(); // Set di stringhe IP
 const admins = new Set(); 
 
+
 // Helper per ottenere IP (funziona anche su Render/Heroku)
 function getClientIp(socket) {
     const header = socket.handshake.headers['x-forwarded-for'];
@@ -79,9 +80,10 @@ io.on('connection', (socket) => {
         // Creazione Config se non esiste
         if (!roomConfigs[roomId]) {
             roomConfigs[roomId] = { 
-                password: password, 
+				password: password, 
                 isLocked: false,
-                topic: "" // Campo Topic vuoto di default
+                topic: "",
+                nameColor: "#00b8ff" // <--- NUOVO: Colore Default (Ciano)
             };
             if(password) logToAdmin(`Stanza ${roomId} creata con password.`);
         }
@@ -130,12 +132,17 @@ io.on('connection', (socket) => {
         });
 
         broadcastAdminUpdate();
+		// Aggiungi config.nameColor alla fine
+        socket.emit('welcome', socket.id, finalNickname, peers, config.topic, !!config.password, config.nameColor);
     });
 
-// --- GESTIONE OPERATORE STANZA (@) ---
-    socket.on('op-update-settings', (roomId, newTopic, newPassword) => {
-        // 1. Sicurezza
+	// --- GESTIONE OPERATORE STANZA (@) ---
+    socket.on('op-update-settings', (roomId, newTopic, newPassword, newColor) => {
+        
+        // 1. Sicurezza: L'utente esiste nella stanza?
         if (!rooms[roomId] || !rooms[roomId][socket.id]) return;
+
+        // 2. Sicurezza: L'utente ha la @ nel nickname?
         const currentNick = rooms[roomId][socket.id];
         if (!currentNick.startsWith('@')) {
             socket.emit('error-message', "Non hai i permessi di Operatore (@).");
@@ -143,31 +150,36 @@ io.on('connection', (socket) => {
         }
 
         if (roomConfigs[roomId]) {
-            // --- CALCOLO DIFFERENZE (DIFF) ---
+            // --- A. CATTURA STATO PRECEDENTE (Fondamentale per il confronto) ---
             const oldTopic = roomConfigs[roomId].topic || "";
-            const oldHasPassword = !!roomConfigs[roomId].password;
-            const newHasPassword = !!newPassword;
+            const oldHasPassword = !!roomConfigs[roomId].password; // Converti in booleano (true/false)
+            const oldColor = roomConfigs[roomId].nameColor;
 
-            // Applica Modifiche
+            // --- B. APPLICA LE NUOVE MODIFICHE ---
             roomConfigs[roomId].topic = newTopic || "";
             roomConfigs[roomId].password = newPassword || ""; 
+            roomConfigs[roomId].nameColor = newColor || "#00b8ff"; 
 
-            // Determina cosa è cambiato
-            const topicChanged = (oldTopic !== (newTopic || ""));
+            // --- C. CALCOLA LE DIFFERENZE ---
+            const newHasPassword = !!newPassword; // Stato attuale della password
             
-            let passwordAction = null; // 'added', 'removed', o null (nessun cambio)
+            const topicChanged = (oldTopic !== (newTopic || ""));
+            const colorChanged = (oldColor !== newColor);
+
+            let passwordAction = null; // 'added', 'removed', o null
             if (!oldHasPassword && newHasPassword) passwordAction = 'added';
             else if (oldHasPassword && !newHasPassword) passwordAction = 'removed';
             
             // Log Admin
-            logToAdmin(`OP ${currentNick} update ${roomId}: Topic=${topicChanged}, Pass=${passwordAction}`);
+            logToAdmin(`OP ${currentNick} update ${roomId}: Topic=${topicChanged}, Pass=${passwordAction}, Color=${newColor}`);
 
-            // 4. Avvisa TUTTI inviando anche COSA è cambiato
+            // --- D. AVVISA TUTTI ---
             io.to(roomId).emit('room-info-updated', 
                 newTopic, 
                 newHasPassword, 
-                topicChanged,    // <--- Nuovo Parametro
-                passwordAction   // <--- Nuovo Parametro
+                topicChanged, 
+                passwordAction,
+                newColor 
             );
             
             socket.emit('op-settings-saved');

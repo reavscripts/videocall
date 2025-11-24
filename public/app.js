@@ -20,6 +20,7 @@ const opSaveBtn = document.getElementById('op-save-btn');
 const roomTopicDisplay = document.getElementById('room-topic-display');
 const opTopicInput = document.getElementById('op-topic-input');
 const opPasswordInput = document.getElementById('op-password-input');
+const opColorInput = document.getElementById('op-color-input');
 
 // VARIABILI SPEECH TO TEXT
 const menuToggleCC = document.getElementById('menu-toggle-cc');
@@ -2144,7 +2145,7 @@ function initializeSocket(){
   socket.on('nickname-in-use', (msg) => { alert(msg); resetAndShowOverlay(); if (socket) socket.disconnect(); socket = null; });
   
   // Modifica la firma per ricevere anche topic e password
-  socket.on('welcome', (newPeerId, serverAssignedNickname, peers=[], topic="", hasPassword=false) => { 
+  socket.on('welcome', (newPeerId, serverAssignedNickname, peers=[], topic="", hasPassword=false, nameColor="#00b8ff") => { 
       userNickname = serverAssignedNickname;
       const localLabel = document.getElementById('local-nickname-display');
       if(localLabel) localLabel.textContent = userNickname;
@@ -2156,7 +2157,8 @@ function initializeSocket(){
 
       // --- LOGICA UI OPERATORE ---
       updateRoomInfoUI(topic, hasPassword);
-      
+      applyRoomBrandColor(nameColor); // <--- NUOVO: Applica il colore del brand
+
       const opBtn = document.getElementById('op-settings-btn');
       
       if (userNickname.startsWith('@')) {
@@ -2169,10 +2171,13 @@ function initializeSocket(){
           // 3. Pre-compila il valore del topic attuale nel modale
           document.getElementById('op-topic-input').value = topic;
 
-          // 4. AVVISO ESPLICITO IN CHAT
+          // 4. Pre-compila il colore nel picker (se esiste)
+          if(opColorInput) opColorInput.value = nameColor;
+
+          // 5. AVVISO ESPLICITO IN CHAT
           setTimeout(() => {
               addChatMessage('Sistema', '👑 Sei l\'Operatore (@). Clicca sullo scudo in alto per gestire Topic e Password.', false, 'system');
-          }, 500); // Leggero ritardo per farlo apparire dopo il benvenuto
+          }, 500); 
       } else {
           opBtn.classList.add('hidden');
           opBtn.classList.remove('op-attention');
@@ -2188,9 +2193,12 @@ function initializeSocket(){
   });
   
   // Ora riceve anche 'topicChanged' (bool) e 'passwordAction' ('added'/'removed'/null)
-  socket.on('room-info-updated', (newTopic, hasPassword, topicChanged, passwordAction) => {
+  socket.on('room-info-updated', (newTopic, hasPassword, topicChanged, passwordAction, newColor) => {
       updateRoomInfoUI(newTopic, hasPassword);
       
+      // Applica il nuovo colore live se presente
+      if(newColor) applyRoomBrandColor(newColor);
+
       // Costruiamo il messaggio in modo intelligente
       let parts = [];
 
@@ -2625,9 +2633,11 @@ if (opSaveBtn) {
     opSaveBtn.addEventListener('click', () => {
         const newTopic = opTopicInput.value.trim();
         const newPass = opPasswordInput.value.trim();
+        const newColor = opColorInput.value; // <--- Leggi il colore
         
         if (socket && currentRoomId) {
-            socket.emit('op-update-settings', currentRoomId, newTopic, newPass);
+            // Invia anche newColor
+            socket.emit('op-update-settings', currentRoomId, newTopic, newPass, newColor);
         }
     });
 }
@@ -2635,10 +2645,6 @@ if (opSaveBtn) {
 // --------------------------------------------------------
 // FUNZIONI HELPER UTILITY
 // --------------------------------------------------------
-
-// Funzione helper per aggiornare l'interfaccia (Titolo e Topic)
-// Questa funzione viene richiamata dagli eventi socket dentro initializeSocket
-// Funzione helper per aggiornare l'interfaccia (Titolo e Topic)
 function updateRoomInfoUI(topic, isLocked) {
     const topicDisplay = document.getElementById('room-topic-display');
     const roomTitle = document.getElementById('room-name-display');
@@ -2670,6 +2676,28 @@ function updateRoomInfoUI(topic, isLocked) {
             roomTitle.textContent = currentText;
         }
     }
+}
+
+// Funzione per applicare il colore del brand al titolo della stanza
+function applyRoomBrandColor(color) {
+    const titleEl = document.getElementById('room-name-display');
+    if (!titleEl) return;
+
+    // Strategia: Creiamo un gradiente dinamico basato sul colore scelto
+    // Colore scuro = colore scelto | Colore chiaro = colore scelto schiarito
+    
+    // Helper interno per schiarire il colore esadecimale
+    const adjustColorLightness = (col, amount) => {
+        return '#' + col.replace(/^#/, '').replace(/../g, c => ('0'+Math.min(255, Math.max(0, parseInt(c, 16) + amount)).toString(16)).substr(-2));
+    };
+
+    // Applica il gradiente al testo
+    titleEl.style.background = `linear-gradient(to right, ${color} 0%, ${adjustColorLightness(color, 60)} 100%)`;
+    titleEl.style.webkitBackgroundClip = 'text';
+    titleEl.style.webkitTextFillColor = 'transparent';
+    
+    // Aggiorna anche il Glow (Bagliore) con trasparenza
+    titleEl.style.filter = `drop-shadow(0 0 15px ${color}80)`; // 80 hex = ~50% opacità
 }
 
 // FINE DEL FILE

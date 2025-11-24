@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Video Conference - WebRTC</title>
-<link rel="stylesheet" href="style.css?v=1.5" />
+<link rel="stylesheet" href="style.css?v=1.5.1" />
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon/favicon-16x16.png">
@@ -126,6 +126,14 @@
                 <div class="op-field-group">
                     <label for="op-topic-input">Topic del giorno</label>
                     <input type="text" id="op-topic-input" placeholder="Es: Riunione budget..." maxlength="100" autocomplete="off">
+                </div>
+
+                <div class="op-field-group">
+                    <label for="op-color-input">Colore Brand Stanza</label>
+                    <div class="color-picker-wrapper">
+                        <input type="color" id="op-color-input" value="#00b8ff">
+                        <span class="color-hint">Clicca per cambiare il colore del titolo</span>
+                    </div>
                 </div>
                 
                 <div class="op-field-group">
@@ -267,6 +275,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
-<script src="app.js?v=1.5"></script>
+<script src="app.js?v=1.5.1"></script>
 </body>
 </html>

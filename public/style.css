@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap');
+
 :root {
     --primary-color: #00bcd4;
     --accent-color: #ff9800;
@@ -642,8 +644,43 @@ input:checked + .slider:before {
     font-size: 1.1em;
 }
 
+.room-title-wrapper h3 {
+    margin: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+}
+
 #room-name-display {
-    color: var(--primary-color);
+    /* Nuovo Font: Geometrico e Moderno */
+    font-family: 'Montserrat', sans-serif; 
+    font-weight: 900;        /* Peso massimo per impatto */
+    font-size: 1.9rem;       /* Grande */
+    letter-spacing: -0.5px;  /* Lettere vicine per compattezza */
+    text-transform: uppercase; /* Tutto maiuscolo stile LOGO */
+    
+    /* NUOVO GRADIENTE: Electric Violet -> Bright Cyan */
+    background: linear-gradient(to right, #bd00ff 0%, #00b8ff 100%);
+    
+    /* Applicazione gradiente al testo */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent; 
+    
+    /* Glow colorato per staccarlo dallo sfondo */
+    filter: drop-shadow(0 0 15px rgba(189, 0, 255, 0.4));
+    
+    /* Posizionamento */
+    padding-right: 10px;
+    cursor: default;
+    transition: all 0.3s ease;
+}
+
+/* Hover: Effetto "Accensione" */
+#room-name-display:hover {
+    filter: drop-shadow(0 0 25px rgba(0, 184, 255, 0.6));
+    transform: scale(1.02) skewX(-5deg); /* Leggera inclinazione dinamica */
 }
 
 .header-controls {
@@ -1834,6 +1871,55 @@ body.light-theme .sender-private {
     margin-top: 4px;
 }
 
+/* --- COLOR PICKER STYLES --- */
+.color-picker-wrapper {
+    position: relative;
+    width: 100%;
+    height: 45px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+}
+
+.color-picker-wrapper:hover {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+/* Input colore espanso per coprire tutto il wrapper */
+#op-color-input {
+    -webkit-appearance: none;
+    border: none;
+    width: 150%; /* Più largo per nascondere i bordi nativi */
+    height: 150%;
+    position: absolute;
+    top: -25%;
+    left: -25%;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    background: none;
+}
+
+/* Hint testo sopra il colore */
+.color-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none; /* Lascia passare il click all'input */
+    color: #fff;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.1); /* Leggero velo per leggere il testo */
+}
+
 /* Input con icona (Password) */
 .input-with-icon {
     position: relative;
@@ -2263,16 +2349,130 @@ body.light-theme .system-msg-content {
     #meeting-transcript-panel.hidden {
         transform: translateX(-50%) translateY(20px); /* Animazione uscita verso il basso */
     }
-	
-	#room-topic-display {
-        font-size: 1em; /* Un po' più piccolo su mobile */
-        padding: 8px 16px;
-        width: 90%;
-        border-radius: 8px;
+
+
+    /* 1. L'Header deve adattarsi in altezza (non più fisso a 60px) */
+    #room-header {
+        height: auto !important;     /* Altezza automatica per contenere due righe */
+        min-height: 60px;
+        flex-wrap: wrap;             /* Permette agli elementi di andare a capo */
+        gap: 10px;                   /* Spazio verticale tra la riga bottoni e il topic */
+        padding-bottom: 12px;        /* Spazio extra sotto */
     }
+
+    /* 2. Il contenitore del Topic smette di essere assoluto */
+    #room-topic-container {
+        position: relative !important; /* Torna nel flusso normale della pagina */
+        left: auto !important;
+        top: auto !important;
+        transform: none !important;
+        
+        width: 100%;                 /* Occupa tutta la larghezza (riga nuova) */
+        order: 3;                    /* 1=Titolo, 2=Bottoni, 3=Topic (Va sotto) */
+        
+        display: flex;
+        justify-content: center;     /* Centra la pillola nella nuova riga */
+        margin-top: 5px;
+        z-index: 1;
+    }
+
+    /* 3. Aggiustiamo la pillola del Topic per mobile */
+	#room-topic-display {
+        width: 92%; /* Leggermente più stretto per margini laterali */
+        max-width: 92%;
+        
+        /* Layout Flessibile */
+        display: inline-flex !important; /* inline-flex per adattarsi al contenuto se corto */
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        
+        /* --- STILE COPIATO DALLA VERSIONE DESKTOP --- */
+        /* Sfondo Premium: Gradiente scuro verticale */
+        background: linear-gradient(180deg, rgba(45, 45, 45, 0.95) 0%, rgba(20, 20, 20, 0.98) 100%) !important;
+        backdrop-filter: blur(12px);
+        
+        /* Bordi e Ombre */
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-bottom: 2px solid #ffd740 !important; /* Linea d'accento ORO */
+        
+        /* Dimensioni adattate al mobile */
+        padding: 8px 15px; 
+        border-radius: 12px; /* Angoli morbidi */
+        
+        /* Ombra e Glow */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+        
+        /* Tipografia */
+        font-family: 'Roboto', sans-serif;
+        font-size: 1em; /* Font leggibile ma non enorme */
+        font-weight: 500;
+        color: #ffffff !important; /* Bianco puro */
+        letter-spacing: 0.3px;
+        
+        /* Gestione Troncamento Testo */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Adattiamo l'etichetta interna "TOPIC" */
     #room-topic-display::before {
+        content: 'TOPIC';
+        
+        /* Stile Badge Desktop adattato */
         font-size: 0.65em;
-        padding: 2px 6px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        
+        /* Badge Dorato */
+        background: linear-gradient(135deg, #ffd740 0%, #ffc107 100%);
+        color: #000;
+        padding: 3px 8px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        
+        margin-right: 5px;
+        flex-shrink: 0; /* Impedisce che il badge si schiacci */
+        
+        display: block; 
+        border-right: none; /* Rimuoviamo la linea verticale vecchia se c'era */
+    }
+	
+	#room-name-display {
+        font-size: 1.6rem; /* Un po' più grande per impatto */
+        
+        /* 1. FORZIAMO IL MOTORE DI RENDERIZZAZIONE */
+        /* L'uso di !important assicura che il browser non ignori queste regole */
+        -webkit-background-clip: text !important;
+        background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        
+        /* 2. BAGLIORE POTENZIATO PER MOBILE */
+        /* Aumentiamo l'opacità (0.8) e riduciamo il raggio (8px) per renderlo più nitido e luminoso */
+        filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8)) !important;
+        
+        /* 3. PREVIENE OMBRE SCURE EREDITATE */
+        text-shadow: none !important; /* Rimuove eventuali ombre nere dell'header che scuriscono il testo */
+        
+        /* Assicuriamo che stia sopra a tutto */
+        position: relative;
+        z-index: 160;
+        
+        /* Fix rendering iOS */
+        transform: translateZ(0);
+    }
+    
+    /* Sistemiamo il padding per allinearlo visivamente col resto */
+    .header-left {
+        padding-left: 5px;
+    }
+
+    /* 4. Aumentiamo il padding del Grid Video affinché non finisca sotto l'header più alto */
+    #videos-grid {
+        /* Aumentato da 90px a 130px perché ora l'header è su due righe */
+        padding-top: 130px !important; 
     }
 	
     /* Mobile Whiteboard Adjustments */
@@ -2284,5 +2484,5 @@ body.light-theme .system-msg-content {
         border: 1px solid rgba(255,255,255,0.2);
     }
     .wb-colors { padding-right: 10px; gap: 5px; }
-    .color-btn { width: 28px; height: 28px; } 
+    .color-btn { width: 28px; height: 28px; }
 }
