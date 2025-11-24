@@ -2444,22 +2444,13 @@ body.light-theme .system-msg-content {
         font-size: 1.6rem; /* Un po' più grande per impatto */
         
         /* 1. FORZIAMO IL MOTORE DI RENDERIZZAZIONE */
-        /* L'uso di !important assicura che il browser non ignori queste regole */
         -webkit-background-clip: text !important;
         background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
-        
-        /* 2. BAGLIORE POTENZIATO PER MOBILE */
-        /* Aumentiamo l'opacità (0.8) e riduciamo il raggio (8px) per renderlo più nitido e luminoso */
+        -webkit-text-fill-color: transparent !important;     
         filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8)) !important;
-        
-        /* 3. PREVIENE OMBRE SCURE EREDITATE */
         text-shadow: none !important; /* Rimuove eventuali ombre nere dell'header che scuriscono il testo */
-        
-        /* Assicuriamo che stia sopra a tutto */
         position: relative;
-        z-index: 160;
-        
+        z-index: 160;    
         /* Fix rendering iOS */
         transform: translateZ(0);
     }

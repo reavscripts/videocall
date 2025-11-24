@@ -62,8 +62,8 @@ io.on('connection', (socket) => {
         }
 
         // --- LOGICA ADMIN STANZA (@) ---
-        // Se la stanza non esiste o è vuota, chi entra è il Creatore
         let isRoomCreator = false;
+        // Se la stanza non esiste o è vuota, chi entra è il Creatore
         if (!rooms[roomId] || Object.keys(rooms[roomId]).length === 0) {
             isRoomCreator = true;
         }
@@ -75,7 +75,6 @@ io.on('connection', (socket) => {
         if (isRoomCreator) {
             finalNickname = '@' + finalNickname;
         }
-        // -------------------------------
 
         // Creazione Config se non esiste
         if (!roomConfigs[roomId]) {
@@ -83,45 +82,54 @@ io.on('connection', (socket) => {
 				password: password, 
                 isLocked: false,
                 topic: "",
-                nameColor: "#00b8ff" // <--- NUOVO: Colore Default (Ciano)
+                nameColor: "#00b8ff" // Default Ciano
             };
             if(password) logToAdmin(`Stanza ${roomId} creata con password.`);
         }
         const config = roomConfigs[roomId];
 
-        // Controlli Accesso
+        // Controlli Accesso (Lock & Password)
         if (config.isLocked) { socket.emit('error-message', 'Stanza bloccata.'); return; }
         if (config.password && config.password !== password) { socket.emit('error-message', 'Password errata.'); return; }
 
         socket.join(roomId);
         if (!rooms[roomId]) rooms[roomId] = {};
         
-        // Controllo nick duplicato
+        // Controllo Nickname Duplicato
         const nicknameExists = Object.values(rooms[roomId]).some(n => n.toLowerCase() === finalNickname.toLowerCase());
         if (nicknameExists) {
             socket.emit('nickname-in-use', `Il nickname '${finalNickname}' è già in uso.`);
             return;
         }
 
+        // Salvataggio Utente
         rooms[roomId][socket.id] = finalNickname;
-        
         logToAdmin(`User joined: ${finalNickname} -> ${roomId}`);
 
+        // Lista Utenti per il Client
         const peers = Object.entries(rooms[roomId])
             .filter(([id]) => id !== socket.id)
             .map(([id, nick]) => ({ id, nickname: nick }));
 
-        // --- PUNTO CRUCIALE: Inviamo welcome con i dati OP ---
-        socket.emit('welcome', socket.id, finalNickname, peers, config.topic, !!config.password);
-        
+        // 1. Avvisa gli ALTRI che sono entrato
         socket.to(roomId).emit('peer-joined', socket.id, finalNickname);
         
-        // Invio Storico
+        // 2. Invia il BENVENUTO a ME (Configurazione completa)
+        socket.emit('welcome', 
+            socket.id, 
+            finalNickname, 
+            peers, 
+            config.topic, 
+            !!config.password, 
+            config.nameColor 
+        );
+        
+        // 3. Invio Storico Chat (Se presente)
         if (roomMessages[roomId] && roomMessages[roomId].length > 0) {
             socket.emit('chat-history', roomMessages[roomId]);
         }
         
-        // Messaggio Sistema
+        // 4. Salva messaggio "È entrato" nel DB (senza inviarlo live, ci pensa peer-joined/welcome)
         if (!roomMessages[roomId]) roomMessages[roomId] = [];
         roomMessages[roomId].push({
             sender: 'Sistema',
@@ -132,8 +140,6 @@ io.on('connection', (socket) => {
         });
 
         broadcastAdminUpdate();
-		// Aggiungi config.nameColor alla fine
-        socket.emit('welcome', socket.id, finalNickname, peers, config.topic, !!config.password, config.nameColor);
     });
 
 	// --- GESTIONE OPERATORE STANZA (@) ---
