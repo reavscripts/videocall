@@ -565,7 +565,7 @@ input:checked + .slider:before {
     position: relative; /* Necessario per il posizionamento assoluto del centro */
 }
 
-/* --- HEADER: TOPIC CENTRALE (MODERN MINIMAL) --- */
+/* --- HEADER: TOPIC CENTRALE (STYLE MATCHING ROOM NAME) --- */
 #room-topic-container {
     position: absolute;
     left: 50%;
@@ -578,64 +578,59 @@ input:checked + .slider:before {
 }
 
 #room-topic-display {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px; /* Spazio tra l'etichetta TOPIC e il testo */
+    /* Font e Stile identico al Room Name */
+    font-family: 'Montserrat', sans-serif; 
+    font-weight: 800;        
+    font-size: 1.3em;       
+    letter-spacing: -0.5px; 
+    text-transform: uppercase;
     
-    /* Sfondo: Nero profondo semi-trasparente */
-    background: rgba(15, 15, 15, 0.85);
-    backdrop-filter: blur(8px); /* Effetto sfocatura moderno */
+    /* GRADIENTE: Electric Violet -> Bright Cyan (Lo stesso del nome) */
+    background: linear-gradient(to right, #bd00ff 0%, #00b8ff 100%);
     
-    /* Nessun bordo colorato, solo una linea sottilissima per definizione */
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px; /* Angoli arrotondati morbidi */
+    /* Applicazione gradiente al testo */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
     
-    padding: 10px 24px; /* Spazioso */
+    /* Glow colorato (leggermente ridotto rispetto al titolo principale) */
+    filter: drop-shadow(0 0 10px rgba(189, 0, 255, 0.3));
     
-    /* Ombra morbida per staccarlo dallo sfondo */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    
-    /* Testo Principale */
-    font-family: 'Roboto', 'Segoe UI', sans-serif; /* Font moderno, NO monospace */
-    font-size: 1.3em; /* Grande e visibile */
-    font-weight: 500;
-    color: #ffffff; /* Bianco puro per massima leggibilità */
-    letter-spacing: 0.3px;
+    /* Reset dei vecchi stili a "pillola" */
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    backdrop-filter: none;
     
     max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    
-    transition: all 0.3s ease;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 #room-topic-display.hidden {
     opacity: 0 !important;
-    transform: translateY(-15px);
     visibility: hidden;
 }
 
-/* L'etichetta "TOPIC" come prefisso elegante */
+/* Modifichiamo il prefisso per essere testo semplice integrato nel gradiente */
 #room-topic-display::before {
-    content: 'TOPIC';
+    content: '// '; /* Simbolo minimal invece della scritta TOPIC dorata */
+    margin-right: 5px;
     
-    /* Stile minimale: Testo dorato piccolo */
-    font-size: 0.65em;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: #ffd740; /* Oro */
-    
-    /* Linea divisoria verticale a destra dell'etichetta */
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
-    padding-right: 12px;
-    margin-right: 2px;
-    
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    height: 100%;
+    /* Assicuriamoci che erediti il gradiente */
+    background: none;
+    -webkit-text-fill-color: inherit;
+    color: inherit;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    font-size: 1em;
+    font-weight: 900;
 }
 
 #room-header h3 {
@@ -1674,31 +1669,56 @@ body.light-theme .sender-private {
     gap: 10px;
 }
 
-#room-topic-display {
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 0.9em;
-    color: #69f0ae; /* Verde Terminale */
-    background: rgba(0, 20, 0, 0.6);
-    padding: 4px 12px;
-    border: 1px solid rgba(105, 240, 174, 0.3);
-    border-radius: 4px;
-    display: inline-block;
-    
-    /* Gestione testo lungo */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    
-    box-shadow: 0 0 10px rgba(105, 240, 174, 0.1);
-}
+/* 3. Aggiustiamo il Topic per mobile mantenendo il gradiente */
+    #room-topic-display {
+        width: 92%; 
+        max-width: 92%;
+        
+        /* Layout */
+        display: block !important; /* Block per gestire meglio il text-overflow */
+        text-align: center;
+        
+        /* Sovrascriviamo lo stile "pillola" precedente */
+        background: linear-gradient(to right, #bd00ff 0%, #00b8ff 100%) !important;
+        background-color: transparent !important;
+        backdrop-filter: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        
+        /* Testo Gradiente */
+        -webkit-background-clip: text !important;
+        background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        
+        /* Font */
+        font-family: 'Montserrat', sans-serif !important;
+        font-size: 1.1em !important; 
+        font-weight: 800 !important;
+        
+        /* Glow */
+        filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.6)) !important;
+        
+        /* Gestione Testo */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
-#room-topic-display::before {
-    content: 'TOPIC: ';
-    opacity: 0.7;
-    font-weight: bold;
-}
-
+    /* Rimuoviamo il badge dorato anche su mobile */
+    #room-topic-display::before {
+        content: '// ';
+        background: none !important;
+        color: inherit !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        border: none !important;
+        font-size: 1em !important;
+        display: inline !important;
+        -webkit-text-fill-color: inherit !important;
+    }
+	
 /* --- MODALE OP STILE IRC / TERMINALE --- */
 .op-modal-content.irc-theme {
     background-color: #0a0a0a;
