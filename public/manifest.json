@@ -1,11 +1,11 @@
 {
-  "name": "Video Conference Reav",
+  "name": "Video Call P2P",
   "short_name": "VideoCall",
   "start_url": "/",
-  "display": "browser",
+  "display": "standalone",
   "background_color": "#0f0f10",
   "theme_color": "#00bcd4",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/images/favicon/favicon-32x32.png",
