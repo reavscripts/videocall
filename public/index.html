@@ -166,6 +166,9 @@
 				<button id="toggle-transcription-btn" data-lang-title="toggle_subs" title="Toggle Subtitles">
 					<span class="material-icons">closed_caption_off</span>
 				</button>
+				<button id="download-transcript-btn" title="Download Transcript">
+					<span class="material-icons">description</span>
+				</button>
                 <button id="record-button" class="off" data-lang-title="start_rec" title="Start Recording">
                     <span class="material-icons">fiber_manual_record</span>
                 </button>
@@ -215,16 +218,6 @@
             <span>Mute Audio</span>
         </div>
     </div>
-	
-	<script>
-		if ('serviceWorker' in navigator) {
-			window.addEventListener('load', () => {
-				navigator.serviceWorker.register('/service-worker.js')
-					.then((reg) => console.log('Service Worker registrato!', reg))
-					.catch((err) => console.log('Errore Service Worker:', err));
-			});
-		}
-	</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
     <script src="app.js"></script>
 </body>

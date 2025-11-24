@@ -404,6 +404,8 @@ let isLocalTalking = false;
 const manuallyMutedPeers = {}; 
 let contextTargetPeerId = null; 
 
+let transcriptHistory = [];
+
 const iceConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -1766,9 +1768,6 @@ joinButton.addEventListener('click', async () => {
     const password = document.getElementById('room-password-input').value.trim();
 
     if (!nickname || !roomId) { alert('Missing data'); return; }
-
-    openFullscreen();
-
     userNickname = nickname;
     currentRoomId = roomId;
     currentRoomPassword = password;
@@ -1902,20 +1901,48 @@ function updateSubtitleUI(id, nickname, text, isFinal) {
     line.innerHTML = `<span class="speaker-name">${nickname}:</span> ${text}`;
 
     // Se la frase è finita, rimuovila dopo 3 secondi
-    if (isFinal) {
+	if (isFinal) {
         setTimeout(() => {
             if (line && line.parentNode) line.remove();
         }, 4000);
+		
+        const timestamp = new Date().toLocaleTimeString();
+        transcriptHistory.push(`[${timestamp}] ${nickname}: ${text}`);
     }
     
     // Auto-scroll (non necessario con flex-end, ma utile per sicurezza)
     subtitlesOverlay.scrollTop = subtitlesOverlay.scrollHeight;
 }
 
-// --- Event Listener ---
+function downloadTranscript() {
+    if (transcriptHistory.length === 0) {
+        alert("Nessuna trascrizione disponibile da salvare.");
+        return;
+    }
+
+    // Unisce tutte le righe con un "a capo" (\n)
+    const blobData = transcriptHistory.join('\n');
+    const blob = new Blob([blobData], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Meeting-Transcript-${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Pulizia
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
 
 if(toggleTranscriptionBtn) {
     toggleTranscriptionBtn.addEventListener('click', toggleTranscription);
+}
+
+const downloadTranscriptBtn = document.getElementById('download-transcript-btn');
+if(downloadTranscriptBtn) {
+    downloadTranscriptBtn.addEventListener('click', downloadTranscript);
 }
 
 // --------------------------------------------------------
