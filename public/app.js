@@ -94,7 +94,7 @@ let currentRoomId = null;
 let currentRoomPassword = '';
 const peerConnections = {};
 const remoteNicknames = {};
-let focusedPeerId = 'local'; 
+let focusedPeerId = null; 
 let screenStream = null; 
 const videoSenders = {}; 
 let isAudioEnabled = true;
@@ -1116,7 +1116,7 @@ function removeRemoteFeed(socketId){
   delete videoSenders[socketId]; delete manuallyMutedPeers[socketId]; 
   if (currentSpeakerId === socketId) currentSpeakerId = null;
   if (autoFocusTimer) { clearTimeout(autoFocusTimer); autoFocusTimer = null; }
-  if(focusedPeerId === socketId) setFocus('local', false); 
+  if(focusedPeerId === socketId)  
   if(videosGrid.children.length === 1 && videosGrid.querySelector('#local-feed')){
     const placeholder = document.createElement('div');
     placeholder.id = 'remote-video-placeholder';
@@ -2262,7 +2262,6 @@ joinButton.addEventListener('click', async ()=>{
   
   document.getElementById('room-name-display').textContent = roomId;
   showOverlay(false); 
-  setFocus('local', false);
 });
 
 localFeedEl.addEventListener('click', () => {

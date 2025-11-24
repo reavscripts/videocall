@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Video Conference - WebRTC</title>
-<link rel="stylesheet" href="style.css?v=1.41" />
+<link rel="stylesheet" href="style.css?v=1.43" />
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon/favicon-16x16.png">
@@ -106,7 +106,7 @@
 
     <main id="main-area">
         <section id="videos-grid">
-            <div id="local-feed" class="video-feed ratio-4-3 hidden is-focused" data-peer-id="local">
+            <div id="local-feed" class="video-feed ratio-4-3 hidden" data-peer-id="local">
                 <video id="local-video" autoplay playsinline muted></video>
                 <div class="video-label">
                     <span id="local-mic-status" class="material-icons">mic</span>
@@ -227,6 +227,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
-<script src="app.js?v=1.41"></script>
+<script src="app.js?v=1.43"></script>
 </body>
 </html>
