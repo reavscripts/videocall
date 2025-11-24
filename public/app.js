@@ -154,14 +154,6 @@ const iceConfiguration = {
   ]
 };
 
-const audioAssets = {
-    chat: new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"), // (Stringa accorciata per leggibilità, userò una versione funzionante sotto)
-    
-    alert: new Audio("data:audio/mp3;base64,//uQxAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//uQxAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"),
-    
-    rec: new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU") 
-};
-
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 // ==========================================
@@ -396,7 +388,7 @@ function playNotificationSound(type) {
     const now = audioCtx.currentTime;
 
     if (type === 'chat') {
-        // Suono: "Pop" acuto e veloce
+        // Suono: "Pop" 
         osc.type = 'sine';
         osc.frequency.setValueAtTime(800, now);
         osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
@@ -415,16 +407,14 @@ function playNotificationSound(type) {
         osc.stop(now + 0.3);
     }
     else if (type === 'rec') {
-        // Suono: Doppio Beep (REC start)
+        // Suono: Doppio Beep
         osc.type = 'square';
         osc.frequency.setValueAtTime(600, now);
         gainNode.gain.setValueAtTime(0.1, now);
-        
-        // Beep 1
         osc.start(now);
         osc.stop(now + 0.1);
         
-        // Beep 2
+        // Secondo osc per il doppio beep
         const osc2 = audioCtx.createOscillator();
         const gain2 = audioCtx.createGain();
         osc2.type = 'square';
