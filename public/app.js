@@ -45,6 +45,12 @@ const shareScreenButton = document.getElementById('share-screen-button');
 const shareRoomLinkButton = document.getElementById('share-room-link'); 
 const recordButton = document.getElementById('record-button'); 
 
+const typingIndicator = document.getElementById('typing-indicator');
+const typingText = document.getElementById('typing-text');
+const activeTypers = new Set(); // Mantiene la lista di chi scrive
+let typingTimeout = null;     // Timer per capire quando smetti
+let isTyping = false;         // Stato locale
+
 // ** CONTROLLI FILE TRANSFER **
 const transferFileButton = document.getElementById('transfer-file-button');
 const fileInput = document.getElementById('file-input');
@@ -681,6 +687,23 @@ function downloadTranscription(peerId, text) {
 }
 
 // --- GESTIONE NOTIFICHE E LETTURA ---
+
+function updateTypingUI() {
+    if (activeTypers.size > 0) {
+        typingIndicator.classList.remove('hidden');
+        
+        const names = Array.from(activeTypers);
+        if (names.length === 1) {
+            typingText.textContent = `${names[0]} sta scrivendo...`;
+        } else if (names.length === 2) {
+            typingText.textContent = `${names[0]} e ${names[1]} stanno scrivendo...`;
+        } else {
+            typingText.textContent = `Più persone stanno scrivendo...`;
+        }
+    } else {
+        typingIndicator.classList.add('hidden');
+    }
+}
 
 function updateUnreadBadge() {
     // Rimuoviamo eventuali badge vecchi
@@ -1996,19 +2019,22 @@ function initializeSocket(){
   });
   
 // --- GESTIONE TYPING REMOTE ---
-    socket.on('remote-typing-start', (sid, nick) => {
-        activeTypers.add(nick);
-        updateTypingUI();
-    });
+	socket.on('remote-typing-start', (sid, nick) => {
+		activeTypers.add(nick);
+		updateTypingUI();
+	});
 
     socket.on('remote-typing-stop', (sid) => {
-        // Recuperiamo il nick dalla mappa globale dei partecipanti
-        const nick = remoteNicknames[sid];
-        if (nick) {
-            activeTypers.delete(nick);
-            updateTypingUI();
-        }
-    });
+    // Recuperiamo il nick (se non lo abbiamo salvato, proviamo a pulire comunque)
+    const nick = remoteNicknames[sid];
+    if (nick) {
+        activeTypers.delete(nick);
+    } else {
+        // Fallback: se l'utente è uscito o nick non trovato, pulisci
+        // (Opzionale: logica più complessa, ma per ora va bene così)
+    }
+    updateTypingUI();
+	});
 // --- SOCKET EVENTI TRASCRIZIONE ---
 
   // 1. Qualcuno mi chiede di attivare il MIO riconoscimento vocale
@@ -2485,6 +2511,25 @@ sendChatButton.addEventListener('click', sendMessage);
 
 chatMessageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') sendMessage();
+});
+
+chatMessageInput.addEventListener('input', () => {
+    if (!socket || !currentRoomId) return;
+
+    // Se non stavo già scrivendo, avvisa il server ORA
+    if (!isTyping) {
+        isTyping = true;
+        socket.emit('typing-start', currentRoomId, userNickname);
+    }
+
+    // Resetta il timer precedente
+    clearTimeout(typingTimeout);
+
+    // Imposta un nuovo timer: se non digito per 2 secondi, invia STOP
+    typingTimeout = setTimeout(() => {
+        isTyping = false;
+        socket.emit('typing-stop', currentRoomId);
+    }, 2000);
 });
 
 // Gestione chiusura menu contestuale (click fuori)
