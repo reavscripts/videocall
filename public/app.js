@@ -1,7 +1,7 @@
 // app.js 
 
-const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
-//const RENDER_SERVER_URL = "http://localhost:3000";
+//const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
+const RENDER_SERVER_URL = "http://localhost:3000";
 
 // ---------- DOM & Controlli ----------
 const nicknameOverlay = document.getElementById('nickname-overlay');
@@ -381,6 +381,22 @@ const TRANSLATIONS = {
             "download_meeting": "会议结束。是否下载完整纪要？"
         }
     }
+};
+
+// Collezione di Sticker e GIF
+const STICKER_COLLECTION = {
+    gifs: [
+        "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbXNtaW16ZXI0ZGh6ZXBib3ZtYnI5b3J6ZHR4YjE2ZDFvYm95b3J6ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l0amJbCG8xLYt5iDC/giphy.gif",
+        "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnZ5Z3I5aG41bGR4b3ZtYnI5b3J6ZHR4YjE2ZDFvYm95b3J6ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Cmr1OMJ2FN0B2/giphy.gif",
+        "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYnZ5Z3I5aG41bGR4b3ZtYnI5b3J6ZHR4YjE2ZDFvYm95b3J6ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKs6AW2Cx1niOk8/giphy.gif", 
+        "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcnZ5Z3I5aG41bGR4b3ZtYnI5b3J6ZHR4YjE2ZDFvYm95b3J6ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/26gsjCZpPolPr3sBy/giphy.gif",
+        "https://media.giphy.com/media/IsfrRWzbVjIyI/giphy.gif"
+    ],
+    pepe: [
+        "https://media.tenor.com/images/861409ba9b00e46a67f4f7be0aebd2f4/tenor.gif",
+        "https://media.tenor.com/images/5d3158e072b226e63283319047910103/tenor.gif",
+        "https://media.tenor.com/images/3a38fa87a552300d8f20387431e67040/tenor.gif"
+    ]
 };
 
 function playNotificationSound(type) {
@@ -1227,26 +1243,29 @@ async function toggleScreenShare() {
     }
 }
 
-// ** FILE TRANSFER LOGIC **
-transferFileButton.addEventListener('click', () => { 
-    if(Object.keys(peerConnections).length === 0) { alert("Nessun partecipante."); return; } 
-    targetFileRecipientId = null; // Resetta: invio broadcast
-    fileInput.click(); 
-});
+// ** FILE TRANSFER LOGIC (PROTETTO) **
+if (transferFileButton) {
+    transferFileButton.addEventListener('click', () => { 
+        if(Object.keys(peerConnections).length === 0) { alert("Nessun partecipante."); return; } 
+        targetFileRecipientId = null; 
+        fileInput.click(); 
+    });
+}
 
-// 2. Voce Menu Contestuale: Invia a UNO SPECIFICO
-menuSendFile.addEventListener('click', () => {
-    if (contextTargetPeerId) {
-        targetFileRecipientId = contextTargetPeerId; // Imposta il destinatario
-        hideContextMenu();
-        // Verifica se il canale dati è aperto per quell'utente
-        if(!dataChannels[targetFileRecipientId] || dataChannels[targetFileRecipientId].readyState !== 'open'){
-            alert("Impossibile inviare file: connessione dati non stabile con questo utente.");
-            return;
+// ... (Menu contestuale file send) ...
+if (menuSendFile) {
+    menuSendFile.addEventListener('click', () => {
+        if (contextTargetPeerId) {
+            targetFileRecipientId = contextTargetPeerId;
+            hideContextMenu();
+            if(!dataChannels[targetFileRecipientId] || dataChannels[targetFileRecipientId].readyState !== 'open'){
+                alert("Impossibile inviare file: connessione dati non stabile.");
+                return;
+            }
+            fileInput.click();
         }
-        fileInput.click(); // Apre la selezione file
-    }
-});
+    });
+}
 
 // 3. Gestione Selezione File (Logica modificata)
 fileInput.addEventListener('change', (e) => { 
@@ -1629,18 +1648,20 @@ function startRecording() {
 function openSettings() { settingsModal.classList.remove('hidden'); }
 function closeSettings() { settingsModal.classList.add('hidden'); }
 
-settingsBtnOverlay.addEventListener('click', openSettings);
-settingsBtnRoom.addEventListener('click', openSettings);
-closeSettingsBtn.addEventListener('click', closeSettings);
+if (settingsBtnOverlay) settingsBtnOverlay.addEventListener('click', openSettings);
+if (settingsBtnRoom) settingsBtnRoom.addEventListener('click', openSettings);
+if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
 
 // Cambio Tema
-themeToggle.addEventListener('change', (e) => {
-    if(e.target.checked) {
-        document.body.classList.add('light-theme');
-    } else {
-        document.body.classList.remove('light-theme');
-    }
-});
+if (themeToggle) {
+    themeToggle.addEventListener('change', (e) => {
+        if(e.target.checked) {
+            document.body.classList.add('light-theme');
+        } else {
+            document.body.classList.remove('light-theme');
+        }
+    });
+}
 
 // Listener Menu Contestuale: Attiva/Disattiva CC
 if (menuToggleCC) {
@@ -1746,15 +1767,29 @@ function downloadMeetingMinutes() {
     document.body.removeChild(a);
 }
 
-// ** ADMIN PANEL UI **
-openAdminLoginBtn.addEventListener('click', () => { 
-    closeSettings(); // Chiudi modale impostazioni
-    adminPanel.classList.remove('hidden'); // Apri modale admin
-});
+// ** ADMIN PANEL UI (PROTETTO) **
+if (openAdminLoginBtn) {
+    openAdminLoginBtn.addEventListener('click', () => { 
+        closeSettings(); 
+        adminPanel.classList.remove('hidden'); 
+    });
+}
 
-closeAdminBtn.addEventListener('click', () => { adminPanel.classList.add('hidden'); });
-adminLoginBtn.addEventListener('click', () => { const pwd = adminPasswordInput.value; if(!socket) initializeSocket(); socket.emit('admin-login', pwd); });
-adminRefreshBtn.addEventListener('click', () => { if(socket) socket.emit('admin-refresh'); });
+if (closeAdminBtn) {
+    closeAdminBtn.addEventListener('click', () => { adminPanel.classList.add('hidden'); });
+}
+
+if (adminLoginBtn) {
+    adminLoginBtn.addEventListener('click', () => { 
+        const pwd = adminPasswordInput.value; 
+        if(!socket) initializeSocket(); 
+        socket.emit('admin-login', pwd); 
+    });
+}
+
+if (adminRefreshBtn) {
+    adminRefreshBtn.addEventListener('click', () => { if(socket) socket.emit('admin-refresh'); });
+}
 
 // ** RENDER DASHBOARD ADMIN AGGIORNATO **
 function renderAdminDashboard(data) {
@@ -1879,12 +1914,12 @@ function copyRoomLink(){
         console.error('Errore copia:', err);
     }); 
 }
+
 function addChatMessage(sender, message, isLocal = false, type = 'public', msgId = null) {
     const messageEl = document.createElement('div');
     messageEl.classList.add('chat-message');
 
-    // --- CASO 1: MESSAGGIO DI SISTEMA (Join/Leave) ---
-    // Lo stampiamo centrato, senza "Sistema:" davanti
+    // --- CASO 1: MESSAGGIO DI SISTEMA (Join/Leave/Errori) ---
     if (type === 'system') {
         messageEl.innerHTML = `
             <div class="message-system-wrapper">
@@ -1893,12 +1928,12 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
         `;
         messagesContainer.appendChild(messageEl);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        return; // Ci fermiamo qui, non serve altro
+        return; // Ci fermiamo qui, i messaggi di sistema non hanno spunte o click
     }
 
-    // --- CASO 2: MESSAGGI NORMALI (Public/Private) ---
+    // --- CASO 2: MESSAGGI UTENTE (Public/Private) ---
     
-    // Configurazione ID per ricevute di lettura
+    // A. Setup Ricevute di Lettura (Click per info)
     if (msgId) {
         messageEl.dataset.messageId = msgId;
         messageEl.dataset.readers = JSON.stringify([]); 
@@ -1906,23 +1941,41 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
         messageEl.style.cursor = 'pointer'; 
     }
 
+    // B. Definizione Stile Mittente
     let cssClass;
-    let senderText = sender;
-
     if (type === 'private') {
         cssClass = 'sender-private';
     } else {
         cssClass = isLocal ? 'sender-me' : 'sender-remote';
     }
 
-    // Costruzione del testo del mittente
+    // C. Rilevamento Immagini / Sticker / GIF
+    // Controlla se il messaggio è un URL che finisce con estensioni immagine o viene da Giphy/Tenor
+    const isImage = (url) => {
+        return /\.(gif|jpe?g|png|webp)($|\?)/i.test(url) || 
+               url.includes('media.giphy.com') || 
+               url.includes('media.tenor.com');
+    };
+
+    let messageContentHtml = message;
+
+    if (isImage(message.trim())) {
+        // È un'immagine: Renderizza il tag <img>
+        messageContentHtml = `<img src="${message}" class="chat-media-img" onclick="window.open(this.src, '_blank'); event.stopPropagation();" alt="sticker" />`;
+    } else {
+        // È testo normale
+        messageContentHtml = message;
+    }
+
+    // D. Costruzione Prefisso (Nome Mittente)
     const prefix = isLocal 
         ? `${userNickname}${type === 'private' ? ` (DM a ${sender})` : ''}: ` 
-        : `${senderText}: `;
+        : `${sender}: `;
 
-    let htmlContent = `<span class="${cssClass}">${prefix}</span>${message}`;
+    // E. Costruzione HTML Finale
+    let htmlContent = `<span class="${cssClass}">${prefix}</span>${messageContentHtml}`;
 
-    // Aggiungiamo spunte di lettura solo se public
+    // F. Aggiunta Icona Spunte Lettura (solo se c'è un ID)
     if (msgId) {
         htmlContent += `
             <div class="read-status" id="status-${msgId}">
@@ -1936,18 +1989,22 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
     messagesContainer.appendChild(messageEl);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    // --- Logica Suoni e Notifiche ---
+    // --- G. LOGICA SUONI E NOTIFICHE ---
     if (!isLocal) {
         playNotificationSound('chat');
+        
+        // Verifica se la chat è visibile (Desktop o Mobile)
         const isChatVisible = (!chatPanel.classList.contains('hidden') && window.innerWidth > 768) || 
                               (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden'));
 
         if (isChatVisible) {
+            // Se vedo la chat, mando subito la conferma di lettura
             if (socket && currentRoomId && msgId) {
                 socket.emit('msg-read', currentRoomId, msgId, userNickname);
                 messageEl.classList.add('processed-read'); 
             }
         } else {
+            // Se non la vedo, incremento il badge notifiche
             unreadMessagesCount++;
             updateUnreadBadge();
         }
@@ -1955,48 +2012,49 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
 }
 
 function clearChatInput(){ chatMessageInput.value = ''; }
-function sendMessage() {
-    const fullMessage = chatMessageInput.value.trim();
+
+function sendMessage(contentOverride = null) {
+    // Se contentOverride è una stringa (lo sticker), usala. Altrimenti prendi il valore dell'input.
+    const fullMessage = (typeof contentOverride === 'string') ? contentOverride : chatMessageInput.value.trim();
+    
     if (!fullMessage) return;
 
     const parts = fullMessage.split(' ');
 
     // --- Gestione Messaggi Privati (/dm) ---
     if (parts[0].toLowerCase() === '/dm' && parts.length >= 3) {
+        // ... (codice DM identico a prima, non cambia nulla qui) ...
         const recipientNickname = parts[1];
         const messageContent = parts.slice(2).join(' ');
-
+        
+        // Logica DM (copia dal tuo vecchio codice se vuoi, oppure usa questo blocco standard)
         if (recipientNickname.toLowerCase() === userNickname.toLowerCase()) {
             addChatMessage('Sistema', 'No DM a te stesso.', true, 'system');
-            clearChatInput();
+            if (!contentOverride) clearChatInput();
             return;
         }
-
         const recipientId = Object.keys(remoteNicknames).find(key => 
             remoteNicknames[key] && remoteNicknames[key].toLowerCase() === recipientNickname.toLowerCase()
         );
-
         if (recipientId) {
             sendPrivateMessage(recipientId, recipientNickname, messageContent);
-            clearChatInput();
+            if (!contentOverride) clearChatInput();
         } else {
             addChatMessage('Sistema', `Utente "${recipientNickname}" non trovato.`, true, 'system');
         }
         return;
     }
 
-    // --- Gestione Messaggi Pubblici (Aggiornata con ID) ---
+    // --- Gestione Messaggi Pubblici ---
     if (socket && currentRoomId) {
-        // Generiamo un ID univoco lato client
         const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-
-        // Inviamo al server: Stanza, Nick, Messaggio, ID
         socket.emit('send-message', currentRoomId, userNickname, fullMessage, messageId);
-        
-        // Aggiungiamo alla nostra chat passando l'ID
         addChatMessage(userNickname, fullMessage, true, 'public', messageId);
         
-        clearChatInput();
+        // Pulisci l'input SOLO se era un messaggio scritto a mano, non uno sticker cliccato
+        if (!contentOverride) {
+            clearChatInput();
+        }
     }
 }
 
@@ -2416,36 +2474,34 @@ function createPeerConnection(socketId){
 function setupDataChannel(dc, peerId) { dc.onopen = () => { dataChannels[peerId] = dc; }; dc.onclose = () => { delete dataChannels[peerId]; }; dc.onmessage = (event) => handleDataChannelMessage(peerId, event); }
 
 // Listeners UI
-joinButton.addEventListener('click', async ()=>{
-  const nickname = nicknameInput.value.trim();
-  const roomId = roomIdInput.value.trim().toLowerCase(); 
-  
-  const password = document.getElementById('room-password-input').value.trim();
+if (joinButton) {
+    joinButton.addEventListener('click', async ()=>{
+      const nickname = nicknameInput.value.trim();
+      const roomId = roomIdInput.value.trim().toLowerCase(); 
+      const password = document.getElementById('room-password-input').value.trim();
 
-  if(!nickname || !roomId){ alert('Dati mancanti'); return; }
-  
-  userNickname = nickname; 
-  currentRoomId = roomId; 
-  currentRoomPassword = password;
-  
-  // --- NUOVO: Aggiorna l'etichetta del video locale con il tuo nome ---
-  const localLabel = document.getElementById('local-nickname-display');
-  if(localLabel) localLabel.textContent = userNickname;
-  // -------------------------------------------------------------------
-  
-  await startLocalMedia(); 
-  initializeSocket();
-  
-  socket.emit('join-room', currentRoomId, userNickname, password); 
-  
-  // Aggiungi '#' + prima di roomId (come da modifica precedente)
-  document.getElementById('room-name-display').textContent = '#' + roomId;
-  showOverlay(false); 
-});
+      if(!nickname || !roomId){ alert('Dati mancanti'); return; }
+      
+      userNickname = nickname; 
+      currentRoomId = roomId; 
+      currentRoomPassword = password;
+      
+      const localLabel = document.getElementById('local-nickname-display');
+      if(localLabel) localLabel.textContent = userNickname;
+      
+      await startLocalMedia(); 
+      initializeSocket();
+      socket.emit('join-room', currentRoomId, userNickname, password); 
+      document.getElementById('room-name-display').textContent = '#' + roomId;
+      showOverlay(false); 
+    });
+}
 
-localFeedEl.addEventListener('click', () => {
-    toggleFocus('local');
-});
+if (localFeedEl) {
+    localFeedEl.addEventListener('click', () => {
+        toggleFocus('local');
+    });
+}
 
 // --------------------------------------------------------
 // LISTENERS UI & CONTROLLI
@@ -2488,49 +2544,55 @@ if (recordButton) {
     });
 }
 
-// Controlli Chat (Aggiornato con Logica Notifiche)
-showChatBtn.addEventListener('click', () => {
-    if (window.innerWidth <= 768) {
-        // Mobile: usa la funzione dedicata e passa il callback per resettare le notifiche
-        openChatPanelMobile(() => {
-            markAllAsRead();
-        });
-    } else {
-        // Desktop: Toggle visibilità
-        chatPanel.classList.toggle('hidden');
+// --- FIX CONTROLLI CHAT (Unico Listener) ---
+if (showChatBtn) {
+    // Rimuoviamo eventuali listener precedenti clonando il nodo (opzionale, ma sicuro)
+    // Oppure ci assicuriamo di aver pulito il codice duplicato sopra.
+    
+    showChatBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Evita conflitti con altri click
         
-        // Se il pannello è stato appena aperto (non è hidden), segna tutto come letto
-        if (!chatPanel.classList.contains('hidden')) {
-            markAllAsRead();
-            setTimeout(() => chatMessageInput.focus(), 50); // Focus automatico
+        if (window.innerWidth <= 768) {
+            // MOBILE
+            openChatPanelMobile(() => { markAllAsRead(); });
+        } else {
+            // DESKTOP
+            chatPanel.classList.toggle('hidden');
+            
+            // Se la chat è stata APERTA (non ha più la classe hidden)
+            if (!chatPanel.classList.contains('hidden')) {
+                markAllAsRead();
+                // Dai focus all'input dopo un istante
+                setTimeout(() => {
+                    if(chatMessageInput) chatMessageInput.focus();
+                }, 50);
+            }
         }
-    }
-});
+    });
+}
+// --- MODIFICA QUI: Aggiunto controllo IF ---
+if (sendChatButton) {
+    sendChatButton.addEventListener('click', () => sendMessage());
+}
 
-sendChatButton.addEventListener('click', sendMessage);
+if (chatMessageInput) {
+    chatMessageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
 
-chatMessageInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') sendMessage();
-});
-
-chatMessageInput.addEventListener('input', () => {
-    if (!socket || !currentRoomId) return;
-
-    // Se non stavo già scrivendo, avvisa il server ORA
-    if (!isTyping) {
-        isTyping = true;
-        socket.emit('typing-start', currentRoomId, userNickname);
-    }
-
-    // Resetta il timer precedente
-    clearTimeout(typingTimeout);
-
-    // Imposta un nuovo timer: se non digito per 2 secondi, invia STOP
-    typingTimeout = setTimeout(() => {
-        isTyping = false;
-        socket.emit('typing-stop', currentRoomId);
-    }, 2000);
-});
+    chatMessageInput.addEventListener('input', () => {
+        if (!socket || !currentRoomId) return;
+        if (!isTyping) {
+            isTyping = true;
+            socket.emit('typing-start', currentRoomId, userNickname);
+        }
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+            isTyping = false;
+            socket.emit('typing-stop', currentRoomId);
+        }, 2000);
+    });
+}
 
 // Gestione chiusura menu contestuale (click fuori)
 document.addEventListener('click', (e) => {
@@ -2756,6 +2818,113 @@ function applyRoomBrandColor(color) {
     }
 }
 
+// --- LOGICA GIPHY (Trend & Search) ---
+const GIPHY_API_KEY = 'ehM2UChAfuhm4vDy1af3p4p0XafHq0Ag'; // Chiave Beta Pubblica. Sostituisci con la tua se smette di andare!
+
+document.addEventListener('DOMContentLoaded', () => {
+    const stickerBtn = document.getElementById('sticker-toggle-btn');
+    const stickerContainer = document.getElementById('sticker-picker-container');
+    const stickerGrid = document.getElementById('sticker-grid');
+    const searchInput = document.getElementById('sticker-search-input');
+    
+    // Timer per non cercare ad ogni singola lettera (Debounce)
+    let searchTimeout = null;
+
+    if(!stickerBtn || !stickerContainer) return;
+
+    // 1. Funzione per chiamare Giphy
+    async function fetchGifs(query = '') {
+        stickerGrid.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">Caricamento...</div>';
+        
+        try {
+            // Se c'è testo usa 'search', altrimenti 'trending'
+            const endpoint = query ? 'search' : 'trending';
+            const limit = 24; // Numero di GIF da caricare
+            
+            // Costruiamo l'URL
+            const url = `https://api.giphy.com/v1/gifs/${endpoint}?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=${limit}&rating=g`;
+
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            renderGifs(data.data);
+
+        } catch (error) {
+            console.error("Errore Giphy:", error);
+            stickerGrid.innerHTML = '<div style="text-align:center; padding:20px; color:red;">Errore caricamento GIF.</div>';
+        }
+    }
+
+    // 2. Funzione per mostrare le GIF
+    function renderGifs(gifList) {
+        stickerGrid.innerHTML = ''; // Pulisci
+        
+        if (gifList.length === 0) {
+            stickerGrid.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">Nessun risultato.</div>';
+            return;
+        }
+
+        gifList.forEach(gif => {
+            // Giphy offre molte versioni. Usiamo 'fixed_height_small' per l'anteprima leggera
+            // e 'original' per l'invio in chat.
+            const previewUrl = gif.images.fixed_height_small.url;
+            const sendUrl = gif.images.original.url; // Quella che inviamo in chat
+
+            const img = document.createElement('img');
+            img.src = previewUrl;
+            img.className = 'sticker-option';
+            img.loading = 'lazy'; // Ottimizza caricamento
+            
+            img.addEventListener('click', () => {
+                sendMessage(sendUrl); // Invia l'URL ad alta qualità
+                stickerContainer.classList.add('hidden'); // Chiudi pannello
+            });
+            
+            stickerGrid.appendChild(img);
+        });
+    }
+
+    // 3. Gestione Apertura Pannello
+    stickerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isClosed = stickerContainer.classList.contains('hidden');
+        
+        if (isClosed) {
+            stickerContainer.classList.remove('hidden');
+            document.getElementById('emoji-picker-container')?.classList.add('hidden'); // Chiudi emoji
+            
+            // Se la griglia è vuota, carica i Trend
+            if (stickerGrid.children.length === 0) {
+                fetchGifs(); // Carica Trending
+            }
+            
+            // Focus sul campo cerca per scrivere subito
+            setTimeout(() => searchInput.focus(), 100);
+        } else {
+            stickerContainer.classList.add('hidden');
+        }
+    });
+
+    // 4. Gestione Ricerca (mentre scrivi)
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        // Aspetta che l'utente smetta di scrivere per 500ms prima di cercare
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            fetchGifs(query);
+        }, 500);
+    });
+
+    // Chiudi cliccando fuori
+    document.addEventListener('click', (e) => {
+        if (!stickerContainer.classList.contains('hidden')) {
+            if (!stickerContainer.contains(e.target) && e.target !== stickerBtn) {
+                stickerContainer.classList.add('hidden');
+            }
+        }
+    });
+});
 
 
 // FINE DEL FILE

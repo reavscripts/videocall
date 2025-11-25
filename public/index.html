@@ -200,17 +200,31 @@
             
             <div id="chat-footer">
 			<div id="emoji-picker-container" class="hidden"></div>
+			<div id="sticker-picker-container" class="hidden">
+				<div class="sticker-search-bar">
+					<span class="material-icons search-icon">search</span>
+					<input type="text" id="sticker-search-input" placeholder="Cerca su Giphy..." autocomplete="off">
+				</div>
+				
+				<div id="sticker-grid" class="sticker-grid"></div>
+			</div>
 
 			<div id="typing-indicator" class="hidden">
 				<span class="dots"><span>.</span><span>.</span><span>.</span></span>
 				<span id="typing-text">Sta scrivendo...</span>
 			</div>
 
-			<div id="chat-input-row">
-				<button id="emoji-toggle-btn" class="chat-btn-icon" title="Emoji">
+			<div class="chat-toolbar">
+				<button id="emoji-toggle-btn" class="chat-toolbar-btn" title="Emoji">
 					<span class="material-icons">emoji_emotions</span>
 				</button>
 				
+				<button id="sticker-toggle-btn" class="chat-toolbar-btn" title="GIF & Sticker">
+					<span class="material-icons">gif_box</span>
+				</button>
+			</div>
+
+			<div id="chat-input-row">
 				<input type="text" id="chat-message-input" placeholder="Scrivi un messaggio..." autocomplete="off" />
 				
 				<button id="send-chat-button" class="chat-btn-send">
@@ -323,7 +337,7 @@
 
         trigger.addEventListener('click', (event) => {
             event.stopPropagation(); // Evita che il click si propaghi e chiuda subito il menu
-            
+            document.getElementById('sticker-picker-container')?.classList.add('hidden');
             // Toggle Visibilità
             const isHidden = pickerContainer.classList.contains('hidden');
             

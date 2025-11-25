@@ -803,6 +803,9 @@ input:checked + .slider:before {
 .header-controls {
     display: flex;
     gap: 8px;
+    /* AGGIUNGI QUESTI DUE: */
+    position: relative; 
+    z-index: 20; 
 }
 
 .header-controls button,
@@ -1040,25 +1043,83 @@ body.light-theme .sender-private {
 
 /* Il contenitore principale in fondo alla chat */
 #chat-footer {
-    background: var(--surface-2); /* Grigio scuro di sfondo */
+    background: var(--surface-2);
     border-top: 1px solid var(--border-color);
-    padding: 15px; /* Spaziatura uniforme */
+    padding: 10px 15px 15px 15px; /* Un po' più di spazio sotto */
     position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Spazio tra la toolbar e l'input */
 }
+
+/* --- NUOVA TOOLBAR --- */
+.chat-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 5px;       /* Spazio tra i due pulsanti */
+    padding-left: 5px;
+}
+
+/* Stile unico per entrambi i pulsanti */
+.chat-toolbar-btn {
+    /* 1. Dimensioni Fisse e Uguali */
+    width: 36px;       
+    height: 36px;
+    
+    /* 2. Resetta sfondo e bordi */
+    background: transparent !important; /* Il !important toglie il bianco dal vecchio stile */
+    border: 1px solid transparent !important;
+    border-radius: 6px;
+    
+    /* 3. Centratura Icona */
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* 4. Colore e Transizioni */
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Dimensione delle icone (Faccina e GIF) */
+.chat-toolbar-btn .material-icons {
+    font-size: 20px !important; /* Leggermente più piccole e definite */
+}
+
+/* Effetto al passaggio del mouse */
+.chat-toolbar-btn:hover {
+    background: rgba(255, 255, 255, 0.1) !important; /* Sfondo leggero al passaggio */
+    color: var(--primary-color);
+}
+
+/* FIX SPECIFICO: Assicuriamoci che l'ID non abbia stili vecchi che interferiscono */
+#emoji-toggle-btn,
+#sticker-toggle-btn {
+    width: 36px !important;
+    height: 36px !important;
+    background: transparent;
+}
+
 
 /* La riga che contiene i tasti e l'input */
 #chat-input-row {
     display: flex;
     align-items: center;
-    gap: 10px; /* Spazio tra gli elementi */
+    gap: 10px;
     width: 100%;
+    /* Rimuoviamo eventuali padding/bordi vecchi se presenti */
+    padding: 0; 
+    border: none;
+    background: transparent;
 }
 
 /* 1. Bottone Emoji (Bianco/Grigio chiaro come da screen) */
 #emoji-toggle-btn {
-    background: #f0f0f0; /* Sfondo chiaro */
-    color: #000;         /* Icona nera */
-    border: none;
+    background: transparent !important; 
+    color: var(--muted) !important;
+    border: none !important;
     border-radius: 6px;  /* Angoli smussati */
     width: 44px;         /* Quadrato */
     height: 44px;
@@ -1071,27 +1132,28 @@ body.light-theme .sender-private {
 }
 
 #emoji-toggle-btn:hover {
+	color: var(--primary-color) !important;
     transform: scale(1.05);
-    background: #fff;
+    background: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* 2. Input di testo (Sfondo scuro) */
 #chat-message-input {
-    flex-grow: 1; /* Occupa tutto lo spazio disponibile */
-    background: rgba(0, 0, 0, 0.3); /* Sfondo input più scuro del footer */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
-    height: 44px; /* Altezza identica ai bottoni */
+    flex-grow: 1; 
+    width: 100%; /* Forza la larghezza */
+    height: 44px;
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
     padding: 0 15px;
-    border-radius: 6px;
+    border-radius: 8px; /* Arrotondamento moderno */
     font-size: 1rem;
-    font-family: 'Inter', sans-serif;
     outline: none;
-    transition: border-color 0.2s;
 }
 
 #chat-message-input:focus {
-    border-color: var(--primary-color);
+    border-color: var(--primary-color) !important;
+    background: rgba(0, 0, 0, 0.5) !important;
 }
 
 #chat-message-input::placeholder {
@@ -1099,29 +1161,29 @@ body.light-theme .sender-private {
 }
 
 #send-chat-button {
-    background: #00b8ff; /* Ciano brillante */
+    background: var(--primary-color);
     color: #fff;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     height: 44px;
-    padding: 0 20px; /* Largo */
-    font-weight: 700;
-    font-size: 1rem;
-    cursor: pointer;
+    width: 44px; /* Quadrato perfetto */
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
     transition: filter 0.2s;
-    text-transform: capitalize; /* Assicura che la scritta sia corretta */
+    flex-shrink: 0; /* Non si schiaccia mai */
+}
+
+#send-chat-button:hover {
+    filter: brightness(1.2);
 }
 
 #send-chat-button .material-icons {
     display: none; /* Nascondiamo l'icona se vuoi la scritta "Invia" come da screen, oppure rimuovi questa riga */
 }
 
-#send-chat-button:hover {
-    filter: brightness(1.1); /* Leggermente più luminoso all'hover */
-}
 
 #main-controls-bar {
     position: fixed;
@@ -2449,6 +2511,142 @@ body.light-theme .system-msg-content {
     50% { opacity: 0; }
 }
 
+/* --- STICKER PICKER --- */
+#sticker-picker-container {
+    position: absolute;
+    
+    /* MODIFICA 1: Alziamo il box (era 70px) */
+    /* 110px è perfetto: Input (45px) + Toolbar (35px) + Spazi (20px) */
+    bottom: 110px !important; 
+    
+    /* MODIFICA 2: Allineiamo a sinistra (era 50px) */
+    left: 15px !important; 
+    
+    width: 300px;
+    height: 350px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* style.css */
+
+/* Rimuovi eventuali stili vecchi .sticker-tabs e .tab-btn se vuoi pulire */
+
+.sticker-search-bar {
+    display: flex;
+    align-items: center;
+    background: var(--surface-2);
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+    gap: 8px;
+}
+
+.sticker-search-bar input {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    padding: 8px 10px;
+    border-radius: 6px;
+    outline: none;
+    font-size: 0.9em;
+}
+
+.sticker-search-bar input:focus {
+    border-color: var(--primary-color);
+}
+
+.sticker-search-bar .search-icon {
+    color: var(--muted);
+    font-size: 1.2em;
+}
+
+.giphy-attribution {
+    font-size: 10px;
+    color: #555;
+    text-align: right;
+    padding: 5px 10px;
+    background: #000;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+/* Assicuriamo che la griglia riempia lo spazio tra search bar e footer */
+.sticker-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+}
+
+/* Le immagini devono adattarsi */
+.sticker-option {
+    width: 100%;
+    height: 80px; /* Altezza fissa per ordine */
+    object-fit: cover; /* Taglia l'eccedenza */
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.sticker-option:hover {
+    transform: scale(1.05);
+    border: 1px solid var(--primary-color);
+}
+
+.tab-btn:hover { color: var(--text-color); }
+.tab-btn.active { 
+    color: var(--primary-color); 
+    border-bottom: 2px solid var(--primary-color);
+    background: rgba(255,255,255,0.05);
+}
+
+.sticker-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 colonne */
+    gap: 8px;
+}
+
+.sticker-option {
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    object-fit: cover;
+    aspect-ratio: 1/1; /* Quadrati */
+}
+
+.sticker-option:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+/* --- STICKER DENTRO LA CHAT --- */
+.chat-media-img {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 8px;
+    margin-top: 5px;
+    display: block;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.chat-media-img:hover {
+    transform: scale(1.02);
+}
+
 /* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
 @media (max-width: 768px) {
 
@@ -2702,6 +2900,7 @@ body.light-theme .system-msg-content {
 	}
 
 	#emoji-toggle-btn .material-icons {
+		color: inherit !important;
 		font-size: 1.5em; /* Grandezza icona */
 	}
 	
@@ -2712,15 +2911,16 @@ body.light-theme .system-msg-content {
 	}
 	
 	#emoji-picker-container {
-		position: absolute;
-		bottom: 70px; /* Lo fa apparire SOPRA la barra di input */
-		left: 10px;
-		z-index: 2000;
-		box-shadow: 0 5px 25px rgba(0,0,0,0.5);
-		border-radius: 8px;
-		overflow: hidden;
-		background: var(--surface);
+    bottom: 110px !important;
+    left: 15px !important;
+    z-index: 2000; /* Assicuriamoci che stia sopra */
 	}
+	
+	#sticker-picker-container {
+        width: 90%;
+        left: 5%;
+        bottom: 80px;
+    }
 
     /* Stile per il pulsante "Torna alle webcam" generato dal JS */
 	#close-chat-btn {
@@ -2889,6 +3089,13 @@ body.light-theme .system-msg-content {
         color: #ffffff !important;
     }
 
+	#sticker-picker-container,
+    #emoji-picker-container {
+        width: 90%; /* Occupa quasi tutta la larghezza */
+        left: 5% !important; /* Centrato orizzontalmente */
+        bottom: 125px !important; /* Un po' più in alto su mobile per sicurezza */
+    }
+	
     /* 3. Assicuriamoci che il pulsante "Disconnect" resti Rosso */
     body.light-theme #disconnect-button {
         background: var(--danger) !important;
