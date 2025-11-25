@@ -61,9 +61,8 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // --- A. LOGICA PRELIMINARE & CONTROLLI ---
-        
-        // Verifica se la stanza esiste nella memoria, altrimenti preparala
+        // --- A. LOGICA PRELIMINARE & CONTROLLI ---     
+        roomId = roomId.toLowerCase(); 
         if (!rooms[roomId]) {
             rooms[roomId] = {};
         }

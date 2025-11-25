@@ -86,7 +86,7 @@ body.light-theme #close-chat-btn {
 html, body {
     height: 100%;
     margin: 0;
-    background: var(--bg);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: var(--text-color);
     font-family: Roboto, Arial, sans-serif;
     transition: background 0.3s ease, color 0.3s ease;
@@ -105,7 +105,7 @@ html, body {
     inset: 0;
     
     /* QUI applichiamo il viola SOLO per il login */
-    background-color: #2f1b7a; 
+    background-color: #301c7b; 
     
     /* Aggiungiamo una sfumatura leggera per renderlo moderno e non "piatto" */
     background-image: radial-gradient(circle at top right, rgba(0, 198, 255, 0.15), transparent 40%),
@@ -2240,6 +2240,7 @@ body.light-theme .system-msg-content {
 .picmo__picker {
     border: 1px solid var(--border-color) !important;
     box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+	background: var(--surface) !important;
 }
 
 /* --- IRC / TERMINAL STYLE THEME --- */
@@ -2718,6 +2719,7 @@ body.light-theme .system-msg-content {
 		box-shadow: 0 5px 25px rgba(0,0,0,0.5);
 		border-radius: 8px;
 		overflow: hidden;
+		background: var(--surface);
 	}
 
     /* Stile per il pulsante "Torna alle webcam" generato dal JS */
