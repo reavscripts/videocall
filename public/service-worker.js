@@ -1,4 +1,4 @@
-const CACHE_NAME = 'videocall-v1';
+const CACHE_NAME = 'chan-v1.2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

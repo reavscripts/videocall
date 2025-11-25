@@ -164,7 +164,11 @@ io.on('connection', (socket) => {
 
     // --- GESTIONE OPERATORE STANZA (@) ---
     socket.on('op-update-settings', (roomId, newTopic, newPassword, newColor) => {
-        if (!rooms[roomId] || !rooms[roomId][socket.id]) return;
+        // Aggiungi check di sicurezza per 'rooms[roomId]'
+        if (!rooms[roomId] || !rooms[roomId][socket.id]) {
+            // Se la stanza non esiste più o l'utente non è mappato, esci senza errori
+            return;
+        }
 
         const currentNick = rooms[roomId][socket.id];
         if (!currentNick.startsWith('@')) {

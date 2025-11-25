@@ -1,6 +1,6 @@
 {
-  "name": "Video Call P2P",
-  "short_name": "VideoCall",
+  "name": "Chan VideoConference",
+  "short_name": "chan",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f10",

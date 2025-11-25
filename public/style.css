@@ -1,16 +1,37 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap');
 
 :root {
-    --primary-color: #00bcd4;
-    --accent-color: #ff9800;
-    --bg: #0f0f10;
-    --surface: #1e1e1e;
-    --surface-2: #2a2a2a;
-    --text-color: #fff;
-    --muted: #b0b0b0;
-    --danger: #ef5350;
-    --panel-width-desktop: 400px;
+    /* --- PALETTE COLORI LOGO --- */
+    --brand-gradient: linear-gradient(135deg, #d422ce 0%, #00c6ff 100%);
+    --brand-purple: #d422ce;
+    --brand-cyan: #00c6ff;
+    --dynamic-brand-color: #00b8ff; /* Colore di default */
+	
+    /* --- COMPATIBILITÀ VECCHIO CODICE (Fondamentale!) --- */
+    --primary-color: #00c6ff;  /* Usa il ciano come colore primario */
+    --accent-color: #d422ce;   /* Usa il viola come accento */
+    --text-color: #ffffff;     /* <--- ECCO LA CHIAVE: Definisce il testo bianco */
+    --muted: #a1a1aa;          /* Colore per i testi secondari/placeholder */
+
+    /* --- BASI --- */
+    --bg: #0a0a0a;            
+    --surface: #161616;       
+    --surface-glass: rgba(22, 22, 22, 0.7);
+    --surface-2: #2a2a2a;      /* Aggiunto per compatibilità con i tuoi input */
     --border-color: #333;
+    
+    /* Variabili nuove (se le usi nei nuovi blocchi) */
+    --text-primary: #ffffff;
+    --text-secondary: #a1a1aa;
+    
+    --danger: #ef4444;
+    --success: #22c55e;
+    
+    /* --- DIMENSIONI --- */
+    --panel-width-desktop: 380px;
+    --radius-lg: 24px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
 }
 
 body.light-theme {
@@ -21,6 +42,41 @@ body.light-theme {
     --muted: #65676b;
     --border-color: #ccc;
     --primary-color: #008ba3;
+}
+
+/* 1. Bottoni nella barra in alto (Header) in Tema Chiaro */
+body.light-theme .header-controls button {
+    color: #333333 !important; /* Icone Scure (Grigio scuro/Nero) */
+    background: rgba(0, 0, 0, 0.08) !important; /* Sfondo leggermente scuro */
+    border: 1px solid rgba(0, 0, 0, 0.15) !important; /* Bordo per definizione */
+}
+
+/* Effetto Hover (Tema Chiaro) */
+body.light-theme .header-controls button:hover {
+    background: rgba(0, 0, 0, 0.15) !important;
+    color: #000000 !important;
+    border-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 2. Bottone Impostazioni Fluttuante (Overlay Home) */
+/* Lo rendiamo solido e definito per non perdersi sugli sfondi */
+body.light-theme .settings-floating-btn {
+    background: #ffffff !important;
+    color: #333333 !important;
+    border: 1px solid #ccc !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+}
+
+body.light-theme .settings-floating-btn:hover {
+    background: #f0f0f0 !important;
+    transform: scale(1.05);
+}
+
+/* 3. Bottone "Torna alle webcam" (Mobile) in Tema Chiaro */
+body.light-theme #close-chat-btn {
+    background-color: rgba(0, 0, 0, 0.08) !important;
+    color: #333333 !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
 }
 
 * {
@@ -47,12 +103,18 @@ html, body {
 #nickname-overlay {
     position: fixed;
     inset: 0;
-    background: var(--bg);
+    
+    /* QUI applichiamo il viola SOLO per il login */
+    background-color: #2f1b7a; 
+    
+    /* Aggiungiamo una sfumatura leggera per renderlo moderno e non "piatto" */
+    background-image: radial-gradient(circle at top right, rgba(0, 198, 255, 0.15), transparent 40%),
+                      radial-gradient(circle at bottom left, rgba(0, 0, 0, 0.4), transparent 40%);
+                      
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 20px;
     z-index: 200;
 }
 
@@ -64,14 +126,15 @@ html, body {
 }
 
 .card {
-    background: var(--surface);
-    padding: 28px;
-    border-radius: 10px;
-    width: 360px;
-    text-align: center;
-    animation: slideDown 0.4s ease;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column; /* Impila tutto verticalmente */
+    gap: 20px; /* Aggiunge spazio AUTOMATICO tra ogni elemento figlio */
+    
+    background: #161616; /* Assicurati che sia grigio scuro, non nero assoluto */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Bordo sottile attorno alla card */
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5); /* Ombra profonda per staccarlo dallo sfondo */
+    padding: 40px;
+    border-radius: 24px;
 }
 
 .card h2 {
@@ -79,17 +142,34 @@ html, body {
     margin-bottom: 20px;
 }
 
+.input-group.floating {
+    position: relative; /* Necessario per posizionare la label */
+    margin-bottom: 5px;
+}
+
+/* Stile Base Input (La "scatola") */
 .card input[type="text"],
 .card input[type="password"] {
-    width: calc(100% - 20px);
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background: var(--surface-2);
-    color: var(--text-color);
-    font-size: 1em;
+    width: 100%;
+    margin-bottom: 0; /* Reset dei margini (gestisce tutto il 'gap' sopra) */
+    
+    /* DEFINIZIONE VISIVA */
+    background: rgba(0, 0, 0, 0.4) !important; /* Sfondo più scuro della card */
+    border: 1px solid rgba(255, 255, 255, 0.2) !important; /* Bordo grigio chiaro per definire il box */
+    border-radius: 12px; /* Angoli arrotondati */
+    
+    padding: 16px 20px; /* Spazio interno comodo */
+    color: #ffffff !important;
+    font-size: 1rem;
     outline: none;
+    transition: all 0.2s ease;
+}
+
+/* Effetto quando clicchi sulla casella */
+.card input:focus {
+    border-color: #00c6ff !important; /* Bordo Ciano quando scrivi */
+    background: rgba(0, 0, 0, 0.6) !important;
+    box-shadow: 0 0 0 4px rgba(0, 198, 255, 0.1);
 }
 
 .card input::placeholder {
@@ -110,6 +190,47 @@ html, body {
 
 .card button:hover {
     background: var(--accent-color);
+}
+
+/* Stile dell'Etichetta (Label) a riposo */
+.floating label {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%); /* Centrata verticalmente */
+    
+    color: rgba(255, 255, 255, 0.5); /* Grigio chiaro */
+    font-size: 1rem;
+    font-weight: 500;
+    pointer-events: none; /* Permette di cliccare attraverso la label */
+    transition: all 0.2s ease-out;
+}
+
+/* --- ANIMAZIONE MAGIC --- */
+
+/* Quando l'input ha il focus O quando non è vuoto (placeholder trick) */
+.floating input:focus,
+.floating input:not(:placeholder-shown) {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: #00c6ff; /* Ciano Brand */
+    box-shadow: 0 0 0 4px rgba(0, 198, 255, 0.15);
+}
+
+/* Sposta la label in alto e rimpiccioliscila */
+.floating input:focus ~ label,
+.floating input:not(:placeholder-shown) ~ label {
+    top: 14px; /* Si sposta in alto */
+    left: 20px;
+    font-size: 0.75rem; /* Diventa piccola */
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #00c6ff; /* Si colora di ciano */
+}
+
+/* Colore Label se c'è testo ma non focus (Opzionale: torna bianco/grigio) */
+.floating input:not(:placeholder-shown):not(:focus) ~ label {
+    color: rgba(255, 255, 255, 0.4);
 }
 
 .settings-floating-btn {
@@ -577,39 +698,40 @@ input:checked + .slider:before {
     z-index: 10;
 }
 
+/* --- STILE TOPIC DESKTOP (Testo Gradiente) --- */
 #room-topic-display {
-    /* Font e Stile identico al Room Name */
-    font-family: 'Montserrat', sans-serif; 
-    font-weight: 800;        
-    font-size: 1.3em;       
-    letter-spacing: -0.5px; 
-    text-transform: uppercase;
+    /* Usa la variabile dinamica per creare il gradiente */
+    background: linear-gradient(to right, var(--dynamic-brand-color) 0%, #ffffff 150%);
     
-    /* GRADIENTE: Electric Violet -> Bright Cyan (Lo stesso del nome) */
-    background: linear-gradient(to right, #bd00ff 0%, #00b8ff 100%);
-    
-    /* Applicazione gradiente al testo */
+    /* Applica gradiente al testo */
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
     color: transparent;
     
-    /* Glow colorato (leggermente ridotto rispetto al titolo principale) */
-    filter: drop-shadow(0 0 10px rgba(189, 0, 255, 0.3));
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 800;
+    font-size: 1.1em;
+    letter-spacing: -0.5px;
     
-    /* Reset dei vecchi stili a "pillola" */
-    background-color: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
-    backdrop-filter: none;
+    /* Glow colorato usando la variabile */
+    filter: drop-shadow(0 0 8px var(--dynamic-brand-color));
     
+    display: inline-block;
     max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: inline-block;
-    vertical-align: middle;
+    padding: 5px; /* Un po' di padding per il glow */
+}
+
+/* Prefisso "//" che eredita lo stile */
+#room-topic-display::before {
+    content: '// ';
+    background: none;
+    -webkit-text-fill-color: inherit;
+    font-weight: 900;
+    margin-right: 5px;
 }
 
 #room-topic-display.hidden {
@@ -875,19 +997,23 @@ input:checked + .slider:before {
 }
 
 .chat-message {
+	color: #e0e0e0 !important; /* Bianco "sporco" (più riposante del bianco puro) */
+    font-weight: 400;
     font-size: 1em; /* Testo un po' più grande (era 0.95em) */
     line-height: 1.5;
     padding: 8px 10px; /* Più respiro attorno ai messaggi */
 }
 
 .sender-me {
-    color: var(--primary-color);
-    font-weight: bold;
+    color: #00c6ff !important; /* Ciano Elettrico */
+    font-weight: 700;
+    text-shadow: 0 0 15px rgba(0, 198, 255, 0.2); /* Leggero alone */
 }
 
 .sender-remote {
-    color: var(--accent-color);
-    font-weight: bold;
+    color: #d422ce !important; /* Fucsia Elettrico */
+    font-weight: 700;
+    text-shadow: 0 0 15px rgba(212, 34, 206, 0.2);
 }
 
 .sender-system {
@@ -909,38 +1035,92 @@ body.light-theme .sender-private {
 }
 
 #chat-input-area {
-    display: flex;
-    align-items: center; /* <--- AGGIUNTO: centra verticalmente input e bottone */
-    padding: 10px;
-    border-top: 1px solid var(--border-color);
-    gap: 8px;
+    display: none !important;
 }
 
+/* Il contenitore principale in fondo alla chat */
+#chat-footer {
+    background: var(--surface-2); /* Grigio scuro di sfondo */
+    border-top: 1px solid var(--border-color);
+    padding: 15px; /* Spaziatura uniforme */
+    position: relative;
+}
+
+/* La riga che contiene i tasti e l'input */
+#chat-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Spazio tra gli elementi */
+    width: 100%;
+}
+
+/* 1. Bottone Emoji (Bianco/Grigio chiaro come da screen) */
+#emoji-toggle-btn {
+    background: #f0f0f0; /* Sfondo chiaro */
+    color: #000;         /* Icona nera */
+    border: none;
+    border-radius: 6px;  /* Angoli smussati */
+    width: 44px;         /* Quadrato */
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;      /* Non si schiaccia */
+    transition: transform 0.2s;
+}
+
+#emoji-toggle-btn:hover {
+    transform: scale(1.05);
+    background: #fff;
+}
+
+/* 2. Input di testo (Sfondo scuro) */
 #chat-message-input {
-    flex-grow: 1;
-    padding: 10px;
-    border: 1px solid var(--border-color);
+    flex-grow: 1; /* Occupa tutto lo spazio disponibile */
+    background: rgba(0, 0, 0, 0.3); /* Sfondo input più scuro del footer */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    height: 44px; /* Altezza identica ai bottoni */
+    padding: 0 15px;
     border-radius: 6px;
-    background: var(--surface-2);
-    color: var(--text-color);
-    font-size: 1em;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
     outline: none;
+    transition: border-color 0.2s;
+}
+
+#chat-message-input:focus {
+    border-color: var(--primary-color);
+}
+
+#chat-message-input::placeholder {
+    color: var(--muted);
 }
 
 #send-chat-button {
-    background: var(--primary-color);
+    background: #00b8ff; /* Ciano brillante */
     color: #fff;
-    border: 1px solid transparent; /* <--- AGGIUNTO: compensa il bordo dell'input per uguale altezza */
+    border: none;
     border-radius: 6px;
-    padding: 10px 15px;
-    font-size: 1em;
-    font-weight: bold;
+    height: 44px;
+    padding: 0 20px; /* Largo */
+    font-weight: 700;
+    font-size: 1rem;
     cursor: pointer;
-    transition: background-color 0.2s; /* <--- Opzionale: rende più fluido l'hover */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: filter 0.2s;
+    text-transform: capitalize; /* Assicura che la scritta sia corretta */
+}
+
+#send-chat-button .material-icons {
+    display: none; /* Nascondiamo l'icona se vuoi la scritta "Invia" come da screen, oppure rimuovi questa riga */
 }
 
 #send-chat-button:hover {
-    background: var(--accent-color);
+    filter: brightness(1.1); /* Leggermente più luminoso all'hover */
 }
 
 #main-controls-bar {
@@ -1641,24 +1821,16 @@ body.light-theme .sender-private {
 }
 
 .system-msg-content {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
-    
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    font-size: 0.85em;
-    font-weight: normal;
-    color: #69f0ae; /* Verde Terminale */
-    
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-    letter-spacing: 0.5px;
-    text-align: left; /* <--- CAMBIATO: Testo a sinistra */
+    color: #94a3b8 !important; /* Grigio Bluastro moderno */
+    font-family: 'Inter', sans-serif !important; /* Via il font da hacker */
+    font-size: 0.85rem !important;
+    font-style: italic;
+    opacity: 0.8;
 }
 
 .system-msg-content::before {
-    content: '*** ';
-    opacity: 0.6;
+    content: '• ' !important; 
+    color: #555;
     margin-right: 4px;
 }
 
@@ -1669,55 +1841,6 @@ body.light-theme .sender-private {
     gap: 10px;
 }
 
-/* 3. Aggiustiamo il Topic per mobile mantenendo il gradiente */
-    #room-topic-display {
-        width: 92%; 
-        max-width: 92%;
-        
-        /* Layout */
-        display: block !important; /* Block per gestire meglio il text-overflow */
-        text-align: center;
-        
-        /* Sovrascriviamo lo stile "pillola" precedente */
-        background: linear-gradient(to right, #bd00ff 0%, #00b8ff 100%) !important;
-        background-color: transparent !important;
-        backdrop-filter: none !important;
-        border: none !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        border-radius: 0 !important;
-        
-        /* Testo Gradiente */
-        -webkit-background-clip: text !important;
-        background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
-        
-        /* Font */
-        font-family: 'Montserrat', sans-serif !important;
-        font-size: 1.1em !important; 
-        font-weight: 800 !important;
-        
-        /* Glow */
-        filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.6)) !important;
-        
-        /* Gestione Testo */
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Rimuoviamo il badge dorato anche su mobile */
-    #room-topic-display::before {
-        content: '// ';
-        background: none !important;
-        color: inherit !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        border: none !important;
-        font-size: 1em !important;
-        display: inline !important;
-        -webkit-text-fill-color: inherit !important;
-    }
 	
 /* --- MODALE OP STILE IRC / TERMINALE --- */
 .op-modal-content.irc-theme {
@@ -1730,21 +1853,36 @@ body.light-theme .sender-private {
     max-width: 95%;
 }
 
+/* --- FIX VISIBILITÀ ICONE HEADER --- */
+/* Forza le icone della barra superiore ad essere sempre bianche */
+.header-controls button {
+    color: #ffffff !important; 
+    background: rgba(255, 255, 255, 0.1) !important; /* Sfondo leggero traslucido */
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Effetto al passaggio del mouse */
+.header-controls button:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+    border-color: #ffffff !important;
+}
 
 /* --- PULSANTE OP (POWER MODE) --- */
 #op-settings-btn {
     /* Stile base uguale agli altri bottoni header */
-    background: rgba(255, 215, 64, 0.15); /* Sfondo Oro leggero */
-    color: #ffd740; /* Colore Oro/Ambra */
-    border: 1px solid rgba(255, 215, 64, 0.3);
-    border-radius: 6px; /* Stesso raggio degli altri */
+    background: rgba(255, 215, 64, 0.15) !important; /* !important protegge lo sfondo giallo */
+    color: #ffd740 !important; /* !important protegge il colore del testo/icona */
+    border: 1px solid rgba(255, 215, 64, 0.5) !important; /* Bordo giallo più visibile */
+    
+    border-radius: 6px; 
     padding: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 10px rgba(255, 215, 64, 0.1); /* Leggero alone dorato */
+    box-shadow: 0 0 10px rgba(255, 215, 64, 0.1); 
 }
 
 /* Hover: diventa più luminoso e solido */
@@ -2104,6 +2242,211 @@ body.light-theme .system-msg-content {
     box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
 }
 
+/* --- IRC / TERMINAL STYLE THEME --- */
+
+/* 1. Reset della Card base per renderla squadrata e scura */
+.card.irc-terminal {
+    background: #050505; /* Nero profondo */
+    border: 1px solid #bd00ff; /* Bordo Fucsia sottile */
+    border-radius: 0; /* Niente angoli arrotondati */
+    box-shadow: 
+        0 0 20px rgba(189, 0, 255, 0.15), /* Bagliore Fucsia */
+        inset 0 0 30px rgba(0, 0, 0, 0.8);
+    padding: 0; /* Il padding lo gestiamo nel body */
+    width: 450px;
+    max-width: 95%;
+    font-family: 'Courier New', 'Consolas', monospace; /* Font Terminale */
+    overflow: hidden;
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* 2. Barra del titolo del terminale */
+.terminal-bar {
+    background: linear-gradient(90deg, #bd00ff 0%, #00b8ff 100%); /* Gradiente Fucsia -> Ciano */
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #00b8ff;
+}
+
+.terminal-title {
+    color: #000;
+    font-weight: 900;
+    font-size: 0.85em;
+    letter-spacing: 1px;
+}
+
+.terminal-controls .ctrl {
+    display: inline-block;
+    margin-left: 8px;
+    font-weight: bold;
+    cursor: default;
+    color: #000;
+}
+
+/* 3. Corpo del terminale */
+.terminal-body {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ascii-art-placeholder {
+    color: #555;
+    font-size: 0.75em;
+    margin-bottom: 10px;
+    line-height: 1.4;
+    border-left: 2px solid #333;
+    padding-left: 10px;
+}
+
+/* 4. Input Lines stile Prompt */
+.irc-input-line {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #333; /* Linea sottile scura */
+    transition: border-color 0.3s ease;
+}
+
+.irc-input-line:focus-within {
+    border-bottom: 1px solid #00b8ff; /* Diventa Ciano al focus */
+    box-shadow: 0 5px 10px -5px rgba(0, 184, 255, 0.2);
+}
+
+.prompt {
+    color: #bd00ff; /* Prompt Fucsia */
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-right: 10px;
+    white-space: pre;
+    text-shadow: 0 0 5px rgba(189, 0, 255, 0.4);
+}
+
+/* Override degli input esistenti */
+.card.irc-terminal input[type="text"],
+.card.irc-terminal input[type="password"] {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    color: #00b8ff; /* Testo Ciano */
+    font-family: 'Courier New', monospace;
+    font-size: 1.1em;
+    padding: 10px 0;
+    margin: 0;
+    width: 100%;
+    outline: none;
+}
+
+.card.irc-terminal input::placeholder {
+    color: #444; /* Placeholder molto scuro */
+    font-style: italic;
+    opacity: 0.5;
+}
+
+/* 5. Bottone Esegui */
+.irc-actions {
+    margin-top: 15px;
+    text-align: right;
+}
+
+.glitch-btn {
+    background: transparent;
+    color: #00b8ff; /* Testo Ciano */
+    border: 1px solid #00b8ff;
+    padding: 12px 25px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Effetto Hover "Fill" */
+.glitch-btn:hover {
+    background: #00b8ff;
+    color: #000;
+    box-shadow: 
+        0 0 10px #00b8ff,
+        0 0 20px rgba(189, 0, 255, 0.5); /* Alone misto */
+    border-color: #bd00ff;
+}
+
+/* Cursore lampeggiante negli input (Simulazione) */
+@keyframes blinkCursor {
+    0% { border-right-color: transparent; }
+    50% { border-right-color: #00b8ff; }
+    100% { border-right-color: transparent; }
+}
+
+.irc-input-line:focus-within input {
+    /* Un piccolo trucco per simulare il cursore a blocco se voluto, 
+       ma il cursore di default colorato è meglio per usabilità */
+    caret-color: #bd00ff; /* Cursore Fucsia */
+}
+
+/* --- Stile Bottone IRC / Terminal --- */
+#join-button {
+    margin-top: 10px; /* Un po' di spazio extra prima del bottone */
+    background: linear-gradient(135deg, #d422ce 0%, #00c6ff 100%) !important; /* Gradiente Logo */
+    border: none !important;
+    color: white !important;
+    padding: 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif !important; /* Via il font da hacker */
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(0, 198, 255, 0.15);
+}
+
+#join-button:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+}
+
+/* --- Header Chat Stile IRC --- */
+
+#chat-panel h3 {
+    /* 1. Sfondo Nero e Bordo Fucsia */
+    background: #050505 !important;
+    border-bottom: 2px solid #bd00ff !important; /* Linea di separazione Fucsia */
+    
+    /* 2. Testo Ciano e Font Terminale */
+    color: #00b8ff !important;
+    font-family: 'Courier New', 'Consolas', monospace !important;
+    font-size: 1.1em !important;
+    font-weight: bold;
+    
+    /* 3. Stile testo */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(0, 184, 255, 0.4); /* Leggero bagliore neon */
+    
+    /* 4. Spaziatura */
+    padding: 15px 20px !important;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Opzionale: Aggiunge un cursore lampeggiante prima della scritta CHAT */
+#chat-panel h3::before {
+    content: '>_';
+    color: #bd00ff; /* Il prompt è Fucsia */
+    animation: blink 1s step-end infinite;
+}
+
+/* Definiamo l'animazione lampeggio se non esiste già */
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
 
 /* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
 @media (max-width: 768px) {
@@ -2234,51 +2577,52 @@ body.light-theme .system-msg-content {
 
     /* 4. BARRA CONTROLLI (FIX DIMENSIONI) */
     #main-controls-bar {
-        bottom: 20px;
-        background: rgba(20, 20, 20, 0.85);
-        backdrop-filter: blur(10px);
+        bottom: 25px; /* Un po' più in alto */
+        background: rgba(20, 20, 20, 0.9); /* Sfondo leggermente più coprente */
+        backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.15);
         
-        /* Larghezza sicura: 92% dello schermo, ma mai più di 400px */
-        width: 92%;
-        max-width: 400px; 
+        width: auto;      /* Lasciamo che si adatti al contenuto */
+        min-width: 280px; /* Larghezza minima sicura */
+        max-width: 90%;   /* Non toccare i bordi */
         
-        /* Spaziatura interna minima */
-        padding: 8px 5px;
+        padding: 10px 20px; /* Spaziatura interna comoda */
         
-        /* Distribuzione Flexbox */
         display: flex;
-        justify-content: space-between; /* Spinge i pulsanti agli estremi in modo equo */
-        gap: 2px; /* Gap minimo */
+        justify-content: center; /* Centriamo i bottoni */
+        gap: 15px; /* Spazio arioso tra i bottoni */
         
         z-index: 200;
         border-radius: 50px;
         
-        /* Centratura orizzontale */
         left: 50%;
         transform: translateX(-50%);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
     #main-controls-bar button {
-        /* Ridotti a 36px per farne entrare 7 comodamente */
-        width: 36px;
-        height: 36px;
-        min-width: 36px; /* Impedisce lo schiacciamento */
-        flex-shrink: 0;  /* Impedisce lo schiacciamento */
+        /* RIPRISTINATE DIMENSIONI GRANDI (Standard Desktop/Touch) */
+        width: 52px;       /* Da 36px a 52px */
+        height: 52px;
+        min-width: 52px;
         
-        background: transparent;
-        box-shadow: none;
         border-radius: 50%;
-        padding: 0;
         margin: 0;
+        padding: 0;
         
+        background: rgba(255, 255, 255, 0.05); /* Leggero sfondo per definire il tocco */
         display: flex;
         align-items: center;
         justify-content: center;
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
+	#main-controls-bar button:active {
+        transform: scale(0.9);
+    }
+	
     #main-controls-bar button .material-icons {
-        font-size: 1.3em; /* Icone ridimensionate proporzionalmente */
+        font-size: 1.8em; /* Icone grandi e leggibili (era 1.3em) */
     }
 
     #main-controls-bar button:hover,
@@ -2287,8 +2631,10 @@ body.light-theme .system-msg-content {
     }
 
     #disconnect-button {
-        background: var(--danger) !important;
-        box-shadow: 0 2px 8px rgba(239, 83, 80, 0.4) !important;
+        width: 60px !important; /* Leggermente più grande degli altri */
+        height: 52px !important;
+        border-radius: 20px !important; /* Forma a pillola per distinguerlo (opzionale) o 50% cerchio */
+        margin-left: 10px; /* Separalo un po' dagli altri */
     }
 
     /* Chat Panel Mobile */
@@ -2318,26 +2664,74 @@ body.light-theme .system-msg-content {
     }
 
 	#chat-input-area {
-        padding-bottom: max(15px, env(safe-area-inset-bottom));
-        background: var(--surface-2);
-        border-top: 1px solid var(--border-color);
-    }
+		display: flex;
+		align-items: center; 
+		padding: 10px;
+		border-top: 1px solid var(--border-color);
+		gap: 8px;
+	}
+
+	#chat-input-row {
+		display: flex;
+		align-items: center;
+		padding: 10px 15px;
+		border-top: 1px solid var(--border-color);
+		background: var(--surface-2); /* Sfondo scuro per uniformità */
+		gap: 10px;
+		position: relative;
+	}
+	
+/* Stile per il bottone Emoji (Faccina) */
+	#emoji-toggle-btn {
+		background: transparent;
+		border: none;
+		color: var(--muted);
+		cursor: pointer;
+		padding: 8px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s ease;
+	}
+
+	#emoji-toggle-btn:hover {
+		color: var(--primary-color);
+		background: rgba(255, 255, 255, 0.05);
+	}
+
+	#emoji-toggle-btn .material-icons {
+		font-size: 1.5em; /* Grandezza icona */
+	}
+	
+/* Stile per il contenitore del Footer Chat (per ancorare il picker) */
+	#chat-footer {
+		position: relative;
+		background: var(--surface-2);
+	}
+	
+	#emoji-picker-container {
+		position: absolute;
+		bottom: 70px; /* Lo fa apparire SOPRA la barra di input */
+		left: 10px;
+		z-index: 2000;
+		box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+		border-radius: 8px;
+		overflow: hidden;
+	}
 
     /* Stile per il pulsante "Torna alle webcam" generato dal JS */
-    #close-chat-btn {
-        background-color: var(--surface-2) !important;
-        color: var(--primary-color) !important;
-        border: 1px solid var(--border-color) !important;
-        margin: 10px !important;
-        width: calc(100% - 20px) !important;
-        padding: 12px !important;
-        font-size: 1em !important;
-        border-radius: 8px !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        font-weight: bold;
-    }
+	#close-chat-btn {
+		background-color: rgba(255, 255, 255, 0.08) !important; /* Sfondo semi-trasparente */
+		color: #ffffff !important; /* Testo Bianco Puro */
+		border: 1px solid rgba(255, 255, 255, 0.2) !important; /* Bordo sottile */
+		font-weight: 600 !important;
+		box-shadow: none !important;
+	}
+
+	#close-chat-btn:hover {
+		background-color: rgba(255, 255, 255, 0.15) !important;
+	}
 
 	#switch-camera-button {
         display: flex !important;
@@ -2410,42 +2804,29 @@ body.light-theme .system-msg-content {
 
     /* 2. Stile del Testo: Rimuoviamo il box scuro e mettiamo il gradiente */
     #room-topic-display {
-        width: 100%;
-        max-width: 100%;
-        text-align: center;
+        /* Su mobile resettiamo il gradiente testo per massima leggibilità */
+        background: rgba(0, 0, 0, 0.6) !important; /* Sfondo scuro semi-trasparente */
+        backdrop-filter: blur(4px); /* Effetto vetro sfocato */
         
-        /* RESET TOTALE DEL VECCHIO STILE "PILLOLA" */
-        background-color: transparent !important;
-        border: none !important;          /* Toglie la riga gialla */
-        border-bottom: none !important;   /* Sicurezza extra */
-        box-shadow: none !important;      /* Toglie l'ombra scura */
-        backdrop-filter: none !important;
-        padding: 0 !important;
-        border-radius: 0 !important;
+        /* Testo solido del colore del brand */
+        -webkit-text-fill-color: var(--dynamic-brand-color) !important;
+        color: var(--dynamic-brand-color) !important;
         
-        /* APPLICAZIONE NUOVO STILE GRADIENTE */
-        background: linear-gradient(to right, #bd00ff 0%, #00b8ff 100%) !important;
-        -webkit-background-clip: text !important;
-        background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
-        color: transparent !important; /* Fallback */
+        /* Bordo sottile colorato ed elegante */
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-left: 3px solid var(--dynamic-brand-color); /* Accento laterale */
         
-        /* Font e Tipografia */
-        font-family: 'Montserrat', sans-serif !important;
-        font-size: 1.1em !important; 
-        font-weight: 800 !important;
-        letter-spacing: -0.5px !important;
+        border-radius: 6px;
+        padding: 8px 12px !important;
+        font-size: 0.95em !important;
+        width: auto !important;
+        display: inline-block !important;
         
-        /* Effetti Luce */
-        filter: drop-shadow(0 0 5px rgba(189, 0, 255, 0.4)) !important;
-        
-        /* Gestione testo lungo */
-        display: block !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        /* Riduciamo il glow su mobile per pulizia */
+        filter: none !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
-
+	
     /* 3. Aggiustiamo il prefisso "//" */
     #room-topic-display::before {
         content: '// ';
@@ -2482,6 +2863,36 @@ body.light-theme .system-msg-content {
         padding-left: 5px;
     }
 
+	/* 1. Barra in alto (Header): Forza icone bianche su sfondo sfumato scuro */
+    body.light-theme .header-controls button {
+        color: #ffffff !important; 
+        background: rgba(255, 255, 255, 0.15) !important; /* Sfondo traslucido chiaro */
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+    
+    body.light-theme .header-controls button:hover {
+        background: rgba(255, 255, 255, 0.3) !important;
+    }
+
+    /* 2. Barra in basso (Controlli): Forza icone bianche perché la barra è nera */
+    body.light-theme #main-controls-bar button {
+        color: #ffffff !important;
+        background: transparent; /* O semi-trasparente se preferisci */
+    }
+    
+    /* Gestione stati attivi/hover nella barra in basso */
+    body.light-theme #main-controls-bar button:hover,
+    body.light-theme #main-controls-bar button.active {
+        background: rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
+    }
+
+    /* 3. Assicuriamoci che il pulsante "Disconnect" resti Rosso */
+    body.light-theme #disconnect-button {
+        background: var(--danger) !important;
+        color: #ffffff !important;
+    }
+	
     /* 4. Aumentiamo il padding del Grid Video affinché non finisca sotto l'header più alto */
     #videos-grid {
         /* Aumentato da 90px a 130px perché ora l'header è su due righe */

@@ -22,15 +22,16 @@
 </button>
 
 <div id="nickname-overlay">
-    <img id="app-logo" src="images/logo.png" alt="Logo" />
+    <img id="app-logo" src="images/logo.png" alt="#chan Logo" />
+    
     <div class="card">
-        <h2>Join Conference</h2>
-        <input type="text" id="room-id-input" placeholder="Room Name" required />
-        <input type="password" id="room-password-input" placeholder="Room Password (Optional)" />
-        <input type="text" id="nickname-input" placeholder="Your Nickname" required />
-        <div class="row">
-            <button id="join-button">Join Conference</button>
-        </div>
+        <input type="text" id="room-id-input" placeholder="Nome del Canale" required autocomplete="off" />
+
+        <input type="password" id="room-password-input" placeholder="Password (Opzionale)" autocomplete="off" />
+
+        <input type="text" id="nickname-input" placeholder="Il tuo Nickname" required autocomplete="off" />
+
+        <button id="join-button">Entra nel Canale</button>
     </div>
 </div>
 
@@ -194,24 +195,30 @@
 			<div id="transcript-content"></div>
 		</div>
         <aside id="chat-panel" class="panel-column">
-            <h3>💬 Chat</h3>
+            <h3>Chat</h3>
             <div id="messages-container"></div>
             
-            <div id="typing-indicator" class="hidden">
-                <span class="dots">
-                    <span>.</span><span>.</span><span>.</span>
-                </span>
-                <span id="typing-text">Qualcuno sta scrivendo</span>
-            </div>
+            <div id="chat-footer">
+			<div id="emoji-picker-container" class="hidden"></div>
 
-            <div id="chat-input-area">
-                <button id="emoji-toggle-btn" title="Inserisci Emoji">😀</button>
-                
-                <input type="text" id="chat-message-input" placeholder="Scrivi un messaggio... (supporta Markdown)" autocomplete="off" />
-                <button id="send-chat-button">
-                    <span class="material-icons">send</span> </button>
-            </div>
-        </aside>
+			<div id="typing-indicator" class="hidden">
+				<span class="dots"><span>.</span><span>.</span><span>.</span></span>
+				<span id="typing-text">Sta scrivendo...</span>
+			</div>
+
+			<div id="chat-input-row">
+				<button id="emoji-toggle-btn" class="chat-btn-icon" title="Emoji">
+					<span class="material-icons">emoji_emotions</span>
+				</button>
+				
+				<input type="text" id="chat-message-input" placeholder="Scrivi un messaggio..." autocomplete="off" />
+				
+				<button id="send-chat-button" class="chat-btn-send">
+					<span class="material-icons">send</span> 
+				</button>
+			</div>
+		</div>
+    </aside>
 
 		<div id="main-controls-bar">
 			<button id="toggle-audio-button" title="Mute/Unmute Audio"><span class="material-icons">mic</span></button>
@@ -304,50 +311,66 @@
     }
 </script>
 <script type="module">
-    import { createPopup } from 'https://unpkg.com/@picmo/popup-picker@latest/dist/index.js?module';
+    // USIAMO 'picmo' standard, non 'popup-picker'. È più stabile.
     import { createPicker } from 'https://unpkg.com/picmo@latest/dist/index.js?module';
 
     document.addEventListener('DOMContentLoaded', () => {
         const trigger = document.getElementById('emoji-toggle-btn');
         const input = document.getElementById('chat-message-input');
-
-        // Controllo di sicurezza
-        if (!trigger || !input) {
-            console.error("Elementi chat non trovati per Emoji Picker");
-            return;
-        }
+        const pickerContainer = document.getElementById('emoji-picker-container');
         
-        // Creazione del Popup
-        const picker = createPopup({
-            rootElement: document.body,
-            triggerElement: trigger, // <--- QUESTA RIGA MANCAVA! Ora sa dove posizionarsi.
-            position: 'auto' // Cerca la posizione migliore automaticamente
-        }, {
-            // Opzioni del Picker interno
-            theme: 'dark',
-            locale: 'it',
-            autoFocus: 'search',
-            showPreview: false
+        let picker = null;
+
+        trigger.addEventListener('click', (event) => {
+            event.stopPropagation(); // Evita che il click si propaghi e chiuda subito il menu
+            
+            // Toggle Visibilità
+            const isHidden = pickerContainer.classList.contains('hidden');
+            
+            if (isHidden) {
+                // SE NON ESISTE ANCORA IL PICKER, CREALO ORA (Lazy Load)
+                if (!picker) {
+                    picker = createPicker({
+                        rootElement: pickerContainer,
+                        theme: 'dark',
+                        locale: 'it',
+                        autoFocus: 'search'
+                    });
+
+                    // Ascolta la selezione
+                    picker.addEventListener('emoji:select', (selection) => {
+                        const start = input.selectionStart;
+                        const end = input.selectionEnd;
+                        const text = input.value;
+                        const before = text.substring(0, start);
+                        const after  = text.substring(end, text.length);
+                        
+                        input.value = before + selection.emoji + after;
+                        
+                        // Riposiziona cursore
+                        const newCursorPosition = start + selection.emoji.length;
+                        input.selectionStart = newCursorPosition;
+                        input.selectionEnd = newCursorPosition;
+                        input.focus();
+                    });
+                }
+                
+                // Mostra il contenitore
+                pickerContainer.classList.remove('hidden');
+            } else {
+                // Nascondi
+                pickerContainer.classList.add('hidden');
+            }
         });
 
-        // Evento Click sul bottone faccina
-        trigger.addEventListener('click', () => {
-            picker.toggle();
-        });
-
-        // Evento Selezione Emoji
-        picker.addEventListener('emoji:select', (selection) => {
-            const start = input.selectionStart;
-            const end = input.selectionEnd;
-            const text = input.value;
-            const before = text.substring(0, start);
-            const after  = text.substring(end, text.length);
-            
-            input.value = before + selection.emoji + after;
-            
-            // Rimette il focus e sposta il cursore
-            input.selectionStart = input.selectionEnd = start + selection.emoji.length;
-            input.focus();
+        // Chiudi il picker se clicco fuori
+        document.addEventListener('click', (event) => {
+            if (!pickerContainer.classList.contains('hidden')) {
+                // Se il click NON è dentro il picker E NON è sul bottone faccina
+                if (!pickerContainer.contains(event.target) && event.target !== trigger) {
+                    pickerContainer.classList.add('hidden');
+                }
+            }
         });
     });
 </script>

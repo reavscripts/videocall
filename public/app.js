@@ -1,7 +1,7 @@
 // app.js 
 
-const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
-//const RENDER_SERVER_URL = "http://localhost:3000";
+//const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com"; 
+const RENDER_SERVER_URL = "http://localhost:3000";
 
 // ---------- DOM & Controlli ----------
 const nicknameOverlay = document.getElementById('nickname-overlay');
@@ -2682,26 +2682,32 @@ function updateRoomInfoUI(topic, isLocked) {
     }
 }
 
-// Funzione per applicare il colore del brand al titolo della stanza
+// Funzione per applicare il colore del brand (Titolo + Topic)
 function applyRoomBrandColor(color) {
     const titleEl = document.getElementById('room-name-display');
-    if (!titleEl) return;
-
-    // Strategia: Creiamo un gradiente dinamico basato sul colore scelto
-    // Colore scuro = colore scelto | Colore chiaro = colore scelto schiarito
+    const topicEl = document.getElementById('room-topic-display');
     
-    // Helper interno per schiarire il colore esadecimale
-    const adjustColorLightness = (col, amount) => {
-        return '#' + col.replace(/^#/, '').replace(/../g, c => ('0'+Math.min(255, Math.max(0, parseInt(c, 16) + amount)).toString(16)).substr(-2));
-    };
+    // 1. Aggiorna la variabile CSS globale
+    // Questo aggiorna automaticamente il colore del Topic (desktop e mobile)
+    document.documentElement.style.setProperty('--dynamic-brand-color', color);
 
-    // Applica il gradiente al testo
-    titleEl.style.background = `linear-gradient(to right, ${color} 0%, ${adjustColorLightness(color, 60)} 100%)`;
-    titleEl.style.webkitBackgroundClip = 'text';
-    titleEl.style.webkitTextFillColor = 'transparent';
-    
-    // Aggiorna anche il Glow (Bagliore) con trasparenza
-    titleEl.style.filter = `drop-shadow(0 0 15px ${color}80)`; // 80 hex = ~50% opacità
+    // 2. Aggiorna il Titolo Principale (#chan)
+    if (titleEl) {
+        // Helper per schiarire il colore (per il gradiente del titolo)
+        const adjustColorLightness = (col, amount) => {
+            return '#' + col.replace(/^#/, '').replace(/../g, c => ('0'+Math.min(255, Math.max(0, parseInt(c, 16) + amount)).toString(16)).substr(-2));
+        };
+        
+        const lighterColor = adjustColorLightness(color, 60);
+
+        // Applica gradiente al Titolo
+        titleEl.style.background = `linear-gradient(to right, ${color} 0%, ${lighterColor} 100%)`;
+        titleEl.style.webkitBackgroundClip = 'text';
+        titleEl.style.webkitTextFillColor = 'transparent';
+        
+        // Aggiorna il Glow del titolo
+        titleEl.style.filter = `drop-shadow(0 0 15px ${color}80)`; // 80 hex = ~50% opacità
+    }
 }
 
 
