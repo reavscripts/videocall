@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css?v=1.111" />
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
@@ -49,15 +49,34 @@
                     <span class="slider round"></span>
                 </label>
             </div>
-			<hr class="separator">
-			<div class="setting-item" style="display:block;">
-				<span style="display:block; margin-bottom:10px;">Application Background</span>
-				<div id="background-options" class="bg-selection-grid"></div>
-			</div>
+            <hr class="separator">
+            <div class="setting-item" style="display:block;">
+                <span style="display:block; margin-bottom:10px;">Application Background</span>
+                <div id="background-options" class="bg-selection-grid"></div>
+            </div>
             <hr class="separator">
             <div class="setting-item">
                 <span>Server Management</span>
                 <button id="open-admin-login" class="btn-secondary">Admin Login</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="server-list-modal" class="hidden">
+    <div class="settings-content" style="max-width: 500px;">
+        <div class="settings-header">
+            <h3>🌐 Canali Attivi</h3>
+            <button id="close-server-list-btn"><span class="material-icons">close</span></button>
+        </div>
+        <div class="settings-body">
+            <div id="server-list-container" class="server-list-grid">
+                <p style="text-align:center; color:#666;">Caricamento...</p>
+            </div>
+            <div style="text-align:center; margin-top:10px;">
+                <button id="refresh-server-list-modal-btn" class="btn-secondary">
+                    <span class="material-icons" style="font-size:1em; vertical-align:middle;">refresh</span> Aggiorna
+                </button>
             </div>
         </div>
     </div>
@@ -94,184 +113,229 @@
 </div>
 
 <div id="conference-container" class="hidden">
-    <header id="room-header">
-        <div class="header-left">
-            <div class="room-title-wrapper">
-                <h3><span id="room-name-display"></span></h3>
+    <aside id="channel-sidebar">
+		<div class="sidebar-header">
+			<img src="images/logo.png" alt="Logo" class="sidebar-logo">
+		</div>
+		
+		<div class="sidebar-section">
+			<small>I TUOI CANALI</small>
+			<div id="my-channels-list"></div>
+		</div>
+
+		<div class="sidebar-footer">
+			<button id="open-server-list-btn" class="btn-sidebar-action">
+				<span class="material-icons">dns</span> Lista Server
+			</button>
+		</div>
+	</aside>
+
+    <div id="content-wrapper"> 
+        <header id="room-header">
+            <div class="header-left">
+                <div class="room-title-wrapper">
+                    <h3><span id="room-name-display"></span></h3>
+                </div>
             </div>
-        </div>
 
-        <div id="room-topic-container">
-            <div id="room-topic-display" class="hidden"></div>
-        </div>
-        
-        <div class="header-controls">
-            <button id="op-settings-btn" class="hidden" title="OP Command Console">
-                <span class="material-icons">admin_panel_settings</span>
-            </button>
-
-            <button id="show-chat-btn" title="Open Chat">
-                <span class="material-icons">chat</span>
-            </button>
-            <button id="share-room-link" title="Share Room Link">
-                <span class="material-icons">link</span>
-            </button>
-            <button id="settings-btn-room" title="Settings">
-                <span class="material-icons">settings</span>
-            </button>
-        </div>
-    </header>
-
-    <div id="op-modal" class="hidden">
-        <div class="op-modal-content">
-            <div class="op-header">
-                <h4><span class="material-icons" style="color: #ffd740;">tune</span> Gestione Stanza</h4>
-                <button id="close-op-modal" title="Chiudi"><span class="material-icons">close</span></button>
+            <div id="room-topic-container">
+                <div id="room-topic-display" class="hidden"></div>
             </div>
             
-            <div class="op-body">
-                <div class="op-field-group">
-                    <label for="op-topic-input">Topic del giorno</label>
-                    <input type="text" id="op-topic-input" placeholder="Es: Riunione budget..." maxlength="100" autocomplete="off">
-                </div>
+            <div class="header-controls">
+                <button id="op-settings-btn" class="hidden" title="OP Command Console">
+                    <span class="material-icons">admin_panel_settings</span>
+                </button>
+                <button id="toggle-sidebar-btn" title="Toggle Sidebar">
+                    <span class="material-icons">view_sidebar</span>
+                </button>
+                <button id="show-chat-btn" title="Open Chat">
+                    <span class="material-icons">chat</span>
+                </button>
+                <button id="share-room-link" title="Share Room Link">
+                    <span class="material-icons">link</span>
+                </button>
+                <button id="settings-btn-room" title="Settings">
+                    <span class="material-icons">settings</span>
+                </button>
+            </div>
+        </header>
 
-                <div class="op-field-group">
-                    <label for="op-color-input">Colore Brand Stanza</label>
-                    <div class="color-picker-wrapper">
-                        <input type="color" id="op-color-input" value="#00b8ff">
-                        <span class="color-hint">Clicca per cambiare il colore del titolo</span>
+        <main id="main-area">
+            <section id="videos-grid">
+                <div id="local-feed" class="video-feed ratio-4-3 hidden" data-peer-id="local">
+                    <div class="no-cam-overlay hidden" id="local-no-cam">
+                        <img src="images/nocam.png" alt="No Camera">
+                    </div>
+                    
+                    <video id="local-video" autoplay playsinline muted></video>
+                    <div class="video-label">
+                        <span id="local-mic-status" class="material-icons">mic_off</span>
+                        <span id="local-nickname-display">Tu</span> 
                     </div>
                 </div>
+            </section>
+
+            <div id="whiteboard-container" class="hidden">
+                <div class="wb-toolbar">
+                    <div class="wb-colors">
+                        <div class="color-btn active" style="background: #ffffff;" data-color="#ffffff"></div>
+                        <div class="color-btn" style="background: #ff5252;" data-color="#ff5252"></div>
+                        <div class="color-btn" style="background: #448aff;" data-color="#448aff"></div>
+                        <div class="color-btn" style="background: #69f0ae;" data-color="#69f0ae"></div>
+                        <div class="color-btn" style="background: #ffd740;" data-color="#ffd740"></div>
+                    </div>
+                    <div class="wb-actions">
+                        <button id="wb-undo-btn" title="Undo Last Stroke"><span class="material-icons">undo</span></button>
+                        <button id="wb-clear-btn" title="Clear All"><span class="material-icons">delete</span></button>
+                        <button id="wb-close-btn" title="Close Whiteboard"><span class="material-icons">close</span></button>
+                    </div>
+                </div>
+                <canvas id="whiteboard-canvas"></canvas>
+            </div>
+            <div id="meeting-transcript-panel" class="hidden">
+                <div class="transcript-header">
+                    <h4>📝 Live Transcript</h4>
+                    <button id="close-transcript-btn"><span class="material-icons">close</span></button>
+                </div>
+                <div id="transcript-content"></div>
+            </div>
+
+            <aside id="chat-panel" class="panel-column">
+                <div id="chat-resizer"></div> 
                 
-                <div class="op-field-group">
-                    <label for="op-password-input">Password Accesso (Opzionale)</label>
-                    <div class="input-with-icon">
-                        <span class="material-icons icon">lock_outline</span>
-                        <input type="password" id="op-password-input" placeholder="Lascia vuoto per accesso libero" autocomplete="off">
+                <h3>Chat</h3>
+                <div id="messages-container"></div>
+            
+                <div id="chat-footer">
+                <div id="emoji-picker-container" class="hidden"></div>
+                <div id="sticker-picker-container" class="hidden">
+                    <div class="sticker-search-bar">
+                        <span class="material-icons search-icon">search</span>
+                        <input type="text" id="sticker-search-input" placeholder="Cerca su Giphy..." autocomplete="off">
                     </div>
-                    <small>Se impostata, apparirà un lucchetto 🔒 accanto al nome.</small>
+                    
+                    <div id="sticker-grid" class="sticker-grid"></div>
                 </div>
 
-                <div class="op-actions">
-                    <button id="op-save-btn">Applica Modifiche</button>
+                <div id="typing-indicator" class="hidden">
+                    <span class="dots"><span>.</span><span>.</span><span>.</span></span>
+                    <span id="typing-text">Sta scrivendo...</span>
+                </div>
+
+                <div class="chat-toolbar">
+                    <button id="emoji-toggle-btn" class="chat-toolbar-btn" title="Emoji">
+                        <span class="material-icons">emoji_emotions</span>
+                    </button>
+                    
+                    <button id="sticker-toggle-btn" class="chat-toolbar-btn" title="GIF & Sticker">
+                        <span class="material-icons">gif_box</span>
+                    </button>
+                </div>
+
+                <div id="chat-input-row">
+                    <input type="text" id="chat-message-input" placeholder="Scrivi un messaggio..." autocomplete="off" />
+                    
+                    <button id="send-chat-button" class="chat-btn-send">
+                        <span class="material-icons">send</span> 
+                    </button>
                 </div>
             </div>
+            </aside>
+             
+             <div id="main-controls-bar">
+                <button id="toggle-audio-button" title="Mute/Unmute Audio"><span class="material-icons">mic_off</span></button>
+                <button id="toggle-video-button" title="Disable/Enable Video"><span class="material-icons">videocam_off</span></button>
+                
+                <button id="switch-camera-button" class="mobile-only" title="Switch Camera">
+                    <span class="material-icons">flip_camera_ios</span>
+                </button>
+
+                <button id="more-options-btn" title="More Options">
+                    <span class="material-icons">more_horiz</span>
+                </button>
+
+                <button id="disconnect-button" title="Disconnect"><span class="material-icons">call_end</span></button>
+            </div>
+             
+             <div id="extras-menu" class="hidden">
+                <div class="menu-item" id="transfer-file-button">
+                    <span class="material-icons">folder_open</span>
+                    <span>Send File</span>
+                </div>
+                <div class="menu-item" id="record-button">
+                    <span class="material-icons">fiber_manual_record</span>
+                    <span>Record</span>
+                </div>
+                <div class="menu-item" id="global-transcript-btn">
+                    <span class="material-icons">description</span>
+                    <span>Meeting Minutes</span>
+                </div>
+                <div class="menu-item" id="toggle-whiteboard-button">
+                    <span class="material-icons">draw</span>
+                    <span>Whiteboard</span>
+                </div>
+                <div class="menu-item" id="share-screen-button">
+                    <span class="material-icons">screen_share</span>
+                    <span>Share Screen</span>
+                </div>
+            </div>
+
+        </main>
+    </div> 
+</div>
+
+<div id="op-modal" class="hidden">
+    <div class="op-modal-content">
+        <div class="op-header">
+            <h4><span class="material-icons">shield</span> Canale Protetto</h4>
+            <button id="close-op-modal"><span class="material-icons">close</span></button>
+        </div>
+        <div class="op-body">
+            
+            <div class="op-field-group">
+                <label>Argomento Stanza (Topic)</label>
+                <input type="text" id="op-topic-input" placeholder="Es: Riunione Progetto X" autocomplete="off">
+                <small>Visibile a tutti in alto al centro.</small>
+            </div>
+
+            <div class="op-field-group">
+                <label>Password Accesso</label>
+                <div class="input-with-icon">
+                    <span class="material-icons icon">vpn_key</span>
+                    <input type="text" id="op-password-input" placeholder="Lascia vuoto per rimuovere" autocomplete="off">
+                </div>
+                <small>Chi entra dovrà digitare questa password.</small>
+            </div>
+			
+			<div class="op-field-group">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <label>Chat Moderata (+m)</label>
+                    <label class="switch">
+                        <input type="checkbox" id="op-moderate-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <small style="margin-top:5px; display:block;">Se attivo, solo OP (@) e Voice (+) possono scrivere.</small>
+            </div>
+
+            <div class="op-field-group">
+                <label>Colore Brand (#Chan)</label>
+                <div class="color-picker-wrapper">
+                    <div class="color-hint">CLICCA PER CAMBIARE</div>
+                    <input type="color" id="op-color-input" value="#00b8ff">
+                </div>
+                <small>Cambia il tema visivo per tutti gli utenti.</small>
+            </div>
+
+            <div class="op-actions">
+                <button id="op-save-btn">
+                    <span class="material-icons">save</span> Salva Modifiche
+                </button>
+            </div>
+
         </div>
     </div>
-
-    <main id="main-area">
-        <section id="videos-grid">
-            <div id="local-feed" class="video-feed ratio-4-3 hidden" data-peer-id="local">
-                <video id="local-video" autoplay playsinline muted></video>
-				<div class="video-label">
-					<span id="local-mic-status" class="material-icons">mic</span>
-					<span id="local-nickname-display">Tu</span> 
-				</div>
-            </div>
-        </section>
-
-        <div id="whiteboard-container" class="hidden">
-            <div class="wb-toolbar">
-                <div class="wb-colors">
-                    <div class="color-btn active" style="background: #ffffff;" data-color="#ffffff"></div>
-                    <div class="color-btn" style="background: #ff5252;" data-color="#ff5252"></div>
-                    <div class="color-btn" style="background: #448aff;" data-color="#448aff"></div>
-                    <div class="color-btn" style="background: #69f0ae;" data-color="#69f0ae"></div>
-                    <div class="color-btn" style="background: #ffd740;" data-color="#ffd740"></div>
-                </div>
-                <div class="wb-actions">
-                    <button id="wb-undo-btn" title="Undo Last Stroke"><span class="material-icons">undo</span></button>
-                    <button id="wb-clear-btn" title="Clear All"><span class="material-icons">delete</span></button>
-                    <button id="wb-close-btn" title="Close Whiteboard"><span class="material-icons">close</span></button>
-                </div>
-            </div>
-            <canvas id="whiteboard-canvas"></canvas>
-        </div>
-		<div id="meeting-transcript-panel" class="hidden">
-			<div class="transcript-header">
-				<h4>📝 Live Transcript</h4>
-				<button id="close-transcript-btn"><span class="material-icons">close</span></button>
-			</div>
-			<div id="transcript-content"></div>
-		</div>
-        <aside id="chat-panel" class="panel-column">
-            <h3>Chat</h3>
-            <div id="messages-container"></div>
-            
-            <div id="chat-footer">
-			<div id="emoji-picker-container" class="hidden"></div>
-			<div id="sticker-picker-container" class="hidden">
-				<div class="sticker-search-bar">
-					<span class="material-icons search-icon">search</span>
-					<input type="text" id="sticker-search-input" placeholder="Cerca su Giphy..." autocomplete="off">
-				</div>
-				
-				<div id="sticker-grid" class="sticker-grid"></div>
-			</div>
-
-			<div id="typing-indicator" class="hidden">
-				<span class="dots"><span>.</span><span>.</span><span>.</span></span>
-				<span id="typing-text">Sta scrivendo...</span>
-			</div>
-
-			<div class="chat-toolbar">
-				<button id="emoji-toggle-btn" class="chat-toolbar-btn" title="Emoji">
-					<span class="material-icons">emoji_emotions</span>
-				</button>
-				
-				<button id="sticker-toggle-btn" class="chat-toolbar-btn" title="GIF & Sticker">
-					<span class="material-icons">gif_box</span>
-				</button>
-			</div>
-
-			<div id="chat-input-row">
-				<input type="text" id="chat-message-input" placeholder="Scrivi un messaggio..." autocomplete="off" />
-				
-				<button id="send-chat-button" class="chat-btn-send">
-					<span class="material-icons">send</span> 
-				</button>
-			</div>
-		</div>
-    </aside>
-
-		<div id="main-controls-bar">
-			<button id="toggle-audio-button" title="Mute/Unmute Audio"><span class="material-icons">mic</span></button>
-			<button id="toggle-video-button" title="Disable/Enable Video"><span class="material-icons">videocam</span></button>
-			
-			<button id="switch-camera-button" class="mobile-only" title="Switch Camera">
-				<span class="material-icons">flip_camera_ios</span>
-			</button>
-
-			<button id="more-options-btn" title="More Options">
-				<span class="material-icons">more_horiz</span>
-			</button>
-
-			<button id="disconnect-button" title="Disconnect"><span class="material-icons">call_end</span></button>
-		</div>
-
-		<div id="extras-menu" class="hidden">
-			<div class="menu-item" id="transfer-file-button">
-				<span class="material-icons">folder_open</span>
-				<span>Send File</span>
-			</div>
-			<div class="menu-item" id="record-button">
-				<span class="material-icons">fiber_manual_record</span>
-				<span>Record</span>
-			</div>
-			<div class="menu-item" id="global-transcript-btn">
-				<span class="material-icons">description</span>
-				<span>Meeting Minutes</span>
-			</div>
-			<div class="menu-item" id="toggle-whiteboard-button">
-				<span class="material-icons">draw</span>
-				<span>Whiteboard</span>
-			</div>
-			<div class="menu-item" id="share-screen-button">
-				<span class="material-icons">screen_share</span>
-				<span>Share Screen</span>
-			</div>
-		</div>
-    </main>
 </div>
 
 <div id="file-transfer-container"></div>
@@ -280,6 +344,10 @@
 <template id="remote-video-template">
     <div class="video-feed ratio-4-3">
         <div class="video-content-wrapper">
+            <div class="no-cam-overlay hidden">
+                <img src="images/nocam.png" alt="No Camera">
+            </div>
+            
             <video autoplay playsinline></video>
             <div class="subtitle-overlay hidden"></div>
         </div>
@@ -313,7 +381,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=1.111"></script>
 
 <script>
     if ('serviceWorker' in navigator) {
@@ -325,7 +393,6 @@
     }
 </script>
 <script type="module">
-    // USIAMO 'picmo' standard, non 'popup-picker'. È più stabile.
     import { createPicker } from 'https://unpkg.com/picmo@latest/dist/index.js?module';
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -336,13 +403,11 @@
         let picker = null;
 
         trigger.addEventListener('click', (event) => {
-            event.stopPropagation(); // Evita che il click si propaghi e chiuda subito il menu
+            event.stopPropagation();
             document.getElementById('sticker-picker-container')?.classList.add('hidden');
-            // Toggle Visibilità
             const isHidden = pickerContainer.classList.contains('hidden');
             
             if (isHidden) {
-                // SE NON ESISTE ANCORA IL PICKER, CREALO ORA (Lazy Load)
                 if (!picker) {
                     picker = createPicker({
                         rootElement: pickerContainer,
@@ -368,19 +433,13 @@
                         input.focus();
                     });
                 }
-                
-                // Mostra il contenitore
                 pickerContainer.classList.remove('hidden');
             } else {
-                // Nascondi
                 pickerContainer.classList.add('hidden');
             }
         });
-
-        // Chiudi il picker se clicco fuori
         document.addEventListener('click', (event) => {
             if (!pickerContainer.classList.contains('hidden')) {
-                // Se il click NON è dentro il picker E NON è sul bottone faccina
                 if (!pickerContainer.contains(event.target) && event.target !== trigger) {
                     pickerContainer.classList.add('hidden');
                 }

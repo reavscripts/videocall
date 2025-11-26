@@ -11,6 +11,15 @@ const roomIdInput = document.getElementById('room-id-input');
 const videosGrid = document.getElementById('videos-grid'); 
 const localVideoEl = document.getElementById('local-video');
 const localFeedEl = document.getElementById('local-feed'); 
+const openServerListBtn = document.getElementById('open-server-list-btn');
+const serverListModal = document.getElementById('server-list-modal');
+const closeServerListBtn = document.getElementById('close-server-list-btn');
+const serverListContainer = document.getElementById('server-list-container');
+const refreshServerListModalBtn = document.getElementById('refresh-server-list-modal-btn');
+let myJoinedChannels = []; // Array per tenere traccia dei canali della sessione: ['lobby', 'test']
+const myChannelsListEl = document.getElementById('my-channels-list');
+const roomChatsData = {}; // { 'nomeStanza': [ {sender, text, ...} ] }
+const opModerateToggle = document.getElementById('op-moderate-toggle');
 
 // ** CONTROLLI OPERATORE (@) **
 const opSettingsBtn = document.getElementById('op-settings-btn');
@@ -71,6 +80,14 @@ const messagesContainer = document.getElementById('messages-container');
 const chatMessageInput = document.getElementById('chat-message-input');
 const sendChatButton = document.getElementById('send-chat-button');
 const showChatBtn = document.getElementById('show-chat-btn');
+const channelSidebar = document.getElementById('channel-sidebar');
+const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+const serverChannelList = document.getElementById('server-channel-list');
+const refreshChannelsBtn = document.getElementById('refresh-channels-btn');
+const chatResizer = document.getElementById('chat-resizer');
+const currentChannelItem = document.getElementById('current-channel-item');
+
+let isChatResizing = false;
 
 // Controlli Menu Contestuale
 const contextMenuEl = document.getElementById('remote-context-menu');
@@ -820,8 +837,10 @@ function showOverlay(show){
 }
 
 function resetAndShowOverlay() {
+    // 1. Pulisci la griglia
     videosGrid.innerHTML = '';
-    localFeedEl.classList.add('hidden');
+    
+    // 2. Resetta interfaccia
     messagesContainer.innerHTML = ''; 
     document.getElementById('room-name-display').textContent = '';
 
@@ -829,11 +848,13 @@ function resetAndShowOverlay() {
     userNickname = 'Ospite';
     currentRoomId = null;
     
+    // 3. Ferma Stream
     if (localStream) localStream.getTracks().forEach(track => track.stop());
     localStream = null;
     if (screenStream) screenStream.getTracks().forEach(track => track.stop());
     screenStream = null;
     
+    // 4. Reset Icone
     toggleAudioButton.querySelector('.material-icons').textContent = 'mic';
     toggleVideoButton.querySelector('.material-icons').textContent = 'videocam';
     shareScreenButton.classList.remove('active');
@@ -841,15 +862,17 @@ function resetAndShowOverlay() {
     isAudioEnabled = true;
     isVideoEnabled = true;
 
+    // 5. Reset Whiteboard & File
     whiteboardContainer.classList.add('hidden');
     toggleWhiteboardButton.classList.remove('active');
     toggleWhiteboardButton.classList.remove('has-notification'); 
     if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-    localWhiteboardHistory = []; // Reset history
+    localWhiteboardHistory = []; 
 
     if(fileTransferContainer) fileTransferContainer.innerHTML = '';
     for(const k in dataChannels) delete dataChannels[k];
 
+    // 6. Stop Recording
     if (isRecording) stopRecording(); 
     if (recordButton) {
         recordButton.classList.remove('active');
@@ -857,6 +880,7 @@ function resetAndShowOverlay() {
         isRecording = false;
     }
     
+    // 7. Pulisci variabili Logiche
     Object.values(peerConnections).forEach(pc => pc.close());
     for (const key in peerConnections) delete peerConnections[key];
     for (const key in remoteNicknames) delete remoteNicknames[key];
@@ -870,13 +894,25 @@ function resetAndShowOverlay() {
     autoFocusTimer = null;
     monitorLocalAudio(false); 
 
+    // --- FIX: RICOSTRUZIONE GRIGLIA ---
+    
+    // A. Crea il placeholder
     const placeholder = document.createElement('div');
     placeholder.id = 'remote-video-placeholder';
     placeholder.className = 'video-placeholder';
     placeholder.textContent = t('waiting_others');
-    videosGrid.insertBefore(placeholder, localFeedEl);
     
+    // B. Inserisci PRIMA il placeholder
+    videosGrid.appendChild(placeholder);
+    
+    // C. Inserisci POI il localFeed (che esiste ancora in memoria anche se rimosso dal DOM)
+    videosGrid.appendChild(localFeedEl);
+    
+    // D. Nascondilo e resettalo
+    localFeedEl.classList.add('hidden');
     localFeedEl.classList.remove('is-focused', 'is-talking');
+    
+    // 8. Reset Input
     nicknameInput.value = '';
     roomIdInput.value = '';
 }
@@ -1184,19 +1220,80 @@ function removeRemoteFeed(socketId){
 }
 
 // app.js - PARTE 2
-
-function toggleAudio(){
-  isAudioEnabled = !isAudioEnabled;
-  if (localStream) localStream.getAudioTracks().forEach(track => track.enabled = isAudioEnabled);
-  toggleAudioButton.querySelector('.material-icons').textContent = isAudioEnabled ? 'mic' : 'mic_off';
-  localMicStatusIcon.textContent = isAudioEnabled ? 'mic' : 'mic_off'; 
-  monitorLocalAudio(isAudioEnabled); 
+async function enableMediaIfNeeded() {
+    if (!localStream) {
+        try {
+            // Richiede permessi ora
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            updateLocalVideo();
+            
+            // Imposta tracce in base allo stato desiderato
+            localStream.getAudioTracks().forEach(t => t.enabled = isAudioEnabled);
+            localStream.getVideoTracks().forEach(t => t.enabled = isVideoEnabled);
+            
+            // Aggiungi le tracce alle connessioni esistenti (siamo entrati come "ascoltatori")
+            for(const peerId in peerConnections) {
+                const pc = peerConnections[peerId];
+                localStream.getTracks().forEach(track => {
+                    const sender = pc.addTrack(track, localStream);
+                    if(track.kind === 'video') videoSenders[peerId] = sender;
+                });
+                // Rinegozia
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                socket.emit('offer', peerId, pc.localDescription);
+            }
+            monitorLocalAudio(isAudioEnabled);
+        } catch(err) {
+            console.error(err);
+            alert("Impossibile accedere a webcam/mic. Verifica i permessi.");
+            return false;
+        }
+    }
+    return true;
 }
 
-function toggleVideo(){
-  isVideoEnabled = !isVideoEnabled;
-  if (localStream) localStream.getVideoTracks().forEach(track => track.enabled = isVideoEnabled);
-  toggleVideoButton.querySelector('.material-icons').textContent = isVideoEnabled ? 'videocam' : 'videocam_off';
+// Override toggleAudio
+async function toggleAudio(){
+    // Se non abbiamo ancora lo stream, crealo ora
+    if(!localStream) {
+        isAudioEnabled = true; // Intenzione utente
+        await enableMediaIfNeeded();
+    } else {
+        isAudioEnabled = !isAudioEnabled;
+        localStream.getAudioTracks().forEach(track => track.enabled = isAudioEnabled);
+    }
+    
+    toggleAudioButton.querySelector('.material-icons').textContent = isAudioEnabled ? 'mic' : 'mic_off';
+    localMicStatusIcon.textContent = isAudioEnabled ? 'mic' : 'mic_off'; 
+    monitorLocalAudio(isAudioEnabled); 
+}
+
+// Override toggleVideo
+async function toggleVideo(){
+    if(!localStream) {
+        isVideoEnabled = true; 
+        await enableMediaIfNeeded();
+    } else {
+        isVideoEnabled = !isVideoEnabled;
+        localStream.getVideoTracks().forEach(track => track.enabled = isVideoEnabled);
+    }
+    
+    // 1. Aggiorna icona bottone
+    toggleVideoButton.querySelector('.material-icons').textContent = isVideoEnabled ? 'videocam' : 'videocam_off';
+    
+    // 2. Mostra/Nascondi immagine NO CAM locale
+    const localOverlay = document.getElementById('local-no-cam');
+	if (localOverlay) localOverlay.classList.add('hidden');
+    if (localOverlay) {
+        if (isVideoEnabled) localOverlay.classList.add('hidden');
+        else localOverlay.classList.remove('hidden');
+    }
+
+    // 3. Dillo al server (così gli altri vedono la tua immagine)
+    if (socket && currentRoomId) {
+        socket.emit('video-status-changed', currentRoomId, isVideoEnabled);
+    }
 }
 
 function disconnect(){
@@ -1240,6 +1337,281 @@ async function toggleScreenShare() {
                 stream.getVideoTracks()[0].onended = () => toggleScreenShare();
             }
         } catch (err) { console.error('Errore condivisione schermo:', err); }
+    }
+}
+
+if (chatResizer) {
+    chatResizer.addEventListener('mousedown', (e) => {
+        isChatResizing = true;
+        chatResizer.classList.add('resizing');
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isChatResizing) return;
+        // Calcola nuova larghezza (Window Width - Mouse X)
+        // Poiché il pannello è a destra
+        let newWidth = window.innerWidth - e.clientX;
+        
+        // Limiti
+        if (newWidth < 250) newWidth = 250;
+        if (newWidth > window.innerWidth * 0.6) newWidth = window.innerWidth * 0.6;
+        
+        chatPanel.style.width = `${newWidth}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isChatResizing) {
+            isChatResizing = false;
+            chatResizer.classList.remove('resizing');
+            document.body.style.cursor = 'default';
+        }
+    });
+}
+
+// -----------------------------------------------------------
+// 4. PARSER COMANDI SLASH (/join, /slap, ecc)
+// -----------------------------------------------------------
+
+function sendMessage(contentOverride = null) {
+    const fullMessage = (typeof contentOverride === 'string') ? contentOverride : chatMessageInput.value.trim();
+    if (!fullMessage) return;
+
+    // --- COMANDI SLASH ---
+    if (fullMessage.startsWith('/')) {
+        const args = fullMessage.split(' ');
+        const cmd = args[0].toLowerCase();
+        const arg1 = args[1];
+        const contentArgs = args.slice(2).join(' ');
+
+        switch(cmd) {
+            case '/help':
+                const helpText = `
+                <b>Comandi Disponibili:</b><br>
+                /join #canale - Entra/Crea un canale<br>
+                /leave - Disconnetti<br>
+                /serverlist - Lista canali globali<br>
+                /op nome - Rendi operatore<br>
+				/deop nome - Togli operatore<br>
+                /voice nome - Dai voice (+)<br>
+				/devoice nome - Togli voice<br>
+                /slap nome - Schiaffeggia utente<br>
+                /dm nome msg - Messaggio privato
+                `;
+                addChatMessage('Sistema', helpText, false, 'system');
+                break;
+                
+            case '/join':
+                if(arg1) {
+                    // Rimuove il '#' se l'utente lo ha scritto
+                    const roomName = arg1.replace('#', '').toLowerCase();
+                    handleJoinCommand(roomName);
+                } else {
+                    addChatMessage('Sistema', 'Uso: /join #nomestanza', false, 'system');
+                }
+                break;
+
+            case '/leave':
+                disconnect();
+                break;
+
+            case '/serverlist':
+                // Richiede la lista e apre il modale
+                socket.emit('request-room-list');
+                if(serverListModal) serverListModal.classList.remove('hidden');
+                addChatMessage('Sistema', 'Apertura lista server...', false, 'system');
+                break;
+
+            case '/op':
+                if(arg1) socket.emit('command-op', currentRoomId, arg1);
+                else addChatMessage('Sistema', 'Uso: /op nomeutente', false, 'system');
+                break;
+				
+            case '/deop':
+                if(arg1) socket.emit('command-deop', currentRoomId, arg1);
+                else addChatMessage('Sistema', 'Uso: /deop nomeutente', false, 'system');
+                break;
+
+            case '/voice':
+                 if(arg1) socket.emit('command-voice', currentRoomId, arg1);
+                 else addChatMessage('Sistema', 'Uso: /voice nomeutente', false, 'system');
+                 break;
+				 
+			case '/devoice':
+                 if(arg1) socket.emit('command-devoice', currentRoomId, arg1);
+                 else addChatMessage('Sistema', 'Uso: /devoice nomeutente', false, 'system');
+                 break;
+				 
+			case '/moderate':
+                if(arg1 === 'on' || arg1 === 'off') {
+                    socket.emit('command-moderate', currentRoomId, arg1);
+                } else {
+                    addChatMessage('Sistema', 'Uso: /moderate on | /moderate off', false, 'system');
+                }
+                break;
+
+            case '/slap':
+                if(arg1) socket.emit('command-action', currentRoomId, 'slap', arg1);
+                else addChatMessage('Sistema', 'Uso: /slap nomeutente', false, 'system');
+                break;
+
+            case '/dm':
+                if(arg1 && contentArgs) {
+                   const recipientNickname = arg1;
+                   if (recipientNickname.toLowerCase() === userNickname.toLowerCase()) {
+                        addChatMessage('Sistema', 'No DM a te stesso.', true, 'system');
+                   } else {
+                        // Cerca l'ID socket basandosi sul nickname
+                        const recipientId = Object.keys(remoteNicknames).find(key => 
+                            remoteNicknames[key] && remoteNicknames[key].toLowerCase() === recipientNickname.toLowerCase()
+                        );
+                        if (recipientId) {
+                            sendPrivateMessage(recipientId, recipientNickname, contentArgs);
+                        } else {
+                            addChatMessage('Sistema', `Utente "${recipientNickname}" non trovato.`, true, 'system');
+                        }
+                   }
+                } else {
+                    addChatMessage('Sistema', 'Uso: /dm nome messaggio', false, 'system');
+                }
+                break;
+                
+            default:
+                addChatMessage('Sistema', `Comando sconosciuto: ${cmd}`, false, 'system');
+        }
+        
+        if (!contentOverride) clearChatInput();
+        return; // IMPORTANTE: Non inviare al server come messaggio pubblico
+    }
+
+    // --- MESSAGGI NORMALI ---
+    if (socket && currentRoomId) {
+        const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        socket.emit('send-message', currentRoomId, userNickname, fullMessage, messageId);
+        addChatMessage(userNickname, fullMessage, true, 'public', messageId);
+        if (!contentOverride) clearChatInput();
+    }
+}
+
+function handleJoinCommand(roomName) {
+    // 1. Se siamo già in questa stanza, avvisa e non fare nulla
+    if (roomName === currentRoomId) {
+        addChatMessage('Sistema', `Sei già connesso al canale #${roomName}.`, false, 'system');
+        return;
+    }
+
+    // 2. Aggiungi alla lista locale dei canali "aperti" se non c'è già
+    if (!myJoinedChannels.includes(roomName)) {
+        myJoinedChannels.push(roomName);
+    }
+    
+    // 3. Esegui il cambio stanza effettivo
+    switchChannel(roomName);
+}
+
+function switchChannel(newRoomId) {
+    console.log(`[Switch] Cambio visuale su: #${newRoomId}`);
+    
+    // 1. Normalizza l'ID
+    newRoomId = newRoomId.toLowerCase();
+
+    // 2. Chiudi SOLO connessioni WebRTC (Video)
+    Object.values(peerConnections).forEach(pc => pc.close());
+    for (const key in peerConnections) delete peerConnections[key];
+    for (const key in videoSenders) delete videoSenders[key];
+    videosGrid.innerHTML = ''; 
+    
+    // 3. Ripristina video locale
+    const placeholder = document.createElement('div');
+    placeholder.id = 'remote-video-placeholder';
+    placeholder.className = 'video-placeholder';
+    placeholder.textContent = 'Caricamento stanza...';
+    videosGrid.appendChild(placeholder);
+    if (localFeedEl) videosGrid.appendChild(localFeedEl);
+
+    // 4. Gestione Chat (Salva vecchia, carica nuova)
+    saveCurrentChatToMemory();
+    messagesContainer.innerHTML = ''; 
+    currentRoomId = newRoomId;
+    document.getElementById('room-name-display').textContent = `#${newRoomId}`;
+    loadChatFromMemory(newRoomId);
+
+    // 5. Aggiorna Sidebar e URL
+    renderSidebarChannels();
+    const url = new URL(window.location);
+    url.searchParams.set('room', newRoomId);
+    window.history.pushState({}, '', url);
+
+    // 6. INVIA JOIN (Senza disconnettere il socket!)
+    if(socket && socket.connected) {
+        socket.emit('join-room', currentRoomId, userNickname, currentRoomPassword);
+    }
+}
+
+function renderSidebarChannels() {
+    if(!myChannelsListEl) return;
+    myChannelsListEl.innerHTML = '';
+
+    myJoinedChannels.forEach(room => {
+        const div = document.createElement('div');
+        // Aggiungi classe 'active' se è la stanza in cui siamo ora
+        div.className = `channel-item ${room === currentRoomId ? 'active' : ''}`;
+        div.style.justifyContent = 'space-between'; // Per separare nome e tasto X
+        
+        // Nome Canale
+        const span = document.createElement('span');
+        span.textContent = `#${room}`;
+        div.appendChild(span);
+
+        // Tasto X per chiudere il canale dalla lista
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'remove-chan-btn';
+        closeBtn.innerHTML = '<span class="material-icons" style="font-size:14px">close</span>';
+        closeBtn.title = "Lascia il canale";
+        
+        // CSS Inline per il bottone X (o mettilo nel CSS)
+        closeBtn.style.background = 'transparent';
+        closeBtn.style.border = 'none';
+        closeBtn.style.color = '#ff5252';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.opacity = '0.7';
+
+        closeBtn.onclick = (e) => {
+            e.stopPropagation(); // Evita che il click sul bottone attivi il click sul div (cambio stanza)
+            if(confirm(`Vuoi lasciare il canale #${room}?`)) {
+                removeChannelFromSidebar(room);
+            }
+        };
+        div.appendChild(closeBtn);
+
+        // Click sull'intero div per cambiare canale
+        div.onclick = () => {
+            if (room !== currentRoomId) {
+                switchChannel(room);
+            }
+        };
+
+        myChannelsListEl.appendChild(div);
+    });
+}
+
+function removeChannelFromSidebar(roomToRemove) {
+    // Rimuovi dall'array
+    myJoinedChannels = myJoinedChannels.filter(r => r !== roomToRemove);
+    
+    // Aggiorna la grafica
+    renderSidebarChannels();
+    
+    // Se abbiamo chiuso il canale in cui ci troviamo attualmente
+    if (roomToRemove === currentRoomId) {
+        if (myJoinedChannels.length > 0) {
+            // Se ci sono altri canali aperti, vai al primo disponibile
+            switchChannel(myJoinedChannels[0]);
+        } else {
+            // Se non ci sono più canali, disconnetti tutto e torna alla home
+            disconnect(); 
+        }
     }
 }
 
@@ -1915,6 +2287,7 @@ function copyRoomLink(){
     }); 
 }
 
+const originalAddChatMessage = addChatMessage;
 function addChatMessage(sender, message, isLocal = false, type = 'public', msgId = null) {
     const messageEl = document.createElement('div');
     messageEl.classList.add('chat-message');
@@ -1928,7 +2301,20 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
         `;
         messagesContainer.appendChild(messageEl);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        return; // Ci fermiamo qui, i messaggi di sistema non hanno spunte o click
+
+        // [NUOVO] Salva messaggio di sistema in memoria per il cambio canali
+        if (typeof roomChatsData !== 'undefined' && currentRoomId) {
+            if (!roomChatsData[currentRoomId]) roomChatsData[currentRoomId] = [];
+            // I messaggi di sistema spesso non hanno ID univoci, li salviamo sempre
+            roomChatsData[currentRoomId].push({ 
+                sender: 'Sistema', 
+                text: message, 
+                type: 'system', 
+                id: 'sys_' + Date.now(), 
+                timestamp: Date.now() 
+            });
+        }
+        return; // Ci fermiamo qui
     }
 
     // --- CASO 2: MESSAGGI UTENTE (Public/Private) ---
@@ -1950,7 +2336,6 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
     }
 
     // C. Rilevamento Immagini / Sticker / GIF
-    // Controlla se il messaggio è un URL che finisce con estensioni immagine o viene da Giphy/Tenor
     const isImage = (url) => {
         return /\.(gif|jpe?g|png|webp)($|\?)/i.test(url) || 
                url.includes('media.giphy.com') || 
@@ -2009,53 +2394,128 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
             updateUnreadBadge();
         }
     }
+
+    // [NUOVO] Salva messaggio utente in memoria per il cambio canali
+    if (typeof roomChatsData !== 'undefined' && currentRoomId) {
+        if (!roomChatsData[currentRoomId]) roomChatsData[currentRoomId] = [];
+        
+        // Evitiamo duplicati controllando l'ID
+        const exists = msgId && roomChatsData[currentRoomId].some(m => m.id === msgId);
+        if (!exists) {
+            roomChatsData[currentRoomId].push({ 
+                sender: sender, 
+                text: message, 
+                type: type, 
+                id: msgId, 
+                timestamp: Date.now() 
+            });
+        }
+    }
 }
 
 function clearChatInput(){ chatMessageInput.value = ''; }
 
-function sendMessage(contentOverride = null) {
-    // Se contentOverride è una stringa (lo sticker), usala. Altrimenti prendi il valore dell'input.
-    const fullMessage = (typeof contentOverride === 'string') ? contentOverride : chatMessageInput.value.trim();
-    
-    if (!fullMessage) return;
+// -----------------------------------------------------------
+// 5. SIDEBAR & LISTA SERVER
+// -----------------------------------------------------------
 
-    const parts = fullMessage.split(' ');
-
-    // --- Gestione Messaggi Privati (/dm) ---
-    if (parts[0].toLowerCase() === '/dm' && parts.length >= 3) {
-        // ... (codice DM identico a prima, non cambia nulla qui) ...
-        const recipientNickname = parts[1];
-        const messageContent = parts.slice(2).join(' ');
-        
-        // Logica DM (copia dal tuo vecchio codice se vuoi, oppure usa questo blocco standard)
-        if (recipientNickname.toLowerCase() === userNickname.toLowerCase()) {
-            addChatMessage('Sistema', 'No DM a te stesso.', true, 'system');
-            if (!contentOverride) clearChatInput();
-            return;
-        }
-        const recipientId = Object.keys(remoteNicknames).find(key => 
-            remoteNicknames[key] && remoteNicknames[key].toLowerCase() === recipientNickname.toLowerCase()
-        );
-        if (recipientId) {
-            sendPrivateMessage(recipientId, recipientNickname, messageContent);
-            if (!contentOverride) clearChatInput();
+if (toggleSidebarBtn && channelSidebar) {
+    toggleSidebarBtn.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+            channelSidebar.classList.toggle('mobile-open');
         } else {
-            addChatMessage('Sistema', `Utente "${recipientNickname}" non trovato.`, true, 'system');
+            channelSidebar.classList.toggle('collapsed');
         }
+    });
+}
+
+if (refreshChannelsBtn) {
+    refreshChannelsBtn.addEventListener('click', () => {
+        if(socket) socket.emit('request-room-list');
+    });
+}
+
+// Funzione render aggiornata per il Modale
+function renderServerList(list) {
+    if (!serverListContainer) return;
+    
+    // Resetta il contenuto (rimuove la scritta "Aggiornamento...")
+    serverListContainer.innerHTML = '';
+    
+    if (list.length === 0) {
+        serverListContainer.innerHTML = '<p style="text-align:center; color:gray;">Nessuna stanza attiva.</p>';
         return;
     }
 
-    // --- Gestione Messaggi Pubblici ---
-    if (socket && currentRoomId) {
-        const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        socket.emit('send-message', currentRoomId, userNickname, fullMessage, messageId);
-        addChatMessage(userNickname, fullMessage, true, 'public', messageId);
+    list.forEach(room => {
+        const div = document.createElement('div');
+        div.className = 'channel-item'; 
+        div.style.background = 'var(--surface-2)';
+        div.style.justifyContent = 'space-between';
         
-        // Pulisci l'input SOLO se era un messaggio scritto a mano, non uno sticker cliccato
-        if (!contentOverride) {
-            clearChatInput();
-        }
-    }
+        // Verifica se siamo già dentro questo canale (nella sidebar)
+        const amIInThisRoom = myJoinedChannels.includes(room.name);
+        const isCurrentView = (room.name === currentRoomId);
+        
+        // Marker visivi
+        let statusText = '';
+        if (isCurrentView) statusText = ' <span style="color:var(--primary-color); font-size:0.8em; font-weight:bold;">(TU SEI QUI)</span>';
+        else if (amIInThisRoom) statusText = ' <span style="color:#4caf50; font-size:0.8em; font-weight:bold;">(APERTO)</span>';
+
+        const icons = [];
+        if(room.isLocked) icons.push('🔒');
+        if(room.hasPass) icons.push('🔑');
+        
+        div.innerHTML = `
+            <span>#${room.name}${statusText} ${icons.join('')}</span>
+            <small style="color:var(--primary-color); font-weight:bold;">${room.count} Utenti</small>
+        `;
+        
+        div.addEventListener('click', () => {
+            // CASO 1: È il canale che sto già guardando
+            if (room.name === currentRoomId) {
+                serverListModal.classList.add('hidden');
+                return;
+            }
+
+            // CASO 2: Ho già il canale nella sidebar ma sto guardando altro
+            if (amIInThisRoom) {
+                serverListModal.classList.add('hidden');
+                switchChannel(room.name);
+                return;
+            }
+
+            // CASO 3: Non sono nel canale -> Chiedo conferma per entrare
+            if (confirm(`Vuoi entrare nel canale #${room.name}?`)) {
+                serverListModal.classList.add('hidden');
+                // Usa la funzione che gestisce l'ingresso e l'aggiunta alla sidebar
+                handleJoinCommand(room.name);
+            }
+        });
+        
+        serverListContainer.appendChild(div);
+    });
+}
+
+// Event Listeners per il nuovo Modale
+if (openServerListBtn) {
+    openServerListBtn.addEventListener('click', () => {
+        serverListModal.classList.remove('hidden');
+        if(socket) socket.emit('request-room-list');
+    });
+}
+
+if (closeServerListBtn) {
+    closeServerListBtn.addEventListener('click', () => {
+        serverListModal.classList.add('hidden');
+    });
+}
+
+if (refreshServerListModalBtn) {
+    refreshServerListModalBtn.addEventListener('click', () => {
+        serverListContainer.innerHTML = '<p style="text-align:center;">Aggiornamento...</p>';
+        if(socket) socket.emit('request-room-list');
+    });
 }
 
 function sendPrivateMessage(recipientId, recipientNickname, message) { if (!message || !recipientId) return; if (socket && currentRoomId) { socket.emit('send-private-message', currentRoomId, recipientId, userNickname, message); addChatMessage(recipientNickname, message, true, 'private'); } }
@@ -2065,34 +2525,96 @@ function openChatPanelMobile(callback) { if (chatPanel.classList.contains('activ
 function initializeSocket(){
   if(socket) return; 
   socket = io(RENDER_SERVER_URL);
+  
   socket.on('error-message', (msg) => {
-      alert("ERRORE: " + msg);
-      resetAndShowOverlay(); // Torna alla home
-      if(socket) socket.disconnect();
-      socket = null;
+      // Mostra l'errore all'utente
+      alert("AVVISO: " + msg);
+
+      if (!nicknameOverlay.classList.contains('hidden')) {
+          resetAndShowOverlay(); 
+          if(socket) socket.disconnect();
+          socket = null;
+      }
   });
+  
   socket.on('kicked-by-admin', (msg) => {
       alert(msg); // Messaggio personalizzato (es. "Sei bannato")
       location.reload();
   });
   
 // --- GESTIONE TYPING REMOTE ---
-	socket.on('remote-typing-start', (sid, nick) => {
-		activeTypers.add(nick);
-		updateTypingUI();
+	socket.on('remote-typing-start', (evtRoomId, sid, nick) => {
+      if (evtRoomId.toLowerCase() !== currentRoomId.toLowerCase()) return;
+
+      activeTypers.add(nick);
+      updateTypingUI();
+  });
+
+  socket.on('remote-typing-stop', (evtRoomId, sid) => {
+      if (evtRoomId.toLowerCase() !== currentRoomId.toLowerCase()) return;
+      const nick = remoteNicknames[sid];
+      if (nick) {
+          activeTypers.delete(nick);
+      } else {
+      }
+      updateTypingUI();
+  });
+
+// 1. Lista Stanze
+	socket.on('server-room-list-update', (list) => {
+        renderServerList(list);
+    });
+
+	// 2. Messaggi Action (Slap)
+	socket.on('new-action-message', (msgObj) => {
+		// Aggiungi una visualizzazione speciale per le action
+		const messageEl = document.createElement('div');
+		messageEl.classList.add('chat-message', 'action-msg');
+		messageEl.innerHTML = `<span style="color:#ff4081; font-weight:bold;">* ${msgObj.text}</span>`;
+		messagesContainer.appendChild(messageEl);
+		messagesContainer.scrollTop = messagesContainer.scrollHeight;
 	});
 
-    socket.on('remote-typing-stop', (sid) => {
-    // Recuperiamo il nick (se non lo abbiamo salvato, proviamo a pulire comunque)
-    const nick = remoteNicknames[sid];
-    if (nick) {
-        activeTypers.delete(nick);
-    } else {
-        // Fallback: se l'utente è uscito o nick non trovato, pulisci
-        // (Opzionale: logica più complessa, ma per ora va bene così)
-    }
-    updateTypingUI();
+	// 3. Aggiornamento Nick (per OP/Voice)
+	socket.on('user-nick-updated', (socketId, newNick) => {
+		// 1. Aggiorna la memoria locale dei nick
+		remoteNicknames[socketId] = newNick;
+		
+		// 2. Aggiorna l'etichetta sul video (se esiste)
+		const feed = document.querySelector(`[data-peer-id="${socketId}"]`);
+		if(feed) {
+			feed.querySelector('.remote-nickname').textContent = newNick;
+		}
+
+		// --- FIX: CONTROLLO SE SONO IO ---
+		// Se l'ID aggiornato corrisponde al MIO socket, aggiorno la mia interfaccia
+		if (socket && socketId === socket.id) {
+			console.log("Il mio ruolo è cambiato. Nuovo nick:", newNick);
+			userNickname = newNick; 
+			
+			// Aggiorna etichetta del mio video locale
+			const localLabel = document.getElementById('local-nickname-display');
+			if(localLabel) localLabel.textContent = userNickname;
+
+			// Gestione Tasto Scudo (OP)
+			const opBtn = document.getElementById('op-settings-btn');
+			if (opBtn) {
+				if (newNick.startsWith('@')) {
+					// SONO DIVENTATO OP
+					opBtn.classList.remove('hidden');
+					opBtn.classList.add('op-attention'); // Effetto pulsazione
+					
+					// Messaggio visivo in chat
+					addChatMessage('Sistema', 'Congratulazioni! Sei diventato Operatore (@).', false, 'system');
+				} else {
+					// HO PERSO L'OP
+					opBtn.classList.add('hidden');
+					opBtn.classList.remove('op-attention');
+				}
+			}
+		}
 	});
+
 // --- SOCKET EVENTI TRASCRIZIONE ---
 
   // 1. Qualcuno mi chiede di attivare il MIO riconoscimento vocale
@@ -2233,46 +2755,63 @@ function initializeSocket(){
   socket.on('nickname-in-use', (msg) => { alert(msg); resetAndShowOverlay(); if (socket) socket.disconnect(); socket = null; });
   
   // Modifica la firma per ricevere anche topic e password
-  socket.on('welcome', (newPeerId, serverAssignedNickname, peers=[], topic="", hasPassword=false, nameColor="#00b8ff") => { 
-      userNickname = serverAssignedNickname;
+  socket.on('welcome', (newPeerId, serverAssignedNickname, peers=[], topic="", hasPassword=false, nameColor="#00b8ff", isSilentRejoin=false, isModerated=false) => { 
+      // 1. Aggiorna stato locale
+      userNickname = serverAssignedNickname; 
+      
       const localLabel = document.getElementById('local-nickname-display');
       if(localLabel) localLabel.textContent = userNickname;
       
       remoteNicknames[newPeerId] = serverAssignedNickname; 
       
-      // Messaggio di benvenuto standard
-      addChatMessage(userNickname, `${t('welcome')} #${currentRoomId}!`, false, 'system'); 
-
-      // --- LOGICA UI OPERATORE ---
+      // 2. Aggiorna UI Stanza (Topic, Password, Colore)
       updateRoomInfoUI(topic, hasPassword);
-      applyRoomBrandColor(nameColor); // <--- NUOVO: Applica il colore del brand
+      applyRoomBrandColor(nameColor); 
 
+      // 3. Gestione Interfaccia Operatore (Scudo Giallo)
       const opBtn = document.getElementById('op-settings-btn');
       
       if (userNickname.startsWith('@')) {
-          // 1. Mostra il bottone
+		  const toggleEl = document.getElementById('op-moderate-toggle');
+          if(toggleEl) toggleEl.checked = isModerated;
+          // SEI OPERATORE
           opBtn.classList.remove('hidden');
-          
-          // 2. Fallo pulsare per attirare l'attenzione
           opBtn.classList.add('op-attention');
           
-          // 3. Pre-compila il valore del topic attuale nel modale
-          document.getElementById('op-topic-input').value = topic;
-
-          // 4. Pre-compila il colore nel picker (se esiste)
+          // Pre-compila i campi nel modale OP
+          if(document.getElementById('op-topic-input')) document.getElementById('op-topic-input').value = topic;
           if(opColorInput) opColorInput.value = nameColor;
+          if(opModerateToggle) opModerateToggle.checked = isModerated; // Aggiorna checkbox moderazione
 
-          // 5. AVVISO ESPLICITO IN CHAT
-          setTimeout(() => {
-              addChatMessage('Sistema', '👑 Sei l\'Operatore (@). Clicca sullo scudo in alto per gestire Topic e Password.', false, 'system');
-          }, 500); 
       } else {
+          // NON SEI OPERATORE
           opBtn.classList.add('hidden');
           opBtn.classList.remove('op-attention');
+          // Aggiorna comunque lo stato del toggle moderazione (visualizzazione passiva se necessario)
+          if(opModerateToggle) opModerateToggle.checked = isModerated;
       }
-      // -------------------------------
+
+      // 4. Messaggi di Sistema in Chat (SOLO se è un nuovo ingresso effettivo)
+      if (!isSilentRejoin) {
+          addChatMessage(userNickname, `${t('welcome')} #${currentRoomId}!`, false, 'system'); 
+          
+          // Avviso specifico per OP
+          if (userNickname.startsWith('@')) {
+               setTimeout(() => {
+                  addChatMessage('Sistema', '👑 Sei l\'Operatore (@). Gestisci Topic e Password dallo scudo in alto.', false, 'system');
+              }, 500); 
+          }
+
+          // Avviso specifico per Modalità Moderata
+          if (isModerated) {
+              setTimeout(() => {
+                  addChatMessage('Sistema', '⚠️ Questa stanza è in modalità Moderata (+m). Solo OP (@) e Voice (+) possono parlare.', false, 'system');
+              }, 600);
+          }
+      }
       
-      peers.forEach(peer=>{ 
+      // 5. Ricrea connessioni peer per i video
+      peers.forEach(peer => { 
           if(peer.id !== socket.id) { 
               remoteNicknames[peer.id] = peer.nickname; 
               createPeerConnection(peer.id); 
@@ -2281,39 +2820,42 @@ function initializeSocket(){
   });
   
   // Ora riceve anche 'topicChanged' (bool) e 'passwordAction' ('added'/'removed'/null)
-  socket.on('room-info-updated', (newTopic, hasPassword, topicChanged, passwordAction, newColor) => {
+  socket.on('room-info-updated', (newTopic, hasPassword, topicChanged, passwordAction, newColor, isModerated, modeChanged) => {
       updateRoomInfoUI(newTopic, hasPassword);
-      
-      // Applica il nuovo colore live se presente
       if(newColor) applyRoomBrandColor(newColor);
+      
+      // FIX ROBUSTO: Aggiorna il toggle nel modale cercando l'elemento
+      const toggleEl = document.getElementById('op-moderate-toggle');
+      if(toggleEl) toggleEl.checked = isModerated;
 
-      // Costruiamo il messaggio in modo intelligente
+      // --- COSTRUZIONE MESSAGGIO UNICA (Rimosso il duplicato 'let parts') ---
       let parts = [];
-
-      // 1. Se il topic è cambiato
-      if (topicChanged) {
-          parts.push(`Topic aggiornato: "${newTopic || 'Nessuno'}"`);
+      
+      if (topicChanged) parts.push(`Topic: "${newTopic}"`);
+      if (passwordAction === 'added') parts.push("Password attivata 🔒");
+      else if (passwordAction === 'removed') parts.push("Password rimossa 🔓");
+      
+      // Messaggio per cambio moderazione
+      if (modeChanged) {
+          if (isModerated) parts.push("Modalità Moderata ATTIVA (+m) 🔇");
+          else parts.push("Modalità Moderata DISATTIVA (-m) 🔊");
       }
 
-      // 2. Se la password è cambiata (solo se aggiunta o rimossa)
-      if (passwordAction === 'added') {
-          parts.push("La stanza è ora protetta da password 🔒");
-      } else if (passwordAction === 'removed') {
-          parts.push("Password rimossa (accesso libero) 🔓");
-      }
-
-      // 3. Mostra il messaggio SOLO se c'è qualcosa da dire
       if (parts.length > 0) {
-          const finalMsg = parts.join(" | ");
-          addChatMessage('Sistema', finalMsg, false, 'system');
+          addChatMessage('Sistema', parts.join(" | "), false, 'system');
       }
   });
 
+	socket.on('room-mode-updated', (isModerated) => {
+        if(opModerateToggle) opModerateToggle.checked = isModerated;
+    });
+	
   // Conferma personale per l'OP che il salvataggio è riuscito
   socket.on('op-settings-saved', () => {
-      opModal.classList.add('hidden');
-      if(opPasswordInput) opPasswordInput.value = ''; // Pulisci campo password per sicurezza
-  });
+    if(opModal) opModal.classList.add('hidden');
+    // FIX: Controllo se l'elemento esiste prima di settare il valore
+    if(opPasswordInput) opPasswordInput.value = ''; 
+	});
   
   
   // Whiteboard events
@@ -2367,9 +2909,28 @@ function initializeSocket(){
       }, 50);
   });
   
-  socket.on('new-message', (sender, message, msgId) => {
-      // Passiamo l'ID ricevuto dal server alla funzione di visualizzazione
-      addChatMessage(sender, message, false, 'public', msgId);
+  socket.on('new-message', (roomId, sender, message, msgId) => {
+    // Normalizza ID per confronto sicuro
+    const rId = roomId.toLowerCase();
+    const cId = currentRoomId ? currentRoomId.toLowerCase() : "";
+
+    console.log(`[Chat] Msg da ${sender} in ${rId}. Stanza attuale: ${cId}`);
+
+    if (rId === cId) {
+        // Se è la stanza che sto guardando, mostra il messaggio
+        addChatMessage(sender, message, false, 'public', msgId);
+    } else {
+        // Salva in memoria background
+        if (!roomChatsData[rId]) roomChatsData[rId] = [];
+        roomChatsData[rId].push({ sender, text: message, type: 'public', id: msgId });
+        
+        // Notifica Sidebar
+        const channelItem = Array.from(document.querySelectorAll('.channel-item span')).find(el => el.textContent.toLowerCase().includes(rId));
+        if(channelItem) {
+            channelItem.style.fontWeight = 'bold';
+            channelItem.style.color = '#fff'; 
+        }
+    }
   });
 
   socket.on('msg-read-update', (msgId, readerNickname) => {
@@ -2414,6 +2975,17 @@ function initializeSocket(){
   
   socket.on('new-private-message', (s, m) => { addChatMessage(`Privato da ${s}`, m, false, 'private'); });
   socket.on('audio-status-changed', (pid, talk) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f) { f.classList.toggle('is-talking', talk); f.querySelector('.remote-mic-status').textContent = talk ? 'mic' : 'mic_off'; } });
+  // Gestione Video Status Remoto (No Cam Image)
+  socket.on('remote-video-status-changed', (peerId, isEnabled) => {
+      const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
+      if (feed) {
+          const overlay = feed.querySelector('.no-cam-overlay');
+          if (overlay) {
+              if (isEnabled) overlay.classList.add('hidden');
+              else overlay.classList.remove('hidden');
+          }
+      }
+  });
   socket.on('remote-stream-type-changed', (pid, ratio) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f){ f.classList.remove('ratio-4-3', 'ratio-16-9'); f.classList.add(`ratio-${ratio}`); } });
   
   // WebRTC Signaling
@@ -2485,14 +3057,45 @@ if (joinButton) {
       userNickname = nickname; 
       currentRoomId = roomId; 
       currentRoomPassword = password;
+
+      // --- 1. GESTIONE SIDEBAR: Aggiungi canale alla lista ---
+      if (!myJoinedChannels.includes(roomId)) {
+          myJoinedChannels.push(roomId);
+      }
+      renderSidebarChannels(); 
       
       const localLabel = document.getElementById('local-nickname-display');
       if(localLabel) localLabel.textContent = userNickname;
+
+      // --- 2. MEDIA STATUS: Tutto spento di default ---
+      isAudioEnabled = false; 
+      isVideoEnabled = false;
       
-      await startLocalMedia(); 
+      // Aggiorna UI bottoni per mostrare che sono spenti
+      toggleAudioButton.querySelector('.material-icons').textContent = 'mic_off';
+      toggleVideoButton.querySelector('.material-icons').textContent = 'videocam_off';
+      localMicStatusIcon.textContent = 'mic_off';
+      
+      // Mostra il box video locale
+      localFeedEl.classList.remove('hidden'); 
+      
+      // --- 3. FIX IMMAGINE NO-CAM: Mostrala subito ---
+      const localOverlay = document.getElementById('local-no-cam');
+      if (localOverlay) {
+          localOverlay.classList.remove('hidden'); // Rimuove "hidden" per mostrarla subito
+      }
+      
+      // --- 4. CONNESSIONE SOCKET ---
       initializeSocket();
       socket.emit('join-room', currentRoomId, userNickname, password); 
+      
+      // Aggiorna Titolo
       document.getElementById('room-name-display').textContent = '#' + roomId;
+      
+      // Aggiorna Sidebar UI (evidenzia canale attuale)
+      if(currentChannelItem) currentChannelItem.textContent = roomId;
+
+      // Chiudi schermata di login
       showOverlay(false); 
     });
 }
@@ -2544,33 +3147,41 @@ if (recordButton) {
     });
 }
 
-// --- FIX CONTROLLI CHAT (Unico Listener) ---
+// --- CONTROLLI CHAT (Logica Unificata Desktop/Mobile) ---
 if (showChatBtn) {
-    // Rimuoviamo eventuali listener precedenti clonando il nodo (opzionale, ma sicuro)
-    // Oppure ci assicuriamo di aver pulito il codice duplicato sopra.
-    
     showChatBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Evita conflitti con altri click
+        e.stopPropagation(); 
         
-        if (window.innerWidth <= 768) {
-            // MOBILE
-            openChatPanelMobile(() => { markAllAsRead(); });
-        } else {
-            // DESKTOP
-            chatPanel.classList.toggle('hidden');
+        // Logica semplice: aggiungi/rimuovi classi. 
+        // Il CSS gestisce la posizione e l'animazione (Slide da destra su mobile).
+        
+        if (chatPanel.classList.contains('hidden')) {
+            // APERTURA
+            chatPanel.classList.remove('hidden');
+            // Piccolo timeout per permettere al browser di renderizzare prima di animare (per lo slide)
+            setTimeout(() => {
+                chatPanel.classList.add('active');
+            }, 10);
             
-            // Se la chat è stata APERTA (non ha più la classe hidden)
-            if (!chatPanel.classList.contains('hidden')) {
-                markAllAsRead();
-                // Dai focus all'input dopo un istante
-                setTimeout(() => {
-                    if(chatMessageInput) chatMessageInput.focus();
-                }, 50);
+            markAllAsRead();
+            
+            // Focus input (solo desktop per non aprire tastiera su mobile)
+            if (window.innerWidth > 768) {
+                setTimeout(() => chatMessageInput?.focus(), 50);
             }
+        } else {
+            // CHIUSURA
+            chatPanel.classList.remove('active');
+            
+            // Aspetta la fine dell'animazione CSS (0.3s) prima di nascondere
+            setTimeout(() => {
+                chatPanel.classList.add('hidden');
+            }, 300);
         }
     });
 }
-// --- MODIFICA QUI: Aggiunto controllo IF ---
+
+
 if (sendChatButton) {
     sendChatButton.addEventListener('click', () => sendMessage());
 }
@@ -2745,11 +3356,17 @@ if (opSaveBtn) {
     opSaveBtn.addEventListener('click', () => {
         const newTopic = opTopicInput.value.trim();
         const newPass = opPasswordInput.value.trim();
-        const newColor = opColorInput.value; // <--- Leggi il colore
+        const newColor = opColorInput.value;
         
+        // FIX ROBUSTO: Cerchiamo l'elemento qui e ora per essere sicuri al 100%
+        const toggleEl = document.getElementById('op-moderate-toggle');
+        const isModerated = toggleEl ? toggleEl.checked : false; 
+        
+        console.log("[Client] Salvataggio OP. Moderazione attiva:", isModerated); // Debug
+
         if (socket && currentRoomId) {
-            // Invia anche newColor
-            socket.emit('op-update-settings', currentRoomId, newTopic, newPass, newColor);
+            // Inviamo 5 parametri (l'ultimo è isModerated)
+            socket.emit('op-update-settings', currentRoomId, newTopic, newPass, newColor, isModerated);
         }
     });
 }
@@ -2757,6 +3374,24 @@ if (opSaveBtn) {
 // --------------------------------------------------------
 // FUNZIONI HELPER UTILITY
 // --------------------------------------------------------
+function saveCurrentChatToMemory() {
+    if(!currentRoomId) return;
+    // Raccoglie i messaggi attuali dal DOM (o potremmo salvarli man mano che arrivano)
+    // Per semplicità, qui assumiamo che roomChatsData[currentRoomId] sia già aggiornato
+    // o che non cancelliamo nulla.
+    // In questa implementazione semplice, ci affidiamo al fatto che 'new-message' popola l'array
+    // quando siamo in background, ma quando siamo in foreground dobbiamo popolarlo noi.
+}
+
+function loadChatFromMemory(roomId) {
+    if (roomChatsData[roomId]) {
+        roomChatsData[roomId].forEach(msg => {
+            const isMe = msg.sender === userNickname;
+            addChatMessage(msg.sender, msg.text, isMe, msg.type, msg.id);
+        });
+    }
+}
+
 function updateRoomInfoUI(topic, isLocked) {
     const topicDisplay = document.getElementById('room-topic-display');
     const roomTitle = document.getElementById('room-name-display');
@@ -2925,6 +3560,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
 
 // FINE DEL FILE

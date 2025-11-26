@@ -1,4 +1,4 @@
-// server.js
+// server.js FIXATO
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -16,26 +16,22 @@ const io = new Server(server, {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // DATI IN MEMORIA
-const rooms = {}; // { roomId: { socketId: nickname } }
-const roomConfigs = {}; // { roomId: { password: '...', isLocked: false } }
-const roomMessages = {}; // { roomId: [ {sender, text, id, timestamp} ] }
-const bannedIPs = new Set(); // Set di stringhe IP
+const rooms = {}; 
+const roomConfigs = {}; 
+const roomMessages = {}; 
+const bannedIPs = new Set(); 
 const admins = new Set(); 
 
-
-// Helper per ottenere IP (funziona anche su Render/Heroku)
 function getClientIp(socket) {
     const header = socket.handshake.headers['x-forwarded-for'];
     if (header) return header.split(',')[0].trim();
     return socket.handshake.address;
 }
 
-// Helper Log Admin
 function logToAdmin(message) {
     const time = new Date().toLocaleTimeString();
     const logMsg = `[${time}] ${message}`;
-    console.log(logMsg); // Log server console
-    // Invia a tutti gli admin connessi
+    console.log(logMsg); 
     admins.forEach(adminId => {
         io.to(adminId).emit('admin-log', logMsg);
     });
@@ -44,102 +40,104 @@ function logToAdmin(message) {
 io.on('connection', (socket) => {
     const clientIp = getClientIp(socket);
     
-    // 1. CONTROLLO BAN IP ALLA CONNESSIONE
+    // 1. CONTROLLO BAN IP
     if (bannedIPs.has(clientIp)) {
-        socket.emit('kicked-by-admin', 'Il tuo indirizzo IP è stato bannato da questo server.');
+        socket.emit('kicked-by-admin', 'Il tuo indirizzo IP è stato bannato.');
         socket.disconnect(true);
-        return; // Stop execution
+        return; 
     }
 
     logToAdmin(`Nuova connessione: ${socket.id} (IP: ${clientIp})`);
 
-    // --- EVENTO JOIN ROOM CORRETTO ---
+    // --- EVENTO JOIN ROOM ---
     socket.on('join-room', (roomId, nickname, password = "") => {
-        // 1. CONTROLLO BAN
         if (bannedIPs.has(clientIp)) {
             socket.emit('error-message', 'Sei bannato.');
             return;
         }
 
-        // --- A. LOGICA PRELIMINARE & CONTROLLI ---     
         roomId = roomId.toLowerCase(); 
         if (!rooms[roomId]) {
             rooms[roomId] = {};
         }
 
-        // Determina se è il creatore (se la stanza è vuota ORA)
-        let isRoomCreator = (Object.keys(rooms[roomId]).length === 0);
+        // --- A. SILENT REJOIN (Sei già dentro) ---
+        if (rooms[roomId][socket.id]) {
+            const currentNick = rooms[roomId][socket.id]; 
+            const config = roomConfigs[roomId] || { topic: "", nameColor: "#00b8ff", password: "" };
+            
+            const peers = Object.entries(rooms[roomId])
+                .filter(([id]) => id !== socket.id)
+                .map(([id, nick]) => ({ id, nickname: nick }));
 
-        // Sanitizzazione Nickname
-        let finalNickname = nickname.replace(/^@/, ''); // Rimuovi @ fake
-        if (isRoomCreator) {
-            finalNickname = '@' + finalNickname; // Aggiungi @ reale
+            // 1. Invia Welcome Silenzioso
+            socket.emit('welcome', 
+                socket.id, 
+                currentNick, 
+                peers, 
+                config.topic, 
+                !!config.password, 
+                config.nameColor,
+                true, // FIX: Aggiunta virgola
+				!!config.isModerated
+            );
+
+            // 2. Rimanda le info aggiornate
+            socket.emit('room-info-updated', config.topic, !!config.password, false, null, config.nameColor, !!config.isModerated, false);
+
+            return; 
         }
 
-        // Gestione Configurazione (Password/Topic/Color)
+        // --- B. NUOVO INGRESSO ---
+        let isRoomCreator = (Object.keys(rooms[roomId]).length === 0);
+        let finalNickname = nickname.replace(/^@/, ''); 
+        
+        if (isRoomCreator) {
+            finalNickname = '@' + finalNickname; 
+        }
+
         if (!roomConfigs[roomId]) {
             roomConfigs[roomId] = { 
                 password: password, 
                 isLocked: false,
                 topic: "",
-                nameColor: "#00b8ff" // Default Ciano
+                nameColor: "#00b8ff",
+                isModerated: false
             };
-            if(password) logToAdmin(`Stanza ${roomId} creata con password.`);
         }
         const config = roomConfigs[roomId];
 
-        // --- B. CONTROLLI DI ACCESSO (STOP se falliscono) ---
+        if (config.isLocked) { socket.emit('error-message', 'Stanza bloccata.'); return; }
+        if (config.password && config.password !== password) { socket.emit('error-message', 'Password errata.'); return; }
 
-        // 1. Controllo Lock
-        if (config.isLocked) { 
-            socket.emit('error-message', 'Stanza bloccata.'); 
-            return; 
-        }
-
-        // 2. Controllo Password
-        if (config.password && config.password !== password) { 
-            socket.emit('error-message', 'Password errata.'); 
-            return; 
-        }
-
-        // 3. Controllo Nickname Duplicato
-        const nicknameExists = Object.values(rooms[roomId]).some(n => n.toLowerCase() === finalNickname.toLowerCase());
-        if (nicknameExists) {
-            socket.emit('nickname-in-use', `Il nickname '${finalNickname}' è già in uso.`);
-            return;
-        }
-
-        // --- C. ACCESSO EFFETTIVO (Solo ora facciamo join) ---
-
-        socket.join(roomId); // <-- JOIN Socket avviene SOLO SE i controlli passano
-        rooms[roomId][socket.id] = finalNickname; // Aggiungi alla lista utenti
+        // Takeover Logic
+        const existingUserEntry = Object.entries(rooms[roomId]).find(([id, n]) => n.toLowerCase().replace('@','') === finalNickname.toLowerCase());
         
-        logToAdmin(`User joined: ${finalNickname} -> ${roomId}`);
+        if (existingUserEntry) {
+            const [oldSocketId, oldNick] = existingUserEntry;
+            const isAuth = (!config.password || config.password === password);
+            
+            if (isAuth) {
+                if (oldNick.startsWith('@') && !finalNickname.startsWith('@')) {
+                    finalNickname = '@' + finalNickname.replace(/^@/, '');
+                }
+                delete rooms[roomId][oldSocketId];
+            } else {
+                socket.emit('nickname-in-use', `Nick '${finalNickname}' in uso.`);
+                return;
+            }
+        }
 
-        // Preparazione lista partecipanti per il client
+        // Accesso Effettivo
+        socket.join(roomId); 
+        rooms[roomId][socket.id] = finalNickname; 
+        
         const peers = Object.entries(rooms[roomId])
             .filter(([id]) => id !== socket.id)
             .map(([id, nick]) => ({ id, nickname: nick }));
 
-        // 1. Avvisa gli ALTRI che sono entrato
         socket.to(roomId).emit('peer-joined', socket.id, finalNickname);
         
-        // 2. Invia il BENVENUTO a ME (Configurazione completa)
-        socket.emit('welcome', 
-            socket.id, 
-            finalNickname, 
-            peers, 
-            config.topic, 
-            !!config.password, 
-            config.nameColor 
-        );
-        
-        // 3. Invio Storico Chat (Se presente)
-        if (roomMessages[roomId] && roomMessages[roomId].length > 0) {
-            socket.emit('chat-history', roomMessages[roomId]);
-        }
-        
-        // 4. Salva messaggio "È entrato" nello storico (SENZA inviarlo live)
         if (!roomMessages[roomId]) roomMessages[roomId] = [];
         roomMessages[roomId].push({
             sender: 'Sistema',
@@ -149,25 +147,213 @@ io.on('connection', (socket) => {
             type: 'system'
         });
 
-        broadcastAdminUpdate();
+        // 3. Benvenuto a ME (FIX: Aggiunto parametro isModerated)
+        socket.emit('welcome', socket.id, finalNickname, peers, config.topic, !!config.password, config.nameColor, false, !!config.isModerated);
+        
+        io.emit('server-room-list-update', getPublicRoomList());
+        
+        if (roomMessages[roomId].length > 0) {
+            socket.emit('chat-history', roomMessages[roomId]);
+        }
+    });
+	
+	// Helper per ottenere il nome pulito
+    function getCleanNick(nickname) {
+        return nickname.replace(/^[@+]+/, '');
+    }
+
+    // --- GESTIONE COMANDI SLASH ---
+
+    socket.on('command-action', (roomId, actionType, targetName) => {
+        const senderNick = rooms[roomId][socket.id];
+        if(!senderNick) return;
+        
+        let msgText = "";
+        if(actionType === 'slap') {
+            msgText = `* ${senderNick} slaps ${targetName} around a bit with a large trout *`;
+        }
+
+        const msgId = 'act_' + Date.now();
+        if (!roomMessages[roomId]) roomMessages[roomId] = [];
+        const msgObj = {
+            sender: senderNick,
+            text: msgText,
+            id: msgId,
+            timestamp: Date.now(),
+            type: 'action'
+        };
+        roomMessages[roomId].push(msgObj);
+
+        io.to(roomId).emit('new-action-message', msgObj);
     });
 
-    // --- NUOVO: GESTIONE TYPING (STA SCRIVENDO...) ---
+    // 1. COMANDO /OP
+    socket.on('command-op', (roomId, targetNick) => {
+        const myNick = rooms[roomId][socket.id];
+        
+        if(!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) {
+            socket.emit('error-message', "Non hai i permessi per dare OP.");
+            return;
+        }
+
+        const cleanTarget = getCleanNick(targetNick).toLowerCase();
+        const targetSocketId = Object.keys(rooms[roomId]).find(id => getCleanNick(rooms[roomId][id]).toLowerCase() === cleanTarget);
+        
+        if(targetSocketId) {
+            let oldNick = rooms[roomId][targetSocketId];
+            
+            if(oldNick.startsWith('@')) {
+                socket.emit('error-message', "L'utente è già operatore.");
+                return;
+            }
+
+            const baseNick = getCleanNick(oldNick);
+            const newNick = '@' + baseNick;
+            
+            rooms[roomId][targetSocketId] = newNick;
+            
+            io.to(roomId).emit('user-nick-updated', targetSocketId, newNick);
+            io.to(roomId).emit('new-message', roomId, 'Server', `${baseNick} è ora un Operatore (+o).`, 'sys_'+Date.now());
+        } else {
+            socket.emit('error-message', "Utente non trovato.");
+        }
+    });
+
+    // 2. COMANDO /DEOP
+    socket.on('command-deop', (roomId, targetNick) => {
+        const myNick = rooms[roomId][socket.id];
+        if(!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) {
+            socket.emit('error-message', "Non hai i permessi per togliere OP.");
+            return;
+        }
+
+        const cleanTarget = getCleanNick(targetNick).toLowerCase();
+        const targetSocketId = Object.keys(rooms[roomId]).find(id => getCleanNick(rooms[roomId][id]).toLowerCase() === cleanTarget);
+        
+        if(targetSocketId) {
+            let oldNick = rooms[roomId][targetSocketId];
+            
+            if(oldNick.startsWith('@')) {
+                const newNick = getCleanNick(oldNick);
+                rooms[roomId][targetSocketId] = newNick;
+                
+                io.to(roomId).emit('user-nick-updated', targetSocketId, newNick);
+                io.to(roomId).emit('new-message', roomId, 'Server', `${newNick} non è più Operatore (-o).`, 'sys_'+Date.now());
+            } else {
+                socket.emit('error-message', "Quell'utente non è un operatore.");
+            }
+        } else {
+            socket.emit('error-message', "Utente non trovato.");
+        }
+    });
+
+    // 3. COMANDO /VOICE
+    socket.on('command-voice', (roomId, targetNick) => {
+        const myNick = rooms[roomId][socket.id];
+        if(!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) return;
+
+        const cleanTarget = getCleanNick(targetNick).toLowerCase();
+        const targetSocketId = Object.keys(rooms[roomId]).find(id => getCleanNick(rooms[roomId][id]).toLowerCase() === cleanTarget);
+
+        if(targetSocketId) {
+             let oldNick = rooms[roomId][targetSocketId];
+             
+             if(oldNick.startsWith('@')) {
+                 socket.emit('error-message', "L'utente è già Operatore (ha già la voce).");
+                 return;
+             }
+
+             if(!oldNick.startsWith('+')) {
+                 const baseNick = getCleanNick(oldNick);
+                 const newNick = '+' + baseNick;
+                 
+                 rooms[roomId][targetSocketId] = newNick;
+                 
+                 io.to(roomId).emit('user-nick-updated', targetSocketId, newNick);
+                 io.to(roomId).emit('new-message', roomId, 'Server', `${baseNick} ha ricevuto la voce (+v).`, 'sys_'+Date.now());
+             } else {
+                 socket.emit('error-message', "L'utente ha già la voce.");
+             }
+        }
+    });
+
+    // 4. COMANDO /DEVOICE
+    socket.on('command-devoice', (roomId, targetNick) => {
+        const myNick = rooms[roomId][socket.id];
+        
+        if(!myNick || !myNick.startsWith('@')) {
+            socket.emit('error-message', "Solo gli operatori possono gestire la voce.");
+            return;
+        }
+
+        const cleanTarget = getCleanNick(targetNick).toLowerCase();
+        const targetSocketId = Object.keys(rooms[roomId]).find(id => getCleanNick(rooms[roomId][id]).toLowerCase() === cleanTarget);
+
+        if(targetSocketId) {
+             let oldNick = rooms[roomId][targetSocketId];
+             
+             if(oldNick.startsWith('+')) {
+                 const newNick = getCleanNick(oldNick); 
+                 rooms[roomId][targetSocketId] = newNick;
+                 
+                 io.to(roomId).emit('user-nick-updated', targetSocketId, newNick);
+                 io.to(roomId).emit('new-message', roomId, 'Server', `${newNick} ha perso lo stato voice (-v).`, 'sys_'+Date.now());
+             } else {
+                 socket.emit('error-message', "L'utente non ha lo stato voice (+).");
+             }
+        } else {
+            socket.emit('error-message', "Utente non trovato.");
+        }
+    });
+	
+	// 5. COMANDO /MODERATE (Uniformato al Toggle)
+    socket.on('command-moderate', (roomId, state) => { 
+        const myNick = rooms[roomId][socket.id];
+        if(!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) {
+            socket.emit('error-message', "Non hai i permessi OP.");
+            return;
+        }
+
+        if (!roomConfigs[roomId]) return;
+
+        const isNowModerated = (state === 'on');
+        const oldModerated = !!roomConfigs[roomId].isModerated;
+
+        // Se lo stato non cambia, non fare nulla
+        if (isNowModerated === oldModerated) return;
+
+        // Aggiorna lo stato
+        roomConfigs[roomId].isModerated = isNowModerated;
+
+        // INVECE DI MANDARE UN MESSAGGIO MANUALE, USIAMO L'EVENTO DI SISTEMA
+        // Questo farà apparire lo stesso messaggio del toggle: "Modalità Moderata ATTIVA..."
+        io.to(roomId).emit('room-info-updated', 
+            roomConfigs[roomId].topic,      // Topic (invariato)
+            !!roomConfigs[roomId].password, // Password (invariato)
+            false,                          // topicChanged (No)
+            null,                           // passwordAction (Nessuna)
+            roomConfigs[roomId].nameColor,  // Colore (invariato)
+            isNowModerated,                 // Nuovo stato moderazione
+            true                            // modeChanged (SÌ -> Genera il messaggio!)
+        );
+
+        // Manteniamo anche questo per sicurezza (aggiorna checkbox UI immediati)
+        io.to(roomId).emit('room-mode-updated', isNowModerated);
+    });
+	
+    // --- GESTIONE TYPING ---
     socket.on('typing-start', (roomId, nickname) => {
-        socket.to(roomId).emit('remote-typing-start', socket.id, nickname);
+        socket.to(roomId).emit('remote-typing-start', roomId, socket.id, nickname);
     });
 
     socket.on('typing-stop', (roomId) => {
-        socket.to(roomId).emit('remote-typing-stop', socket.id);
+        socket.to(roomId).emit('remote-typing-stop', roomId, socket.id);
     });
 
-    // --- GESTIONE OPERATORE STANZA (@) ---
-    socket.on('op-update-settings', (roomId, newTopic, newPassword, newColor) => {
-        // Aggiungi check di sicurezza per 'rooms[roomId]'
-        if (!rooms[roomId] || !rooms[roomId][socket.id]) {
-            // Se la stanza non esiste più o l'utente non è mappato, esci senza errori
-            return;
-        }
+    // --- GESTIONE SETTINGS STANZA ---
+    socket.on('op-update-settings', (roomId, newTopic, newPassword, newColor, newIsModerated) => {
+		console.log(`[DEBUG] Settings Update - ID: ${roomId}, Mod: ${newIsModerated}`);
+        if (!rooms[roomId] || !rooms[roomId][socket.id]) return;
 
         const currentNick = rooms[roomId][socket.id];
         if (!currentNick.startsWith('@')) {
@@ -178,28 +364,29 @@ io.on('connection', (socket) => {
         if (roomConfigs[roomId]) {
             const oldTopic = roomConfigs[roomId].topic || "";
             const oldHasPassword = !!roomConfigs[roomId].password; 
-            const oldColor = roomConfigs[roomId].nameColor;
+            const oldModerated = !!roomConfigs[roomId].isModerated;
 
             roomConfigs[roomId].topic = newTopic || "";
             roomConfigs[roomId].password = newPassword || ""; 
             roomConfigs[roomId].nameColor = newColor || "#00b8ff"; 
+            roomConfigs[roomId].isModerated = !!newIsModerated; 
 
             const newHasPassword = !!newPassword; 
-            
             const topicChanged = (oldTopic !== (newTopic || ""));
+            const modeChanged = (oldModerated !== roomConfigs[roomId].isModerated);
             
             let passwordAction = null; 
             if (!oldHasPassword && newHasPassword) passwordAction = 'added';
             else if (oldHasPassword && !newHasPassword) passwordAction = 'removed';
             
-            logToAdmin(`OP ${currentNick} update ${roomId}: Topic=${topicChanged}, Pass=${passwordAction}, Color=${newColor}`);
-
             io.to(roomId).emit('room-info-updated', 
                 newTopic, 
                 newHasPassword, 
                 topicChanged, 
                 passwordAction,
-                newColor 
+                newColor,
+                roomConfigs[roomId].isModerated, 
+                modeChanged
             );
             
             socket.emit('op-settings-saved');
@@ -207,7 +394,7 @@ io.on('connection', (socket) => {
         }
     });
     
-    // --- GLOBAL MEETING TRANSCRIPTION ---
+    // --- GLOBAL TRANSCRIPTION ---
     socket.on('toggle-global-transcription', (roomId, isActive) => {
         io.to(roomId).emit('global-transcription-status', isActive);
     });
@@ -216,7 +403,7 @@ io.on('connection', (socket) => {
         io.to(roomId).emit('receive-global-transcript', data);
     });
 
-    // --- LOGICA ADMIN ---
+    // --- ADMIN EVENTS ---
     socket.on('admin-login', (password) => {
         if (password === ADMIN_PASSWORD) {
             admins.add(socket.id);
@@ -299,7 +486,7 @@ io.on('connection', (socket) => {
         admins.forEach(adminId => io.to(adminId).emit('admin-data-update', stats));
     }
 
-    // --- ALTRI EVENTI (WebRTC, Chat, etc.) ---
+    // --- ALTRI EVENTI ---
     socket.on('request-transcription', (targetId, requesterId, enable) => {
         io.to(targetId).emit('transcription-request', requesterId, enable);
     });
@@ -309,11 +496,21 @@ io.on('connection', (socket) => {
     });
     
     socket.on('send-message', (r, s, m, msgId) => {
+        const roomId = r.toLowerCase(); 
         const finalId = msgId || Date.now().toString(); 
+       
+        const config = roomConfigs[roomId];
+        if (config && config.isModerated) {
+            const senderNick = rooms[roomId][socket.id];
+            if (!senderNick || (!senderNick.startsWith('@') && !senderNick.startsWith('+'))) {
+                socket.emit('error-message', "Chat in modalità moderata (+m). Non hai il permesso di parlare.");
+                return; 
+            }
+        }
+
+        if (!roomMessages[roomId]) roomMessages[roomId] = [];
         
-        if (!roomMessages[r]) roomMessages[r] = [];
-        
-        roomMessages[r].push({
+        roomMessages[roomId].push({
             sender: s,
             text: m,
             id: finalId,
@@ -321,9 +518,9 @@ io.on('connection', (socket) => {
             type: 'public' 
         });
 
-        if (roomMessages[r].length > 100) roomMessages[r].shift();
+        if (roomMessages[roomId].length > 100) roomMessages[roomId].shift();
 
-        socket.to(r).emit('new-message', s, m, finalId);
+        socket.to(roomId).emit('new-message', roomId, s, m, finalId);
     });
     
     socket.on('msg-read', (roomId, messageId, readerNickname) => {
@@ -338,6 +535,9 @@ io.on('connection', (socket) => {
     socket.on('answer', (id, a) => io.to(id).emit('answer', socket.id, a));
     socket.on('candidate', (id, c) => io.to(id).emit('candidate', socket.id, c));
     socket.on('audio-status-changed', (r, t) => socket.to(r).emit('audio-status-changed', socket.id, t));
+	socket.on('video-status-changed', (roomId, isEnabled) => {
+        socket.to(roomId).emit('remote-video-status-changed', socket.id, isEnabled);
+    });
     socket.on('stream-type-changed', (r, ratio) => socket.to(r).emit('remote-stream-type-changed', socket.id, ratio));
 
     // --- DISCONNECT ---
@@ -354,7 +554,6 @@ io.on('connection', (socket) => {
                 
                 delete rooms[id][socket.id];
                 
-                // SALVA MESSAGGIO "USCITO" NELLO STORICO
                 if (roomMessages[id]) {
                     roomMessages[id].push({
                         sender: 'Sistema',
@@ -375,13 +574,27 @@ io.on('connection', (socket) => {
         
         if (roomId) {
             socket.to(roomId).emit('peer-left', socket.id, nickname);
-            // Invia anche stop typing per sicurezza
             socket.to(roomId).emit('remote-typing-stop', socket.id);
         }
         
         broadcastAdminUpdate();
+		io.emit('server-room-list-update', getPublicRoomList());
     });
 });
+
+function getPublicRoomList() {
+    const list = [];
+    for(const [id, users] of Object.entries(rooms)) {
+        const conf = roomConfigs[id] || {};
+        list.push({
+            name: id,
+            count: Object.keys(users).length,
+            isLocked: !!conf.isLocked,
+            hasPass: !!conf.password
+        });
+    }
+    return list;
+}
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

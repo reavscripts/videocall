@@ -669,10 +669,159 @@ input:checked + .slider:before {
 
 #conference-container {
     display: flex;
-    flex-direction: column;
+    flex-direction: row; /* Sidebar a sinistra, resto a destra */
     width: 100vw;
     height: 100vh;
     overflow: hidden;
+}
+
+#channel-sidebar {
+    width: 240px; /* Larghezza iniziale sidebar */
+    min-width: 200px;
+    background: #0d0d0d;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    z-index: 160;
+    transition: width 0.3s ease, transform 0.3s ease;
+}
+
+#channel-sidebar.collapsed {
+    width: 0 !important;
+    min-width: 0 !important; /* <--- QUESTA È LA CHIAVE */
+    flex-basis: 0 !important; /* Assicura che il layout flex non riservi spazio */
+    
+    transform: translateX(-100%);
+    overflow: hidden;
+    border: none;
+    padding: 0 !important; /* Rimuove eventuali padding interni */
+}
+
+#content-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+}
+
+/* Stili Sidebar Interni */
+.sidebar-header {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+}
+.sidebar-logo {
+    max-width: 80%;
+    height: auto;
+}
+
+.sidebar-section {
+    padding: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.sidebar-section small {
+    color: var(--muted);
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+/* Stili Sidebar Interni */
+.sidebar-header {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+}
+.sidebar-logo {
+    max-width: 80%;
+    height: auto;
+}
+
+.sidebar-section {
+    padding: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.sidebar-section small {
+    color: var(--muted);
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.channel-item {
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--muted);
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.channel-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.channel-item.active {
+    background: linear-gradient(90deg, rgba(0, 198, 255, 0.1) 0%, transparent 100%);
+    color: #fff;
+    border-left: 3px solid var(--primary-color);
+}
+
+.channel-item .remove-chan-btn {
+    opacity: 0;
+    font-size: 14px;
+    padding: 4px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: var(--danger);
+}
+
+.channel-item:hover .remove-chan-btn {
+    opacity: 1;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: 15px;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+#refresh-channels-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--muted);
+    padding: 5px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+#refresh-channels-btn:hover { color: #fff; border-color: #fff; }
+
+
+/* 2. Chat Resizer (Maniglia) */
+#chat-resizer {
+    width: 5px;
+    background: transparent;
+    cursor: col-resize;
+    position: absolute;
+    left: 0; /* Sul bordo sinistro del pannello chat */
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+    transition: background 0.2s;
+}
+#chat-resizer:hover, #chat-resizer.resizing {
+    background: var(--primary-color);
 }
 
 #room-header {
@@ -910,16 +1059,27 @@ input:checked + .slider:before {
 
 .video-label {
     position: absolute;
-    bottom: 5px;
-    left: 5px;
-    background: rgba(0, 0, 0, 0.6);
+    bottom: 10px; /* Un po' più in alto del bordo */
+    left: 10px;
+    
+    /* Sfondo semitrasparente per leggere bene il testo sopra l'immagine */
+    background: rgba(0, 0, 0, 0.7); 
     color: #fff;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 0.8em;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: bold; /* Testo grassetto per evidenziare lo status */
+    
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
+    
+    /* FIX: Z-INDEX DEVE ESSERE ALTO PER STARE SOPRA L'IMMAGINE */
+    z-index: 20 !important; 
+    
+    /* Piccola ombra per staccarlo */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    transition: all 0.3s ease;
 }
 
 #record-button.active {
@@ -964,39 +1124,84 @@ input:checked + .slider:before {
 }
 
 #chat-panel {
-    width: var(--panel-width-desktop);
-    min-width: var(--panel-width-desktop);
-    background: var(--surface);
-    display: flex;
-    flex-direction: column;
+    background: var(--surface); /* Torna scura (grigio/nero) */
+    min-width: 250px;
+    max-width: 60vw;
+    position: relative;
+    display: flex;          /* Fondamentale per la struttura verticale */
+    flex-direction: column; /* Impila header, messaggi, footer */
+    height: 100%;           /* Occupa tutta l'altezza disponibile */
     border-left: 1px solid var(--border-color);
-    z-index: 150;
-    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.3);
-    transition: transform 0.3s ease, width 0.3s ease;
+    z-index: 50;
+}
+
+/* Modifica stile messaggi Action (Slap) */
+.chat-message.action-msg {
+    font-style: italic;
+    color: #ff4081 !important; /* Rosa acceso */
 }
 
 #chat-panel.hidden {
     display: none !important;
 }
 
-#chat-panel h3 {
-    margin: 0;
-    padding: 20px 25px; /* Più spazioso */
-    color: var(--primary-color);
-    border-bottom: 1px solid var(--border-color);
-    font-size: 1.4em; /* Titolo più grande */
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    background: var(--surface-2); /* Sfondo leggermente diverso per l'header */
+#chat-panel > h3 {
+    /* Sfondo Nero e Bordo Fucsia */
+    background: #050505 !important;
+    border-bottom: 2px solid #bd00ff !important;
+    
+    /* Testo Ciano e Font Terminale */
+    color: #00b8ff !important;
+    font-family: 'Courier New', 'Consolas', monospace !important;
+    font-size: 1.1em !important;
+    font-weight: bold;
+    
+    /* Stile testo */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(0, 184, 255, 0.4);
+    
+    /* Spaziatura */
+    padding: 15px 20px !important;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Cursore lampeggiante SOLO per il titolo principale */
+#chat-panel > h3::before {
+    content: '>_';
+    color: #bd00ff;
+    animation: blink 1s step-end infinite;
+}
+
+.picmo__picker h3,
+.picmo__categoryName {
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-color) !important; /* Testo normale (bianco/grigio) */
+    text-shadow: none !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    font-family: sans-serif !important; /* Font normale leggibile */
+    padding: 5px 10px !important;
+}
+
+/* Rimuove il cursore lampeggiante dai titoli delle emoji se presente */
+.picmo__picker h3::before,
+.picmo__categoryName::before {
+    content: none !important;
+    animation: none !important;
 }
 
 #messages-container {
-    flex-grow: 1;
+    flex-grow: 1;           /* Si espande per occupare lo spazio vuoto */
+    overflow-y: auto;       /* Abilita lo scroll interno solo qui */
     padding: 15px 20px;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    height: 0;              /* Trucco CSS per forzare lo scroll nei container flex */
 }
 
 .chat-message {
@@ -1043,13 +1248,38 @@ body.light-theme .sender-private {
 
 /* Il contenitore principale in fondo alla chat */
 #chat-footer {
+    flex-shrink: 0;         /* Impedisce al footer di schiacciarsi */
     background: var(--surface-2);
     border-top: 1px solid var(--border-color);
-    padding: 10px 15px 15px 15px; /* Un po' più di spazio sotto */
-    position: relative;
+    padding: 10px 15px;
+}
+
+.btn-sidebar-action {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+.btn-sidebar-action:hover {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+.server-list-grid {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* Spazio tra la toolbar e l'input */
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 /* --- NUOVA TOOLBAR --- */
@@ -2647,6 +2877,76 @@ body.light-theme .system-msg-content {
     transform: scale(1.02);
 }
 
+/* --- FIX MODALE SERVER LIST --- */
+#server-list-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 3000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#server-list-modal.hidden {
+    display: none !important;
+}
+
+/* Assicuriamo che il contenuto abbia uno stile solido */
+#server-list-modal .settings-content {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    width: 90%;
+    max-width: 400px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+#my-channels-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* --- NO CAM OVERLAY --- */
+.no-cam-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1a1a1a; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 5; 
+    border-radius: 12px;
+    overflow: hidden;
+    
+    /* MODIFICA FONDAMENTALE: Ignora i click del mouse */
+    pointer-events: none; 
+}
+
+.no-cam-overlay img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    max-width: none !important;
+    opacity: 1 !important;
+    
+    /* Impedisce di selezionare o trascinare l'immagine */
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.no-cam-overlay.hidden {
+    display: none !important;
+}
+
+
 /* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
 @media (max-width: 768px) {
 
@@ -2668,10 +2968,36 @@ body.light-theme .system-msg-content {
     }
 
     /* 2. Layout Principale */
-    #conference-container {
-        height: 100dvh;
+    #conference-container { flex-direction: column; }
+	
+	#channel-sidebar {
+        position: fixed;
+        top: 75px !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: 50% !important;      
+        min-width: 200px !important; /* Era 280px, ora è più stretto */
+        
+        height: calc(100dvh - 75px) !important;
+        background: var(--surface);
+        border-right: 1px solid var(--border-color);
+        box-shadow: 5px 0 20px rgba(0,0,0,0.5);
+        
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        z-index: 2000 !important;
+        display: flex;
+        flex-direction: column;
     }
 
+    #channel-sidebar.mobile-open {
+        transform: translateX(0); /* Scivola dentro */
+    }
+	
+    #content-wrapper { width: 100%; }
+	
+    #chat-resizer { display: none; } /* Niente resize su mobile */
+	
     #main-area {
         height: 100%;
         padding: 0;
@@ -2839,23 +3165,47 @@ body.light-theme .system-msg-content {
     /* Chat Panel Mobile */
     #chat-panel {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100% !important;    /* Forza la larghezza totale */
-        min-width: 0 !important;   /* Annulla il vincolo dei 300px desktop */
-        height: 100dvh;            /* Usa l'altezza dinamica del viewport (meglio per mobile) */
+        
+        /* Posizionamento: Sotto l'header, a destra */
+        top: 75px !important; /* Lascia spazio all'header sopra (dove ci sono i tasti) */
+        right: 0 !important;  /* Ancorata a destra */
+        left: auto !important; /* Non tocca sinistra */
+        bottom: 0 !important;
+        
+        /* Dimensioni: Non full screen, lascia vedere un pezzo di video a sinistra */
+        width: 85% !important;    
+        min-width: 280px !important;
+        height: calc(100dvh - 75px) !important; /* Altezza meno l'header */
+        
         background: var(--surface);
-        transform: translateY(100%);
+        border-left: 1px solid var(--border-color);
+        box-shadow: -5px 0 20px rgba(0,0,0,0.5); /* Ombra per staccarla dal video */
+        
+        /* Animazione: Entra da DESTRA (translateX) invece che dal basso */
+        transform: translateX(100%); 
         transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-        z-index: 3000 !important;  /* Z-INDEX ALITISSIMO: Deve coprire header, video e tutto */
+        
+        z-index: 2000 !important; /* Sotto al menu extra ma sopra i video */
         display: flex;
         flex-direction: column;
-        border-left: none;
-        padding-top: env(safe-area-inset-top); /* Rispetta il notch degli iPhone */
+        padding-top: 0; 
     }
 
     #chat-panel.active {
-        transform: translateY(0);
+        transform: translateX(0); /* Scivola dentro */
+    }
+	
+    /* Ri-abilitiamo l'header della chat (Titolo "CHAT") se lo vuoi vedere, 
+       oppure lascialo hidden se vuoi guadagnare spazio */
+	#chat-panel h3 {
+        display: block !important; 
+        padding: 15px !important;
+        font-size: 1.1em !important;
+    }
+
+    /* Nascondiamo il bottone "Torna alle webcam" se generato per errore */
+    #close-chat-btn {
+        display: none !important;
     }
 	
 	#chat-panel h3 {
@@ -3089,11 +3439,32 @@ body.light-theme .system-msg-content {
         color: #ffffff !important;
     }
 
-	#sticker-picker-container,
     #emoji-picker-container {
-        width: 90%; /* Occupa quasi tutta la larghezza */
-        left: 5% !important; /* Centrato orizzontalmente */
-        bottom: 125px !important; /* Un po' più in alto su mobile per sicurezza */
+        position: fixed !important;
+        
+        /* Ancoraggio a DESTRA (per seguire il pannello chat) */
+        right: 10px !important; 
+        left: auto !important; /* Ignora il posizionamento a sinistra */
+        
+        /* Posizionato sopra la barra di input */
+        bottom: 90px !important; 
+        
+        /* Larghezza dinamica che sta dentro il pannello chat (85% - margini) */
+        width: calc(85% - 20px) !important; 
+        max-width: 350px !important; /* Evita che diventi enorme su tablet */
+        
+        z-index: 3005 !important; /* Sopra a tutto, anche alla chat */
+        display: flex;
+        justify-content: center;
+    }
+
+    /* Forza la libreria interna delle emoji ad adattarsi al contenitore */
+    .picmo__picker {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 12px !important;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.5) !important;
+        border: 1px solid var(--border-color) !important;
     }
 	
     /* 3. Assicuriamoci che il pulsante "Disconnect" resti Rosso */
@@ -3118,4 +3489,56 @@ body.light-theme .system-msg-content {
     }
     .wb-colors { padding-right: 10px; gap: 5px; }
     .color-btn { width: 28px; height: 28px; }
+
+	/* --- FIX DEFINITIVO PULIZIA EMOJI PICKER --- */
+
+	/* 1. Resetta i titoli delle categorie (Recently Used, Smileys, ecc.) */
+	.picmo__picker h3, 
+	.picmo__categoryName {
+		background: transparent !important;
+		border: none !important;        /* Rimuove la riga viola */
+		border-bottom: none !important; /* Sicurezza extra */
+		color: #e0e0e0 !important;      /* Testo bianco/grigio pulito */
+		font-family: sans-serif !important; /* Font normale leggibile */
+		text-shadow: none !important;   /* Rimuove l'effetto neon */
+		text-transform: none !important;
+		letter-spacing: normal !important;
+		padding: 8px 12px !important;
+		margin: 0 !important;
+		box-shadow: none !important;
+		width: 100% !important;
+	}
+
+	/* 2. Rimuove eventuali cursori lampeggianti o decorazioni strane */
+	.picmo__picker h3::before,
+	.picmo__picker h3::after,
+	.picmo__categoryName::before,
+	.picmo__categoryName::after {
+		content: none !important;
+		display: none !important;
+		animation: none !important;
+		border: none !important;
+	}
+
+	/* 3. Stile generale del contenitore (Sfondo scuro pulito) */
+	.picmo__picker {
+		--accent-color: var(--primary-color); /* Usa il blu del tuo tema per la selezione */
+		background: #1e1e1e !important;       /* Grigio scuro solido, non nero terminale */
+		border: 1px solid #333 !important;    /* Bordo sottile grigio */
+		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+	}
+
+	/* 4. Barra di ricerca e icone in alto */
+	.picmo__searchContainer {
+		background: transparent !important;
+		padding: 10px !important;
+	}
+
+	.picmo__searchField {
+		background: rgba(0,0,0,0.3) !important;
+		border: 1px solid rgba(255,255,255,0.1) !important;
+		color: #fff !important;
+		border-radius: 6px !important;
+	}
+
 }
