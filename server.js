@@ -10,12 +10,14 @@ const SERVER_INSTANCE_ID = Date.now().toString();
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin";
 
+const clientUrl = (process.env.CLIENT_URL || "").replace(/\/$/, "");
+
 const io = new Server(server, {
     cors: { 
         origin: [
             "http://localhost:3000", 
-            "https://videocall-webrtc-signaling-server.onrender.com",
-            process.env.CLIENT_URL // Legge direttamente da Render
+            "https://videocall-webrtc-signaling-server.onrender.com", 
+            clientUrl
         ], 
         methods: ['GET', 'POST'] 
     }
