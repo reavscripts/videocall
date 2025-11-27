@@ -1,4 +1,3 @@
-// server.js FIXATO
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -25,7 +24,6 @@ const io = new Server(server, {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// DATI IN MEMORIA
 const rooms = {}; 
 const roomConfigs = {}; 
 const roomMessages = {}; 
@@ -52,18 +50,18 @@ io.on('connection', (socket) => {
 	socket.emit('server-instance-id', SERVER_INSTANCE_ID);
     
     if (bannedIPs.has(clientIp)) {
-        socket.emit('kicked-by-admin', 'Il tuo indirizzo IP è stato bannato.');
+        socket.emit('kicked-by-admin', 'Your IP address has been banned.');
         socket.disconnect(true);
         return; 
     }
 
-    logToAdmin(`Nuova connessione: ${socket.id} (IP: ${clientIp})`);
+    logToAdmin(`New connection: ${socket.id} (IP: ${clientIp})`);
 
     socket.on('join-room', (roomIdRaw, nickname, password = "") => {
         const roomId = String(roomIdRaw).replace('#', '').toLowerCase();
         
         if (bannedIPs.has(clientIp)) {
-            socket.emit('error-message', 'Sei bannato.');
+            socket.emit('error-message', 'You are banned.');
             return;
         }
 
@@ -113,8 +111,8 @@ io.on('connection', (socket) => {
         }
         const config = roomConfigs[roomId];
 
-        if (config.isLocked) { socket.emit('error-message', 'Stanza bloccata.'); return; }
-        if (config.password && config.password !== password) { socket.emit('error-message', 'Password errata.'); return; }
+        if (config.isLocked) { socket.emit('error-message', 'Room locked.'); return; }
+        if (config.password && config.password !== password) { socket.emit('error-message', 'Wrong password.'); return; }
 
         const existingUserEntry = Object.entries(rooms[roomId]).find(([id, n]) => n.toLowerCase().replace('@','') === finalNickname.toLowerCase());
         
@@ -128,7 +126,7 @@ io.on('connection', (socket) => {
                 }
                 delete rooms[roomId][oldSocketId];
             } else {
-                socket.emit('nickname-in-use', `Nick '${finalNickname}' in uso.`);
+                socket.emit('nickname-in-use', `Nick '${finalNickname}' is already in use.`);
                 return;
             }
         }
@@ -144,8 +142,8 @@ io.on('connection', (socket) => {
         
         if (!roomMessages[roomId]) roomMessages[roomId] = [];
         roomMessages[roomId].push({
-            sender: 'Sistema',
-            text: `${finalNickname} è entrato.`,
+            sender: 'System',
+            text: `${finalNickname} joined.`,
             id: 'sys_' + Date.now(),
             timestamp: Date.now(),
             type: 'system'
@@ -160,49 +158,29 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- FIX DEFINITIVO LEAVE ROOM ---
     socket.on('leave-room', (roomIdRaw) => {
         if (!roomIdRaw) return;
 
-        // 1. Normalizzazione aggressiva: togli spazi, togli #, tutto minuscolo
         const roomId = String(roomIdRaw).trim().replace('#', '').toLowerCase();
         
-        console.log(`[SERVER] Richiesta LEAVE: Socket ${socket.id} vuole uscire da '${roomId}'`);
-        
-        // 2. Controllo esistenza stanza
         if (rooms[roomId]) {
-            // DEBUG: Vediamo chi c'è dentro prima di cancellare
-            console.log(`[DEBUG ROOM] Utenti in '${roomId}' PRIMA:`, Object.keys(rooms[roomId]));
-
             if (rooms[roomId][socket.id]) {
                 const nickname = rooms[roomId][socket.id];
-                delete rooms[roomId][socket.id]; // Rimuovi dai dati
-                console.log(`[SERVER] Rimosso utente ${nickname} (Socket ${socket.id}) da ${roomId}`);
+                delete rooms[roomId][socket.id];
                 
-                // Avvisa gli altri
                 socket.to(roomId).emit('peer-left', roomId, socket.id, nickname);
-            } else {
-                // Caso "Fantasma": Il socket è connesso ma non è nella lista users?
-                console.log(`[SERVER] ATTENZIONE: Socket ${socket.id} non trovato nella lista logica di ${roomId}, ma forzo l'uscita.`);
-            }
 
-            // 4. Pulizia stanza vuota
-            if (Object.keys(rooms[roomId]).length === 0) {
-                delete rooms[roomId];
-                delete roomConfigs[roomId];
-                if(roomMessages[roomId]) delete roomMessages[roomId];
-                console.log(`[SERVER] Stanza ${roomId} vuota ed eliminata.`);
+                if (Object.keys(rooms[roomId]).length === 0) {
+                    delete rooms[roomId];
+                    delete roomConfigs[roomId];
+                    if(roomMessages[roomId]) delete roomMessages[roomId];
+                }
             }
-        } else {
-            console.log(`[SERVER] Errore: La stanza ${roomId} non esiste in memoria.`);
-        }
+        } 
 
-        // 5. AZIONE CRITICA: Socket.io Leave (Stacca il cavo virtuale)
         socket.leave(roomId); 
 
         io.emit('server-room-list-update', getPublicRoomList());
-        
-        // Aggiorna admin
         broadcastAdminUpdate();
     });
 
@@ -234,34 +212,35 @@ io.on('connection', (socket) => {
     });
 
     socket.on('command-op', (roomId, targetNick) => {
-        if(!rooms[roomId]) return;
+        if (!rooms[roomId]) return;     
         const myNick = rooms[roomId][socket.id];
-        
-        if(!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) {
-            socket.emit('error-message', "Non hai i permessi per dare OP.");
+        if (!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) {
+            socket.emit('error-message', "You do not have permission to give OP.");
             return;
         }
 
         const cleanTarget = getCleanNick(targetNick).toLowerCase();
-        const targetSocketId = Object.keys(rooms[roomId]).find(id => getCleanNick(rooms[roomId][id]).toLowerCase() === cleanTarget);
-        
-        if(targetSocketId) {
+        const targetSocketId = Object.keys(rooms[roomId]).find(id => 
+            getCleanNick(rooms[roomId][id]).toLowerCase() === cleanTarget
+        );
+
+        if (targetSocketId) {
             let oldNick = rooms[roomId][targetSocketId];
-            
-            if(oldNick.startsWith('@')) {
-                socket.emit('error-message', "L'utente è già operatore.");
+
+            if (oldNick.startsWith('@')) {
+                socket.emit('error-message', "User is already an operator.");
                 return;
             }
 
             const baseNick = getCleanNick(oldNick);
             const newNick = '@' + baseNick;
-            
+
             rooms[roomId][targetSocketId] = newNick;
-            
+
             io.to(roomId).emit('user-nick-updated', targetSocketId, newNick);
-            io.to(roomId).emit('new-message', roomId, 'Server', `${baseNick} è ora un Operatore (+o).`, 'sys_'+Date.now());
+            io.to(roomId).emit('new-message', roomId, 'Server', `${baseNick} is now an Operator (+o).`, 'sys_' + Date.now());
         } else {
-            socket.emit('error-message', "Utente non trovato.");
+            socket.emit('error-message', "User not found.");
         }
     });
 
@@ -269,7 +248,7 @@ io.on('connection', (socket) => {
         if(!rooms[roomId]) return;
         const myNick = rooms[roomId][socket.id];
         if(!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) {
-            socket.emit('error-message', "Non hai i permessi per togliere OP.");
+            socket.emit('error-message', "You do not have permission to remove OP.");
             return;
         }
 
@@ -284,12 +263,12 @@ io.on('connection', (socket) => {
                 rooms[roomId][targetSocketId] = newNick;
                 
                 io.to(roomId).emit('user-nick-updated', targetSocketId, newNick);
-                io.to(roomId).emit('new-message', roomId, 'Server', `${newNick} non è più Operatore (-o).`, 'sys_'+Date.now());
+                io.to(roomId).emit('new-message', roomId, 'Server', `${newNick} is no longer an Operator (-o).`, 'sys_'+Date.now());
             } else {
-                socket.emit('error-message', "Quell'utente non è un operatore.");
+                socket.emit('error-message', "That user is not an operator.");
             }
         } else {
-            socket.emit('error-message', "Utente non trovato.");
+            socket.emit('error-message', "User not found.");
         }
     });
 
@@ -305,7 +284,7 @@ io.on('connection', (socket) => {
              let oldNick = rooms[roomId][targetSocketId];
              
              if(oldNick.startsWith('@')) {
-                 socket.emit('error-message', "L'utente è già Operatore (ha già la voce).");
+                 socket.emit('error-message', "User is already an Operator (already has voice).");
                  return;
              }
 
@@ -316,9 +295,9 @@ io.on('connection', (socket) => {
                  rooms[roomId][targetSocketId] = newNick;
                  
                  io.to(roomId).emit('user-nick-updated', targetSocketId, newNick);
-                 io.to(roomId).emit('new-message', roomId, 'Server', `${baseNick} ha ricevuto la voce (+v).`, 'sys_'+Date.now());
+                 io.to(roomId).emit('new-message', roomId, 'Server', `${baseNick} received voice (+v).`, 'sys_'+Date.now());
              } else {
-                 socket.emit('error-message', "L'utente ha già la voce.");
+                 socket.emit('error-message', "User already has voice.");
              }
         }
     });
@@ -328,7 +307,7 @@ io.on('connection', (socket) => {
         const myNick = rooms[roomId][socket.id];
         
         if(!myNick || !myNick.startsWith('@')) {
-            socket.emit('error-message', "Solo gli operatori possono gestire la voce.");
+            socket.emit('error-message', "Only operators can manage voice.");
             return;
         }
 
@@ -343,12 +322,12 @@ io.on('connection', (socket) => {
                  rooms[roomId][targetSocketId] = newNick;
                  
                  io.to(roomId).emit('user-nick-updated', targetSocketId, newNick);
-                 io.to(roomId).emit('new-message', roomId, 'Server', `${newNick} ha perso lo stato voice (-v).`, 'sys_'+Date.now());
+                 io.to(roomId).emit('new-message', roomId, 'Server', `${newNick} lost voice status (-v).`, 'sys_'+Date.now());
              } else {
-                 socket.emit('error-message', "L'utente non ha lo stato voice (+).");
+                 socket.emit('error-message', "User does not have voice status (+).");
              }
         } else {
-            socket.emit('error-message', "Utente non trovato.");
+            socket.emit('error-message', "User not found.");
         }
     });
 	
@@ -356,7 +335,7 @@ io.on('connection', (socket) => {
         if(!rooms[roomId]) return;
         const myNick = rooms[roomId][socket.id];
         if(!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) {
-            socket.emit('error-message', "Non hai i permessi OP.");
+            socket.emit('error-message', "You do not have OP permissions.");
             return;
         }
 
@@ -395,7 +374,7 @@ io.on('connection', (socket) => {
 
         const currentNick = rooms[roomId][socket.id];
         if (!currentNick.startsWith('@')) {
-            socket.emit('error-message', "Non hai i permessi di Operatore (@).");
+            socket.emit('error-message', "You do not have Operator permissions (@).");
             return;
         }
 
@@ -445,31 +424,11 @@ io.on('connection', (socket) => {
             admins.add(socket.id);
             socket.emit('admin-login-success');
             sendAdminData(socket.id);
-            logToAdmin(`Admin loggato: ${socket.id}`);
+            logToAdmin(`Admin logged in: ${socket.id}`);
         } else {
             socket.emit('admin-login-fail');
-            logToAdmin(`Tentativo login admin fallito da IP: ${clientIp}`);
+            logToAdmin(`Admin login failed from IP: ${clientIp}`);
         }
-    });
-
-	socket.on('admin-nuke-server', () => {
-        if (!admins.has(socket.id)) return;
-        
-        const connectedSockets = io.sockets.sockets;
-        connectedSockets.forEach((s) => {
-            if (s.id !== socket.id) {
-                s.emit('error-message', 'Il server sta eseguendo un reset totale. Ricarica la pagina.');
-                s.disconnect(true);
-            }
-        });
-
-        for (const k in rooms) delete rooms[k];
-        for (const k in roomConfigs) delete roomConfigs[k];
-        for (const k in roomMessages) delete roomMessages[k];
-        
-        socket.emit('admin-log', '✅ PULIZIA TOTALE COMPLETATA. Memoria svuotata.');
-        broadcastAdminUpdate();
-        io.emit('server-room-list-update', []);
     });
 	
     socket.on('admin-ban-ip', (targetSocketId) => {
@@ -478,9 +437,9 @@ io.on('connection', (socket) => {
         if (targetSocket) {
             const targetIp = getClientIp(targetSocket);
             bannedIPs.add(targetIp);
-            targetSocket.emit('kicked-by-admin', "Sei stato bannato permanentemente.");
+            targetSocket.emit('kicked-by-admin', "You have been permanently banned.");
             targetSocket.disconnect(true);
-            logToAdmin(`BAN IP Eseguito su ${targetIp}`);
+            logToAdmin(`IP BAN Executed on ${targetIp}`);
             broadcastAdminUpdate();
         }
     });
@@ -501,7 +460,7 @@ io.on('connection', (socket) => {
         if (!admins.has(socket.id)) return;
         const targetSocket = io.sockets.sockets.get(targetSocketId);
         if (targetSocket) {
-            targetSocket.emit('kicked-by-admin', "Espulso dall'admin.");
+            targetSocket.emit('kicked-by-admin', "Kicked by admin.");
             targetSocket.disconnect(true);
         }
         broadcastAdminUpdate();
@@ -578,7 +537,7 @@ io.on('connection', (socket) => {
             if (!rooms[roomId]) return;
             const senderNick = rooms[roomId][socket.id];
             if (!senderNick || (!senderNick.startsWith('@') && !senderNick.startsWith('+'))) {
-                socket.emit('error-message', "Chat in modalità moderata (+m). Non hai il permesso di parlare.");
+                socket.emit('error-message', "Chat in moderated mode (+m). You do not have permission to speak.");
                 return; 
             }
         }
@@ -605,7 +564,6 @@ io.on('connection', (socket) => {
     socket.on('wb-draw', (r, d) => socket.to(r).emit('wb-draw', d));
     socket.on('wb-clear', (r) => io.to(r).emit('wb-clear'));
     socket.on('wb-undo', (r) => io.to(r).emit('wb-undo')); 
-    socket.on('wb-request-history', (r) => {}); 
     socket.on('offer', (id, o) => io.to(id).emit('offer', socket.id, o));
     socket.on('answer', (id, a) => io.to(id).emit('answer', socket.id, a));
     socket.on('candidate', (id, c) => io.to(id).emit('candidate', socket.id, c));

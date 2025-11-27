@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="style.css?v=1.3.2" />
+<link rel="stylesheet" href="style.css?v=1.4" />
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
@@ -23,25 +23,25 @@
     <img id="app-logo" src="images/logo.png" alt="#chan Logo" />
     
     <div class="card">
-        <input type="text" id="room-id-input" placeholder="Nome del Canale" required autocomplete="off" />
+        <input type="text" id="room-id-input" placeholder="Room Name" required autocomplete="off" />
 
-        <input type="password" id="room-password-input" placeholder="Password (Opzionale)" autocomplete="off" />
+        <input type="password" id="room-password-input" placeholder="Password (Optional)" autocomplete="off" />
 
-        <input type="text" id="nickname-input" placeholder="Il tuo Nickname" required autocomplete="off" />
+        <input type="text" id="nickname-input" placeholder="Your Nickname" required autocomplete="off" />
 
-        <button id="join-button">Entra nel Canale</button>
+        <button id="join-button">Join Channel</button>
     </div>
 </div>
 
 <div id="settings-modal" class="hidden">
     <div class="settings-content">
         <div class="settings-header">
-            <h3>Settings</h3>
+            <h3 id="settings-title">Settings</h3>
             <button id="close-settings-btn"><span class="material-icons">close</span></button>
         </div>
         <div class="settings-body">
             <div class="setting-item">
-                <span>Dark / Light Theme</span>
+                <span id="theme-label">Dark / Light Theme</span>
                 <label class="switch">
                     <input type="checkbox" id="theme-toggle">
                     <span class="slider round"></span>
@@ -49,12 +49,12 @@
             </div>
             <hr class="separator">
             <div class="setting-item" style="display:block;">
-                <span style="display:block; margin-bottom:10px;">Application Background</span>
+                <span id="bg-label" style="display:block; margin-bottom:10px;">Application Background</span>
                 <div id="background-options" class="bg-selection-grid"></div>
             </div>
             <hr class="separator">
             <div class="setting-item">
-                <span>Server Management</span>
+                <span id="server-label">Server Management</span>
                 <button id="open-admin-login" class="btn-secondary">Admin Login</button>
             </div>
         </div>
@@ -64,16 +64,16 @@
 <div id="server-list-modal" class="hidden">
     <div class="settings-content" style="max-width: 500px;">
         <div class="settings-header">
-            <h3>🌐 Canali Attivi</h3>
+            <h3>🌐 Active Channels</h3>
             <button id="close-server-list-btn"><span class="material-icons">close</span></button>
         </div>
         <div class="settings-body">
             <div id="server-list-container" class="server-list-grid">
-                <p style="text-align:center; color:#666;">Caricamento...</p>
+                <p style="text-align:center; color:#666;">Loading...</p>
             </div>
             <div style="text-align:center; margin-top:10px;">
                 <button id="refresh-server-list-modal-btn" class="btn-secondary">
-                    <span class="material-icons" style="font-size:1em; vertical-align:middle;">refresh</span> Aggiorna
+                    <span class="material-icons" style="font-size:1em; vertical-align:middle;">refresh</span> Refresh
                 </button>
             </div>
         </div>
@@ -117,13 +117,13 @@
 		</div>
 		
 		<div class="sidebar-section">
-			<small>I TUOI CANALI</small>
+			<small id="channels-header">YOUR CHANNELS</small>
 			<div id="my-channels-list"></div>
 		</div>
 
 		<div class="sidebar-footer">
 			<button id="open-server-list-btn" class="btn-sidebar-action">
-				<span class="material-icons">dns</span> #chan list
+				<span class="material-icons">tag</span> Chan List
 			</button>
 		</div>
 	</aside>
@@ -169,7 +169,7 @@
                     <video id="local-video" autoplay playsinline muted></video>
                     <div class="video-label">
                         <span id="local-mic-status" class="material-icons">mic_off</span>
-                        <span id="local-nickname-display">Tu</span> 
+                        <span id="local-nickname-display">You</span> 
                     </div>
                 </div>
             </section>
@@ -210,7 +210,7 @@
                 <div id="sticker-picker-container" class="hidden">
                     <div class="sticker-search-bar">
                         <span class="material-icons search-icon">search</span>
-                        <input type="text" id="sticker-search-input" placeholder="Cerca su Giphy..." autocomplete="off">
+                        <input type="text" id="sticker-search-input" placeholder="Search on Giphy..." autocomplete="off">
                     </div>
                     
                     <div id="sticker-grid" class="sticker-grid"></div>
@@ -218,7 +218,7 @@
 
                 <div id="typing-indicator" class="hidden">
                     <span class="dots"><span>.</span><span>.</span><span>.</span></span>
-                    <span id="typing-text">Sta scrivendo...</span>
+                    <span id="typing-text">Is typing...</span>
                 </div>
 
                 <div class="chat-toolbar">
@@ -232,7 +232,7 @@
                 </div>
 
                 <div id="chat-input-row">
-                    <input type="text" id="chat-message-input" placeholder="Scrivi un messaggio..." autocomplete="off" />
+                    <input type="text" id="chat-message-input" placeholder="Type a message..." autocomplete="off" />
                     
                     <button id="send-chat-button" class="chat-btn-send">
                         <span class="material-icons">send</span> 
@@ -286,49 +286,49 @@
 <div id="op-modal" class="hidden">
     <div class="op-modal-content">
         <div class="op-header">
-            <h4><span class="material-icons">shield</span> Canale Protetto</h4>
+            <h4><span class="material-icons">shield</span> <span id="op-title">Protected Channel</span></h4>
             <button id="close-op-modal"><span class="material-icons">close</span></button>
         </div>
         <div class="op-body">
             
             <div class="op-field-group">
-                <label>Argomento Stanza (Topic)</label>
-                <input type="text" id="op-topic-input" placeholder="Es: Riunione Progetto X" autocomplete="off">
-                <small>Visibile a tutti in alto al centro.</small>
+                <label id="op-topic-label">Room Topic</label>
+                <input type="text" id="op-topic-input" placeholder="Ex: Project X Meeting" autocomplete="off">
+                <small id="op-topic-desc">Visible to everyone at the top center.</small>
             </div>
 
             <div class="op-field-group">
-                <label>Password Accesso</label>
+                <label id="op-pass-label">Access Password</label>
                 <div class="input-with-icon">
                     <span class="material-icons icon">vpn_key</span>
-                    <input type="text" id="op-password-input" placeholder="Lascia vuoto per rimuovere" autocomplete="off">
+                    <input type="text" id="op-password-input" placeholder="Leave empty to remove" autocomplete="off">
                 </div>
-                <small>Chi entra dovrà digitare questa password.</small>
+                <small id="op-pass-desc">Users will need this password to join.</small>
             </div>
-			
-			<div class="op-field-group">
+            
+            <div class="op-field-group">
                 <div style="display:flex; align-items:center; justify-content:space-between;">
-                    <label>Chat Moderata (+m)</label>
+                    <label id="op-mod-label">Moderated Chat (+m)</label>
                     <label class="switch">
                         <input type="checkbox" id="op-moderate-toggle">
                         <span class="slider round"></span>
                     </label>
                 </div>
-                <small style="margin-top:5px; display:block;">Se attivo, solo OP (@) e Voice (+) possono scrivere.</small>
+                <small id="op-mod-desc" style="margin-top:5px; display:block;">If active, only OP (@) and Voice (+) can type.</small>
             </div>
 
             <div class="op-field-group">
-                <label>Colore Brand (#Chan)</label>
+                <label id="op-color-label">Brand Color (#Chan)</label>
                 <div class="color-picker-wrapper">
-                    <div class="color-hint">CLICCA PER CAMBIARE</div>
+                    <div id="op-color-hint" class="color-hint">CLICK TO CHANGE</div>
                     <input type="color" id="op-color-input" value="#00b8ff">
                 </div>
-                <small>Cambia il tema visivo per tutti gli utenti.</small>
+                <small id="op-color-desc">Changes the visual theme for all users.</small>
             </div>
 
             <div class="op-actions">
                 <button id="op-save-btn">
-                    <span class="material-icons">save</span> Salva Modifiche
+                    <span class="material-icons">save</span> <span id="op-save-text">Save Changes</span>
                 </button>
             </div>
 
@@ -362,11 +362,11 @@
 <div id="remote-context-menu" class="hidden">
     <div id="menu-dm-user" class="menu-item">
         <span class="material-icons">message</span> 
-        <span>Private Message to User</span>
+        <span>Private Message</span>
     </div>
     <div id="menu-send-file" class="menu-item">
         <span class="material-icons">attach_file</span>
-        <span>Send File to User</span>
+        <span>Send File</span>
     </div>
 	<div id="menu-toggle-cc" class="menu-item">
         <span class="material-icons">closed_caption</span>
@@ -380,20 +380,20 @@
 
 <div id="chat-context-menu" class="hidden">
     <div class="menu-item" id="chat-menu-dm">
-        <span class="material-icons">message</span> Messaggio Privato
+        <span class="material-icons">message</span> Private Message
     </div>
     <hr style="border:0; border-top:1px solid #333; margin:2px 0;">
     <div class="menu-item" id="chat-menu-op">
-        <span class="material-icons" style="color:#ffd740">shield</span> Dai OP
+        <span class="material-icons" style="color:#ffd740">shield</span> Give OP
     </div>
     <div class="menu-item" id="chat-menu-deop">
-        <span class="material-icons">remove_moderator</span> Togli OP
+        <span class="material-icons">remove_moderator</span> Remove OP
     </div>
     <div class="menu-item" id="chat-menu-voice">
-        <span class="material-icons" style="color:#00e676">record_voice_over</span> Dai Voice (+)
+        <span class="material-icons" style="color:#00e676">record_voice_over</span> Give Voice (+)
     </div>
     <div class="menu-item" id="chat-menu-devoice">
-        <span class="material-icons">voice_over_off</span> Togli Voice
+        <span class="material-icons">voice_over_off</span> Remove Voice
     </div>
     <hr style="border:0; border-top:1px solid #333; margin:2px 0;">
     <div class="menu-item" id="chat-menu-slap">
@@ -402,17 +402,17 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
-<script src="app.js?v=1.3.2"></script>
+<script src="app.js?v=1.4"></script>
 
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./service-worker.js')
                 .then(registration => {
-                    console.log('ServiceWorker registrato con successo:', registration.scope);
+                    console.log('ServiceWorker registered successfully:', registration.scope);
                 })
                 .catch(error => {
-                    console.log('Registrazione ServiceWorker fallita:', error);
+                    console.log('ServiceWorker registration failed:', error);
                 });
         });
     }
@@ -438,11 +438,10 @@
                     picker = createPicker({
                         rootElement: pickerContainer,
                         theme: 'dark',
-                        locale: 'it',
+                        locale: 'en',
                         autoFocus: 'search'
                     });
 
-                    // Ascolta la selezione
                     picker.addEventListener('emoji:select', (selection) => {
                         const start = input.selectionStart;
                         const end = input.selectionEnd;
@@ -452,7 +451,6 @@
                         
                         input.value = before + selection.emoji + after;
                         
-                        // Riposiziona cursore
                         const newCursorPosition = start + selection.emoji.length;
                         input.selectionStart = newCursorPosition;
                         input.selectionEnd = newCursorPosition;

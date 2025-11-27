@@ -676,9 +676,9 @@ input:checked + .slider:before {
 }
 
 #channel-sidebar {
-    width: 240px; /* Larghezza iniziale sidebar */
+    width: 240px; 
     min-width: 200px;
-    background: #0d0d0d;
+    background: var(--surface);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
@@ -730,30 +730,6 @@ input:checked + .slider:before {
     display: block;
 }
 
-/* Stili Sidebar Interni */
-.sidebar-header {
-    padding: 20px;
-    text-align: center;
-    border-bottom: 1px solid var(--border-color);
-}
-.sidebar-logo {
-    max-width: 80%;
-    height: auto;
-}
-
-.sidebar-section {
-    padding: 15px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-.sidebar-section small {
-    color: var(--muted);
-    font-size: 0.7em;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 10px;
-    display: block;
-}
-
 .channel-item {
     padding: 10px 15px;
     border-radius: 8px;
@@ -767,14 +743,15 @@ input:checked + .slider:before {
 }
 
 .channel-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+    background: var(--surface-2);
+    color: var(--text-color); 
 }
 
 .channel-item.active {
-    background: linear-gradient(90deg, rgba(0, 198, 255, 0.1) 0%, transparent 100%);
-    color: #fff;
+    background: var(--surface-2); 
+    color: var(--primary-color) !important;
     border-left: 3px solid var(--primary-color);
+    font-weight: bold;
 }
 
 .channel-item .remove-chan-btn {
@@ -872,15 +849,6 @@ input:checked + .slider:before {
     overflow: hidden;
     text-overflow: ellipsis;
     padding: 5px; /* Un po' di padding per il glow */
-}
-
-/* Prefisso "//" che eredita lo stile */
-#room-topic-display::before {
-    content: '// ';
-    background: none;
-    -webkit-text-fill-color: inherit;
-    font-weight: 900;
-    margin-right: 5px;
 }
 
 #room-topic-display.hidden {
@@ -1146,33 +1114,32 @@ input:checked + .slider:before {
 }
 
 #chat-panel > h3 {
-    /* Sfondo Nero e Bordo Fucsia */
-    background: #050505 !important;
-    border-bottom: 2px solid #bd00ff !important;
+    /* Sfondo e Colori coerenti con il tema */
+    background: var(--surface) !important; 
+    border-bottom: 1px solid var(--border-color) !important;
     
-    /* Testo Ciano e Font Terminale */
-    color: #00b8ff !important;
-    font-family: 'Courier New', 'Consolas', monospace !important;
+    /* Testo pulito, niente font terminale */
+    color: var(--text-color) !important;
+    font-family: 'Montserrat', sans-serif !important; /* Stesso font del titolo stanza */
     font-size: 1.1em !important;
-    font-weight: bold;
+    font-weight: 800;
     
-    /* Stile testo */
+    /* Rimuoviamo effetti neon e ombre pesanti */
     text-transform: uppercase;
-    letter-spacing: 2px;
-    text-shadow: 0 0 10px rgba(0, 184, 255, 0.4);
+    letter-spacing: 1px;
+    text-shadow: none !important;
     
-    /* Spaziatura */
+    /* Spaziatura standard */
     padding: 15px 20px !important;
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between; /* Spazio per eventuale tasto chiudi */
 }
 
-/* Cursore lampeggiante SOLO per il titolo principale */
+/* RIMUOVE IL CURSORE LAMPEGGIANTE >_ */
 #chat-panel > h3::before {
-    content: '>_';
-    color: #bd00ff;
-    animation: blink 1s step-end infinite;
+    content: none !important;
+    display: none !important;
 }
 
 .picmo__picker h3,
@@ -1205,11 +1172,11 @@ input:checked + .slider:before {
 }
 
 .chat-message {
-	color: #e0e0e0 !important; /* Bianco "sporco" (più riposante del bianco puro) */
+	color: var(--text-color) !important;
     font-weight: 400;
-    font-size: 1em; /* Testo un po' più grande (era 0.95em) */
+    font-size: 1em;
     line-height: 1.5;
-    padding: 8px 10px; /* Più respiro attorno ai messaggi */
+    padding: 8px 10px;
 }
 
 .sender-me {
@@ -1332,86 +1299,83 @@ body.light-theme .sender-private {
     background: transparent;
 }
 
-
-/* La riga che contiene i tasti e l'input */
+/* --- AREA INPUT CHAT (Full Width & Minimal) --- */
 #chat-input-row {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    /* Rimuoviamo eventuali padding/bordi vecchi se presenti */
-    padding: 0; 
-    border: none;
-    background: transparent;
+    align-items: center;    /* Allinea verticalmente al centro */
+    justify-content: space-between;
+    gap: 8px;               /* Spazio minimo tra icone e testo */
+    padding: 10px 10px;     /* Padding ridotto ai lati per massimizzare la larghezza */
+
+    background: var(--surface);
+    border-top: 1px solid var(--border-color);
+    position: relative;
+    width: 100%;            /* Assicura che la barra usi tutto lo spazio */
 }
 
-/* 1. Bottone Emoji (Bianco/Grigio chiaro come da screen) */
-#emoji-toggle-btn {
-    background: transparent !important; 
-    color: var(--muted) !important;
-    border: none !important;
-    border-radius: 6px;  /* Angoli smussati */
-    width: 44px;         /* Quadrato */
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;      /* Non si schiaccia */
-    transition: transform 0.2s;
-}
-
-#emoji-toggle-btn:hover {
-	color: var(--primary-color) !important;
-    transform: scale(1.05);
-    background: rgba(255, 255, 255, 0.1) !important;
-}
-
-/* 2. Input di testo (Sfondo scuro) */
+/* 2. Campo Input: Si allarga per coprire tutto lo spazio vuoto */
 #chat-message-input {
-    flex-grow: 1; 
-    width: 100%; /* Forza la larghezza */
-    height: 44px;
-    background: rgba(0, 0, 0, 0.3) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: #fff !important;
-    padding: 0 15px;
-    border-radius: 8px; /* Arrotondamento moderno */
-    font-size: 1rem;
-    outline: none;
-}
-
-#chat-message-input:focus {
-    border-color: var(--primary-color) !important;
-    background: rgba(0, 0, 0, 0.5) !important;
+    flex: 1;                /* <--- QUESTA È LA CHIAVE: Occupa tutto lo spazio disponibile */
+    width: 100%;            /* Forza l'espansione */
+    min-width: 0;           /* Previene che l'input esca dal contenitore su schermi piccoli */
+    height: 40px;           /* Altezza fissa comoda */
+    
+    background: transparent !important; /* Trasparente per stile pulito */
+    border: none !important;
+    outline: none !important;
+    
+    color: var(--text-color) !important;
+    font-size: 0.95rem;
+    padding: 0 10px;
 }
 
 #chat-message-input::placeholder {
     color: var(--muted);
+    opacity: 0.5;
 }
 
+/* 3. Toolbar (Emoji/GIF): Compatti a sinistra */
+.chat-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;               /* Icone vicine tra loro */
+    flex-shrink: 0;         /* Impedisce che si schiaccino */
+}
+
+/* 4. Bottoni (Emoji e Invia): Stile Sobrio */
+.chat-toolbar-btn,
+#emoji-toggle-btn,
+#sticker-toggle-btn,
 #send-chat-button {
-    background: var(--primary-color);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    height: 44px;
-    width: 44px; /* Quadrato perfetto */
-    padding: 0;
+    background: transparent !important;
+    border: none !important;
+    color: var(--muted) !important;
+    
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: filter 0.2s;
-    flex-shrink: 0; /* Non si schiaccia mai */
+    transition: all 0.2s ease;
+    flex-shrink: 0;         /* Non si rimpiccioliscono mai */
+    transform: none !important; /* Raddrizza il tasto invia */
 }
 
+/* Hover delicato */
+#emoji-toggle-btn:hover,
+#sticker-toggle-btn:hover,
 #send-chat-button:hover {
-    filter: brightness(1.2);
+    color: var(--primary-color) !important;
+    background: var(--surface-2) !important;
 }
 
+/* Icone dritte */
 #send-chat-button .material-icons {
-    display: none; /* Nascondiamo l'icona se vuoi la scritta "Invia" come da screen, oppure rimuovi questa riga */
+    transform: rotate(0deg) !important;
+    font-size: 1.3em;
 }
 
 
@@ -2535,24 +2499,6 @@ body.light-theme .system-msg-content {
 	background: var(--surface) !important;
 }
 
-/* --- IRC / TERMINAL STYLE THEME --- */
-
-/* 1. Reset della Card base per renderla squadrata e scura */
-.card.irc-terminal {
-    background: #050505; /* Nero profondo */
-    border: 1px solid #bd00ff; /* Bordo Fucsia sottile */
-    border-radius: 0; /* Niente angoli arrotondati */
-    box-shadow: 
-        0 0 20px rgba(189, 0, 255, 0.15), /* Bagliore Fucsia */
-        inset 0 0 30px rgba(0, 0, 0, 0.8);
-    padding: 0; /* Il padding lo gestiamo nel body */
-    width: 450px;
-    max-width: 95%;
-    font-family: 'Courier New', 'Consolas', monospace; /* Font Terminale */
-    overflow: hidden;
-    animation: fadeIn 0.5s ease-out;
-}
-
 /* 2. Barra del titolo del terminale */
 .terminal-bar {
     background: linear-gradient(90deg, #bd00ff 0%, #00b8ff 100%); /* Gradiente Fucsia -> Ciano */
@@ -2703,31 +2649,6 @@ body.light-theme .system-msg-content {
     transform: translateY(-2px);
 }
 
-/* --- Header Chat Stile IRC --- */
-
-#chat-panel h3 {
-    /* 1. Sfondo Nero e Bordo Fucsia */
-    background: #050505 !important;
-    border-bottom: 2px solid #bd00ff !important; /* Linea di separazione Fucsia */
-    
-    /* 2. Testo Ciano e Font Terminale */
-    color: #00b8ff !important;
-    font-family: 'Courier New', 'Consolas', monospace !important;
-    font-size: 1.1em !important;
-    font-weight: bold;
-    
-    /* 3. Stile testo */
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    text-shadow: 0 0 10px rgba(0, 184, 255, 0.4); /* Leggero bagliore neon */
-    
-    /* 4. Spaziatura */
-    padding: 15px 20px !important;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
 /* Opzionale: Aggiunge un cursore lampeggiante prima della scritta CHAT */
 #chat-panel h3::before {
     content: '>_';
@@ -2805,16 +2726,6 @@ body.light-theme .system-msg-content {
     background: #000;
     text-transform: uppercase;
     font-weight: bold;
-}
-
-/* Assicuriamo che la griglia riempia lo spazio tra search bar e footer */
-.sticker-grid {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 5px;
 }
 
 /* Le immagini devono adattarsi */
@@ -3239,8 +3150,6 @@ body.light-theme .system-msg-content {
         transform: translateX(0); /* Scivola dentro */
     }
 	
-    /* Ri-abilitiamo l'header della chat (Titolo "CHAT") se lo vuoi vedere, 
-       oppure lascialo hidden se vuoi guadagnare spazio */
 	#chat-panel h3 {
         display: block !important; 
         padding: 15px !important;
@@ -3251,10 +3160,6 @@ body.light-theme .system-msg-content {
     #close-chat-btn {
         display: none !important;
     }
-	
-	#chat-panel h3 {
-        display: none; 
-    }
 
 	#chat-input-area {
 		display: flex;
@@ -3264,39 +3169,6 @@ body.light-theme .system-msg-content {
 		gap: 8px;
 	}
 
-	#chat-input-row {
-		display: flex;
-		align-items: center;
-		padding: 10px 15px;
-		border-top: 1px solid var(--border-color);
-		background: var(--surface-2); /* Sfondo scuro per uniformità */
-		gap: 10px;
-		position: relative;
-	}
-	
-/* Stile per il bottone Emoji (Faccina) */
-	#emoji-toggle-btn {
-		background: transparent;
-		border: none;
-		color: var(--muted);
-		cursor: pointer;
-		padding: 8px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		transition: all 0.2s ease;
-	}
-
-	#emoji-toggle-btn:hover {
-		color: var(--primary-color);
-		background: rgba(255, 255, 255, 0.05);
-	}
-
-	#emoji-toggle-btn .material-icons {
-		color: inherit !important;
-		font-size: 1.5em; /* Grandezza icona */
-	}
 	
 /* Stile per il contenitore del Footer Chat (per ancorare il picker) */
 	#chat-footer {
@@ -3534,55 +3406,123 @@ body.light-theme .system-msg-content {
     .wb-colors { padding-right: 10px; gap: 5px; }
     .color-btn { width: 28px; height: 28px; }
 
-	/* --- FIX DEFINITIVO PULIZIA EMOJI PICKER --- */
+	#chat-context-menu {
+        /* 1. Resetta posizionamento JS e ancora al basso */
+        position: fixed !important;
+        top: auto !important;  /* Ignora la coordinata Y del mouse */
+        left: 0 !important;    /* Ignora la coordinata X del mouse */
+        right: 0 !important;
+        bottom: 0 !important;
+        
+        /* 2. Stile Pannello */
+        width: 100%;
+        min-width: 100%;
+        border-radius: 20px 20px 0 0; /* Arrotonda solo sopra */
+        border: none;
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.7);
+        
+        /* 3. Spaziatura per dita e iPhone X+ */
+        padding: 20px 10px 30px 10px; /* Più spazio sotto per la Home Bar di iOS */
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        
+        /* 4. Animazione Slide Up */
+        transform: translateY(0);
+        animation: slideUpMenu 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-	/* 1. Resetta i titoli delle categorie (Recently Used, Smileys, ecc.) */
-	.picmo__picker h3, 
-	.picmo__categoryName {
-		background: transparent !important;
-		border: none !important;        /* Rimuove la riga viola */
-		border-bottom: none !important; /* Sicurezza extra */
-		color: #e0e0e0 !important;      /* Testo bianco/grigio pulito */
-		font-family: sans-serif !important; /* Font normale leggibile */
-		text-shadow: none !important;   /* Rimuove l'effetto neon */
-		text-transform: none !important;
-		letter-spacing: normal !important;
-		padding: 8px 12px !important;
-		margin: 0 !important;
-		box-shadow: none !important;
-		width: 100% !important;
-	}
+    /* Gestione stato nascosto */
+    #chat-context-menu.hidden {
+        display: none !important;
+        /* Opzionale: se volessi animare l'uscita servirebbe JS, 
+           ma display:none è immediato ed efficace */
+    }
 
-	/* 2. Rimuove eventuali cursori lampeggianti o decorazioni strane */
-	.picmo__picker h3::before,
-	.picmo__picker h3::after,
-	.picmo__categoryName::before,
-	.picmo__categoryName::after {
-		content: none !important;
-		display: none !important;
-		animation: none !important;
-		border: none !important;
-	}
+    /* Elementi del menu più grandi per il touch */
+    #chat-context-menu .menu-item {
+        padding: 15px 20px;
+        font-size: 1.1em;
+        border-radius: 12px;
+        background: transparent;
+    }
 
-	/* 3. Stile generale del contenitore (Sfondo scuro pulito) */
-	.picmo__picker {
-		--accent-color: var(--primary-color); /* Usa il blu del tuo tema per la selezione */
-		background: #1e1e1e !important;       /* Grigio scuro solido, non nero terminale */
-		border: 1px solid #333 !important;    /* Bordo sottile grigio */
-		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-	}
+    #chat-context-menu .menu-item:active {
+        background: var(--surface-2);
+        transform: scale(0.98);
+    }
 
-	/* 4. Barra di ricerca e icone in alto */
-	.picmo__searchContainer {
-		background: transparent !important;
-		padding: 10px !important;
-	}
+    #chat-context-menu .menu-item .material-icons {
+        font-size: 1.4em; /* Icone più grandi */
+    }
 
-	.picmo__searchField {
-		background: rgba(0,0,0,0.3) !important;
-		border: 1px solid rgba(255,255,255,0.1) !important;
-		color: #fff !important;
-		border-radius: 6px !important;
-	}
+    /* "Maniglia" visiva in alto */
+    #chat-context-menu::before {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        margin: -10px auto 15px auto; /* Centrato in alto */
+    }
+}
 
+
+@keyframes slideUpMenu {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+}
+
+.picmo__picker h3, 
+.picmo__categoryName {
+    background: transparent !important;
+    border: none !important;        
+    border-bottom: none !important; 
+    color: var(--text-color) !important;      
+    font-family: sans-serif !important; 
+    text-shadow: none !important;   
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    padding: 8px 12px !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+}
+
+.picmo__picker h3::before,
+.picmo__picker h3::after,
+.picmo__categoryName::before,
+.picmo__categoryName::after {
+    content: none !important;
+    display: none !important;
+    animation: none !important;
+    border: none !important;
+}
+
+.picmo__picker {
+    --accent-color: var(--primary-color); 
+    background: var(--surface) !important;       
+    border: 1px solid var(--border-color) !important;    
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+.picmo__searchContainer {
+    background: transparent !important;
+    padding: 10px !important;
+}
+
+.picmo__searchField {
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-color) !important;
+    border-radius: 6px !important;
 }
