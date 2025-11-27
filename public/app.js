@@ -1381,8 +1381,8 @@ function sendMessage(contentOverride = null) {
                 const helpText = `
                 <b>Comandi Disponibili:</b><br>
                 /join #canale - Entra/Crea un canale<br>
-                /leave - Disconnetti<br>
-                /serverlist - Lista canali globali<br>
+                /part - Lascia il canale corrente<br>
+                /chanlist - Lista canali globali<br>
                 /op nome - Rendi operatore<br>
 				/deop nome - Togli operatore<br>
                 /voice nome - Dai voice (+)<br>
@@ -1403,36 +1403,29 @@ function sendMessage(contentOverride = null) {
                 }
                 break;
 
-            case '/leave':
-                // CASO A: Canale specificato (es: /leave #test)
+            case '/part':
                 if (arg1) {
                     const roomToLeave = arg1.replace('#', '').toLowerCase();
-                    // Controlla se siamo effettivamente in quel canale
                     if (myJoinedChannels.includes(roomToLeave)) {
                         removeChannelFromSidebar(roomToLeave);
                         addChatMessage('Sistema', `Hai lasciato il canale #${roomToLeave}.`, false, 'system');
                     } else {
                         addChatMessage('Sistema', `Non sei connesso al canale #${roomToLeave}.`, false, 'system');
                     }
-                } 
-                // CASO B: Nessun canale specificato (lascia quello corrente)
-                else {
+                } else {
                     if (currentRoomId) {
-                        // Salviamo l'ID prima che venga resettato
                         const roomName = currentRoomId; 
                         removeChannelFromSidebar(roomName);
                     } else {
-                        // Se non siamo in nessuna stanza, disconnessione totale
                         disconnect();
                     }
                 }
                 break;
 				
-            case '/serverlist':
-                // Richiede la lista e apre il modale
+            case '/chanlist':
                 socket.emit('request-room-list');
                 if(serverListModal) serverListModal.classList.remove('hidden');
-                addChatMessage('Sistema', 'Apertura lista server...', false, 'system');
+                addChatMessage('Sistema', 'Apertura lista canali...', false, 'system');
                 break;
 
             case '/op':
@@ -2347,11 +2340,11 @@ function copyRoomLink(){
 }
 
 const originalAddChatMessage = addChatMessage;
+
 function addChatMessage(sender, message, isLocal = false, type = 'public', msgId = null) {
     const messageEl = document.createElement('div');
     messageEl.classList.add('chat-message');
 
-    // --- CASO 1: MESSAGGIO DI SISTEMA (Join/Leave/Errori) ---
     if (type === 'system') {
         messageEl.innerHTML = `
             <div class="message-system-wrapper">
@@ -2361,32 +2354,26 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
         messagesContainer.appendChild(messageEl);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-        // [NUOVO] Salva messaggio di sistema in memoria per il cambio canali
         if (typeof roomChatsData !== 'undefined' && currentRoomId) {
             if (!roomChatsData[currentRoomId]) roomChatsData[currentRoomId] = [];
-            // I messaggi di sistema spesso non hanno ID univoci, li salviamo sempre
-            roomChatsData[currentRoomId].push({ 
-                sender: 'Sistema', 
-                text: message, 
-                type: 'system', 
-                id: 'sys_' + Date.now(), 
-                timestamp: Date.now() 
+            roomChatsData[currentRoomId].push({
+                sender: 'Sistema',
+                text: message,
+                type: 'system',
+                id: 'sys_' + Date.now(),
+                timestamp: Date.now()
             });
         }
-        return; // Ci fermiamo qui
+        return;
     }
 
-    // --- CASO 2: MESSAGGI UTENTE (Public/Private) ---
-    
-    // A. Setup Ricevute di Lettura (Click per info)
     if (msgId) {
         messageEl.dataset.messageId = msgId;
-        messageEl.dataset.readers = JSON.stringify([]); 
+        messageEl.dataset.readers = JSON.stringify([]);
         messageEl.addEventListener('click', () => showReadersDialog(msgId));
-        messageEl.style.cursor = 'pointer'; 
+        messageEl.style.cursor = 'pointer';
     }
 
-    // B. Definizione Stile Mittente
     let cssClass;
     if (type === 'private') {
         cssClass = 'sender-private';
@@ -2394,32 +2381,26 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
         cssClass = isLocal ? 'sender-me' : 'sender-remote';
     }
 
-    // C. Rilevamento Immagini / Sticker / GIF
     const isImage = (url) => {
-        return /\.(gif|jpe?g|png|webp)($|\?)/i.test(url) || 
-               url.includes('media.giphy.com') || 
+        return /\.(gif|jpe?g|png|webp)($|\?)/i.test(url) ||
+               url.includes('media.giphy.com') ||
                url.includes('media.tenor.com');
     };
 
     let messageContentHtml = message;
 
     if (isImage(message.trim())) {
-        // È un'immagine: Renderizza il tag <img>
         messageContentHtml = `<img src="${message}" class="chat-media-img" onclick="window.open(this.src, '_blank'); event.stopPropagation();" alt="sticker" />`;
     } else {
-        // È testo normale
         messageContentHtml = message;
     }
 
-    // D. Costruzione Prefisso (Nome Mittente)
-    const prefix = isLocal 
-        ? `${userNickname}${type === 'private' ? ` (DM a ${sender})` : ''}: ` 
+    const prefix = isLocal
+        ? `${userNickname}${type === 'private' ? ` (DM a ${sender})` : ''}: `
         : `${sender}: `;
 
-    // E. Costruzione HTML Finale
-    let htmlContent = `<span class="${cssClass}">${prefix}</span>${messageContentHtml}`;
+    let htmlContent = `<span class="${cssClass} chat-sender-name">${prefix}</span>${messageContentHtml}`;
 
-    // F. Aggiunta Icona Spunte Lettura (solo se c'è un ID)
     if (msgId) {
         htmlContent += `
             <div class="read-status" id="status-${msgId}">
@@ -2433,40 +2414,46 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
     messagesContainer.appendChild(messageEl);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    // --- G. LOGICA SUONI E NOTIFICHE ---
+    const senderSpan = messageEl.querySelector('.chat-sender-name');
+    if (senderSpan && !isLocal && type !== 'system') {
+        senderSpan.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            chatTargetUser = sender.replace(/^[@+]/, '');
+            chatContextMenu.classList.remove('hidden');
+            chatContextMenu.style.top = `${e.clientY}px`;
+            chatContextMenu.style.left = `${e.clientX}px`;
+        });
+    }
+
     if (!isLocal) {
         playNotificationSound('chat');
-        
-        // Verifica se la chat è visibile (Desktop o Mobile)
-        const isChatVisible = (!chatPanel.classList.contains('hidden') && window.innerWidth > 768) || 
+
+        const isChatVisible = (!chatPanel.classList.contains('hidden') && window.innerWidth > 768) ||
                               (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden'));
 
         if (isChatVisible) {
-            // Se vedo la chat, mando subito la conferma di lettura
             if (socket && currentRoomId && msgId) {
                 socket.emit('msg-read', currentRoomId, msgId, userNickname);
-                messageEl.classList.add('processed-read'); 
+                messageEl.classList.add('processed-read');
             }
         } else {
-            // Se non la vedo, incremento il badge notifiche
             unreadMessagesCount++;
             updateUnreadBadge();
         }
     }
 
-    // [NUOVO] Salva messaggio utente in memoria per il cambio canali
     if (typeof roomChatsData !== 'undefined' && currentRoomId) {
         if (!roomChatsData[currentRoomId]) roomChatsData[currentRoomId] = [];
-        
-        // Evitiamo duplicati controllando l'ID
+
         const exists = msgId && roomChatsData[currentRoomId].some(m => m.id === msgId);
         if (!exists) {
-            roomChatsData[currentRoomId].push({ 
-                sender: sender, 
-                text: message, 
-                type: type, 
-                id: msgId, 
-                timestamp: Date.now() 
+            roomChatsData[currentRoomId].push({
+                sender: sender,
+                text: message,
+                type: type,
+                id: msgId,
+                timestamp: Date.now()
             });
         }
     }
@@ -3697,6 +3684,56 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+});
+
+// --- LOGICA MENU CONTESTUALE CHAT ---
+const chatContextMenu = document.getElementById('chat-context-menu');
+let chatTargetUser = null; // Il nickname su cui hai cliccato
+
+// Gestione click sulle opzioni del menu
+document.getElementById('chat-menu-dm').addEventListener('click', () => {
+    if(chatTargetUser) {
+        chatMessageInput.value = `/dm ${chatTargetUser} `;
+        chatMessageInput.focus();
+    }
+    hideChatContextMenu();
+});
+
+document.getElementById('chat-menu-op').addEventListener('click', () => {
+    if(chatTargetUser) socket.emit('command-op', currentRoomId, chatTargetUser);
+    hideChatContextMenu();
+});
+
+document.getElementById('chat-menu-deop').addEventListener('click', () => {
+    if(chatTargetUser) socket.emit('command-deop', currentRoomId, chatTargetUser);
+    hideChatContextMenu();
+});
+
+document.getElementById('chat-menu-voice').addEventListener('click', () => {
+    if(chatTargetUser) socket.emit('command-voice', currentRoomId, chatTargetUser);
+    hideChatContextMenu();
+});
+
+document.getElementById('chat-menu-devoice').addEventListener('click', () => {
+    if(chatTargetUser) socket.emit('command-devoice', currentRoomId, chatTargetUser);
+    hideChatContextMenu();
+});
+
+document.getElementById('chat-menu-slap').addEventListener('click', () => {
+    if(chatTargetUser) socket.emit('command-action', currentRoomId, 'slap', chatTargetUser);
+    hideChatContextMenu();
+});
+
+function hideChatContextMenu() {
+    chatContextMenu.classList.add('hidden');
+    chatTargetUser = null;
+}
+
+// Chiudi cliccando fuori
+document.addEventListener('click', (e) => {
+    if (!chatContextMenu.classList.contains('hidden') && !chatContextMenu.contains(e.target)) {
+        hideChatContextMenu();
+    }
 });
 
 // FINE DEL FILE

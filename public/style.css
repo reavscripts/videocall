@@ -2950,6 +2950,46 @@ body.light-theme .system-msg-content {
     display: none !important;
 }
 
+#chat-context-menu {
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    z-index: 3000; /* Molto alto per stare sopra alla chat */
+    min-width: 160px;
+    overflow: hidden;
+    padding: 5px 0;
+    animation: fadeIn 0.1s ease;
+}
+
+#chat-context-menu .menu-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-color);
+    font-size: 0.9em;
+    transition: background 0.1s;
+}
+
+#chat-context-menu .menu-item:hover {
+    background: var(--surface-2);
+}
+
+#chat-context-menu.hidden {
+    display: none !important;
+}
+
+/* Cursore speciale per i nomi in chat per far capire che sono cliccabili */
+.chat-sender-name {
+    cursor: context-menu;
+}
+.chat-sender-name:hover {
+    text-decoration: underline;
+}
+
 
 /* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
 @media (max-width: 768px) {

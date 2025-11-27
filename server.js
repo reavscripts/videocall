@@ -14,7 +14,8 @@ const io = new Server(server, {
     cors: { 
         origin: [
             "http://localhost:3000", 
-            "https://videocall-webrtc-signaling-server.onrender.com"
+            "https://videocall-webrtc-signaling-server.onrender.com",
+            process.env.CLIENT_URL // Legge direttamente da Render
         ], 
         methods: ['GET', 'POST'] 
     }
