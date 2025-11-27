@@ -1415,9 +1415,10 @@ function sendMessage(contentOverride = null) {
             case '/join':
                 if(arg1) {
                     const roomName = arg1.replace('#', '').toLowerCase();
-                    handleJoinCommand(roomName);
+                    const password = args[2] || ""; // Legge la password se presente (es: /join stanza pass)
+                    handleJoinCommand(roomName, password);
                 } else {
-                    addChatMessage('System', 'Usage: /join #roomname', false, 'system');
+                    addChatMessage('System', 'Usage: /join #roomname [password]', false, 'system');
                 }
                 break;
 
@@ -1515,7 +1516,7 @@ function sendMessage(contentOverride = null) {
     }
 }
 
-function handleJoinCommand(roomName) {
+function handleJoinCommand(roomName, password = "") {
     if (roomName === currentRoomId) {
         addChatMessage('System', `You are already in #${roomName}.`, false, 'system');
         return;
@@ -1525,10 +1526,10 @@ function handleJoinCommand(roomName) {
         myJoinedChannels.push(roomName);
     }
     
-    switchChannel(roomName);
+    switchChannel(roomName, password); 
 }
 
-function switchChannel(newRoomId) {
+function switchChannel(newRoomId, newPassword = "") {
     newRoomId = newRoomId.toLowerCase();
     
     if (currentRoomId === newRoomId) return;
@@ -1536,7 +1537,7 @@ function switchChannel(newRoomId) {
     Object.values(peerConnections).forEach(pc => pc.close());
     for (const key in peerConnections) delete peerConnections[key];
     videosGrid.innerHTML = ''; 
-    
+
     const placeholder = document.createElement('div');
     placeholder.id = 'remote-video-placeholder';
     placeholder.className = 'video-placeholder';
@@ -1552,6 +1553,8 @@ function switchChannel(newRoomId) {
     messagesContainer.innerHTML = ''; 
     
     currentRoomId = newRoomId; 
+    currentRoomPassword = newPassword;
+    
     document.getElementById('room-name-display').textContent = `#${newRoomId}`;
     
     loadChatFromMemory(newRoomId); 
@@ -1600,7 +1603,7 @@ function renderSidebarChannels() {
 
         div.onclick = () => {
             if (room !== currentRoomId) {
-                switchChannel(room);
+                switchChannel(room, ""); 
             }
         };
 
@@ -3220,6 +3223,12 @@ if (opSaveBtn) {
             socket.emit('op-update-settings', currentRoomId, newTopic, newPass, newColor, isModerated);
         }
     });
+}
+
+function saveCurrentChatToMemory() {
+    if (currentRoomId && !roomChatsData[currentRoomId]) {
+        roomChatsData[currentRoomId] = [];
+    }
 }
 
 function loadChatFromMemory(roomId) {
