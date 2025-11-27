@@ -564,7 +564,6 @@ function stopSpeechRecognition() {
             recognition.onend = null; // Rimuovi il listener per evitare il riavvio automatico
             recognition.onerror = null;
             recognition.stop();
-            console.log("[Speech] 🛑 Istanza precedente terminata forzatamente.");
         } catch (e) {
             console.warn("Errore nello stop forzato:", e);
         }
@@ -592,7 +591,6 @@ function initSpeechRecognition() {
 
     recognition.onstart = () => {
         isRecognitionRestarting = false;
-        console.log("[Speech] 🟢 Microfono in ascolto...");
     };
 
     recognition.onresult = (event) => {
@@ -606,9 +604,6 @@ function initSpeechRecognition() {
 
         // Se c'è testo definitivo, invialo
         if (finalTranscript && socket && currentRoomId) {
-            
-            // Debug visivo in console per te
-            console.log(`[Speech] 📝 Catturato: "${finalTranscript}"`);
 
             // Logica Verbale (Meeting Minutes)
             if (isGlobalMeetingRecording) {
@@ -638,7 +633,6 @@ function initSpeechRecognition() {
         // Se il flag è ancora attivo, riavvia
         if ((isTranscribingLocal || isGlobalMeetingRecording) && !isRecognitionRestarting) {
             isRecognitionRestarting = true;
-            console.log("[Speech] 🔄 Riavvio automatico in corso...");
             
             // Riavvia dopo 500ms per evitare crash del browser
             setTimeout(() => {
@@ -649,15 +643,12 @@ function initSpeechRecognition() {
                 } catch(e) { console.warn("Riavvio fallito:", e); }
             }, 500);
         } else {
-            console.log("[Speech] 🔴 Sessione terminata.");
             stopSpeechRecognition(); // Pulisci tutto
         }
     };
 }
 
 // ---------- Helpers ----------
-function log(...args){ console.log('[APP]',...args); }
-
 function t(key) {
     if (TRANSLATIONS[APP_LANGUAGE] && TRANSLATIONS[APP_LANGUAGE].js[key]) {
         return TRANSLATIONS[APP_LANGUAGE].js[key];
@@ -1413,9 +1404,30 @@ function sendMessage(contentOverride = null) {
                 break;
 
             case '/leave':
-                disconnect();
+                // CASO A: Canale specificato (es: /leave #test)
+                if (arg1) {
+                    const roomToLeave = arg1.replace('#', '').toLowerCase();
+                    // Controlla se siamo effettivamente in quel canale
+                    if (myJoinedChannels.includes(roomToLeave)) {
+                        removeChannelFromSidebar(roomToLeave);
+                        addChatMessage('Sistema', `Hai lasciato il canale #${roomToLeave}.`, false, 'system');
+                    } else {
+                        addChatMessage('Sistema', `Non sei connesso al canale #${roomToLeave}.`, false, 'system');
+                    }
+                } 
+                // CASO B: Nessun canale specificato (lascia quello corrente)
+                else {
+                    if (currentRoomId) {
+                        // Salviamo l'ID prima che venga resettato
+                        const roomName = currentRoomId; 
+                        removeChannelFromSidebar(roomName);
+                    } else {
+                        // Se non siamo in nessuna stanza, disconnessione totale
+                        disconnect();
+                    }
+                }
                 break;
-
+				
             case '/serverlist':
                 // Richiede la lista e apre il modale
                 socket.emit('request-room-list');
@@ -1511,39 +1523,50 @@ function handleJoinCommand(roomName) {
 }
 
 function switchChannel(newRoomId) {
-    console.log(`[Switch] Cambio visuale su: #${newRoomId}`);
-    
     // 1. Normalizza l'ID
     newRoomId = newRoomId.toLowerCase();
+    
+    // Se stiamo cliccando sulla stessa stanza, non fare nulla
+    if (currentRoomId === newRoomId) return;
 
-    // 2. Chiudi SOLO connessioni WebRTC (Video)
+    // 2. IMPORTANTE: NON inviare 'leave-room'. 
+    // Vogliamo rimanere connessi alla stanza vecchia in background.
+
+    // 3. Pulisci la vista ATTUALE
+    // Chiudiamo le connessioni VIDEO per risparmiare risorse (verranno ricreate se torni qui)
     Object.values(peerConnections).forEach(pc => pc.close());
     for (const key in peerConnections) delete peerConnections[key];
-    for (const key in videoSenders) delete videoSenders[key];
     videosGrid.innerHTML = ''; 
     
-    // 3. Ripristina video locale
+    // 4. Ripristina il placeholder e il video locale
     const placeholder = document.createElement('div');
     placeholder.id = 'remote-video-placeholder';
     placeholder.className = 'video-placeholder';
     placeholder.textContent = 'Caricamento stanza...';
     videosGrid.appendChild(placeholder);
-    if (localFeedEl) videosGrid.appendChild(localFeedEl);
+    
+    if (localFeedEl) {
+        videosGrid.appendChild(localFeedEl);
+        localFeedEl.classList.remove('hidden');
+    }
 
-    // 4. Gestione Chat (Salva vecchia, carica nuova)
-    saveCurrentChatToMemory();
-    messagesContainer.innerHTML = ''; 
-    currentRoomId = newRoomId;
+    // 5. Aggiorna stato applicazione
+    saveCurrentChatToMemory(); // Salva chat vecchia
+    messagesContainer.innerHTML = ''; // Pulisci UI
+    
+    currentRoomId = newRoomId; // Imposta nuova stanza
     document.getElementById('room-name-display').textContent = `#${newRoomId}`;
-    loadChatFromMemory(newRoomId);
+    
+    loadChatFromMemory(newRoomId); // Carica chat nuova se esiste
+    renderSidebarChannels(); // Aggiorna sidebar (evidenzia attiva)
 
-    // 5. Aggiorna Sidebar e URL
-    renderSidebarChannels();
+    // 6. Aggiorna l'URL del browser
     const url = new URL(window.location);
     url.searchParams.set('room', newRoomId);
     window.history.pushState({}, '', url);
 
-    // 6. INVIA JOIN (Senza disconnettere il socket!)
+    // 7. Richiedi al server i dati della nuova stanza (Chi c'è dentro?)
+    // Il server capirà che sei già dentro e ti manderà solo i dati aggiornati
     if(socket && socket.connected) {
         socket.emit('join-room', currentRoomId, userNickname, currentRoomPassword);
     }
@@ -1597,22 +1620,59 @@ function renderSidebarChannels() {
 }
 
 function removeChannelFromSidebar(roomToRemove) {
-    // Rimuovi dall'array
-    myJoinedChannels = myJoinedChannels.filter(r => r !== roomToRemove);
+    if (!roomToRemove) return;
+
+    // 1. Normalizzazione identica al server
+    const roomName = roomToRemove.trim().replace('#', '').toLowerCase();
+
+    // 2. Invia evento al server (se connesso)
+    if (socket && socket.connected) {
+        socket.emit('leave-room', roomName);
+        
+        // FIX AGGIUNTIVO: Chiediamo subito la lista aggiornata per fixare il modale "Canali Attivi"
+        setTimeout(() => {
+            socket.emit('request-room-list');
+        }, 200);
+    } else {
+        console.error("Socket non connesso, impossibile inviare leave-room");
+    }
+
+    // 3. Rimuovi dalla lista locale
+    myJoinedChannels = myJoinedChannels.filter(r => r !== roomName);
     
-    // Aggiorna la grafica
+    // 4. Pulisci memoria chat locale
+    if (roomChatsData[roomName]) delete roomChatsData[roomName];
+    
+    // 5. Aggiorna la Sidebar
     renderSidebarChannels();
     
-    // Se abbiamo chiuso il canale in cui ci troviamo attualmente
-    if (roomToRemove === currentRoomId) {
+    // 6. GESTIONE CAMBIO VISTA
+    // Se stiamo chiudendo la stanza che stiamo guardando ORA
+    if (currentRoomId === roomName) {
+        
+        // Pulisci UI
+        if(messagesContainer) messagesContainer.innerHTML = '';
+        const titleEl = document.getElementById('room-name-display');
+        if(titleEl) titleEl.textContent = '';
+        if(videosGrid) videosGrid.innerHTML = '';
+        
+        // Reset variabile currentRoomId
+        currentRoomId = null; 
+
+        // Se ci sono altri canali aperti, sposta la vista sul primo disponibile
         if (myJoinedChannels.length > 0) {
-            // Se ci sono altri canali aperti, vai al primo disponibile
             switchChannel(myJoinedChannels[0]);
         } else {
-            // Se non ci sono più canali, disconnetti tutto e torna alla home
-            disconnect(); 
+            // Se non c'è nulla, torna alla home
+            resetAndShowOverlay();
+            
+            // Pulizia extra per evitare flussi video residui
+            if(localStream) {
+                // Opzionale: fermare la cam se esci da tutto
+                // localStream.getTracks().forEach(t => t.stop());
+            }
         }
-    }
+    } 
 }
 
 // ** FILE TRANSFER LOGIC (PROTETTO) **
@@ -2006,7 +2066,6 @@ function startRecording() {
         mediaRecorder.start(1000); 
         isRecording = true;
         recordButton.classList.add('active');
-        console.log(`Registrazione avviata con codec: ${selectedMimeType}`);
 
     } catch (e) {
         console.error("Errore avvio registrazione:", e);
@@ -2522,9 +2581,37 @@ function sendPrivateMessage(recipientId, recipientNickname, message) { if (!mess
 function openChatPanelMobile(callback) { if (chatPanel.classList.contains('active') && !chatPanel.classList.contains('hidden')) { if (callback) callback(); return; } chatPanel.classList.remove('hidden'); setTimeout(() => { chatPanel.classList.add('active'); let closeBtn = document.getElementById('close-chat-btn'); if (!closeBtn) { closeBtn = document.createElement('button'); closeBtn.textContent = '← Torna alle webcam'; closeBtn.id = 'close-chat-btn'; closeBtn.style.cssText = `position: relative; width: calc(100% - 20px); padding: 10px; margin: 10px; border: none; background: var(--primary-color); color: #fff; font-weight: bold; cursor: pointer; border-radius: 6px;`; const chatHeader = chatPanel.querySelector('h3'); if(chatHeader) chatPanel.insertBefore(closeBtn, chatHeader); closeBtn.addEventListener('click', () => { chatPanel.classList.remove('active'); setTimeout(() => { chatPanel.classList.add('hidden'); closeBtn.remove(); }, 300); }); } setTimeout(callback, 350); }, 10); }
 
 // ** SOCKET IO **
+let localServerInstanceId = null;
+
 function initializeSocket(){
   if(socket) return; 
   socket = io(RENDER_SERVER_URL);
+  
+  socket.on('server-instance-id', (serverId) => {
+      
+      // Se avevamo già un ID salvato ed è diverso da quello appena arrivato...
+      if (localServerInstanceId && localServerInstanceId !== serverId) {
+          console.warn("[SYNC] Rilevato riavvio del server. Reset totale.");
+          alert("Il server è stato aggiornato/riavviato. La pagina verrà ricaricata.");
+          
+          // PULIZIA TOTALE: Ricarica la pagina come se fosse la prima volta
+          window.location.reload(); 
+          return;
+      }
+      
+      // Altrimenti è la prima connessione, salviamo l'ID
+      localServerInstanceId = serverId;
+  });
+  
+  socket.on('disconnect', (reason) => {
+      
+      // Se la connessione cade perché il server è stato riavviato o spento
+      if (reason === "io server disconnect" || reason === "transport close") {
+          alert("Il server è stato riavviato. La pagina verrà ricaricata per pulire la sessione.");
+          // Questo comando pulisce TUTTA la memoria locale del browser ricaricando la pagina da zero
+          location.reload(); 
+      }
+  });
   
   socket.on('error-message', (msg) => {
       // Mostra l'errore all'utente
@@ -2589,7 +2676,6 @@ function initializeSocket(){
 		// --- FIX: CONTROLLO SE SONO IO ---
 		// Se l'ID aggiornato corrisponde al MIO socket, aggiorno la mia interfaccia
 		if (socket && socketId === socket.id) {
-			console.log("Il mio ruolo è cambiato. Nuovo nick:", newNick);
 			userNickname = newNick; 
 			
 			// Aggiorna etichetta del mio video locale
@@ -2628,7 +2714,6 @@ function initializeSocket(){
               try {
                   recognition.start();
                   isTranscribingLocal = true;
-                  console.log("Speech Recognition avviato su richiesta remota.");
               } catch(e) { console.error("Errore avvio speech:", e); }
           }
       } else {
@@ -2637,7 +2722,6 @@ function initializeSocket(){
           // oppure spegniamo subito. Spegniamo per privacy.
           isTranscribingLocal = false;
           if (recognition) recognition.stop();
-          console.log("Speech Recognition fermato.");
       }
   });
 
@@ -2672,7 +2756,6 @@ function initializeSocket(){
   });
   
   socket.on('global-transcription-status', (isActive) => {
-        console.log("[Socket] Stato trascrizione globale:", isActive);
         isGlobalMeetingRecording = isActive;
 
         if (isActive) {
@@ -2698,9 +2781,6 @@ function initializeSocket(){
             if (!isTranscribingLocal) {
                 stopSpeechRecognition();
             }
-
-            // Debug: Controlla se abbiamo dati
-            console.log("Totale righe salvate:", meetingHistory.length);
 
             // Attendi 1 secondo per eventuali ultimi pacchetti di rete
             setTimeout(() => {
@@ -2750,67 +2830,67 @@ function initializeSocket(){
   });
 
   socket.on('admin-data-update', (data) => { renderAdminDashboard(data); });
-  socket.on('connect', ()=> log('Connesso', socket.id));
+  socket.on('connect', ()=> console.log('Connesso', socket.id));
 
   socket.on('nickname-in-use', (msg) => { alert(msg); resetAndShowOverlay(); if (socket) socket.disconnect(); socket = null; });
   
   // Modifica la firma per ricevere anche topic e password
-  socket.on('welcome', (newPeerId, serverAssignedNickname, peers=[], topic="", hasPassword=false, nameColor="#00b8ff", isSilentRejoin=false, isModerated=false) => { 
-      // 1. Aggiorna stato locale
+  // NOTA: Aggiunto 'joinedRoomId' come PRIMO argomento
+  socket.on('welcome', (joinedRoomId, newPeerId, serverAssignedNickname, peers=[], topic="", hasPassword=false, nameColor="#00b8ff", isSilentRejoin=false, isModerated=false) => { 
+      
+      // Se il messaggio di benvenuto non è per la stanza che sto guardando ora, ignoralo
+      // (Serve per quando ti unisci a stanze in background)
+      if (joinedRoomId !== currentRoomId) {
+          return;
+      }
+
+      // --- Da qui in poi è la logica standard di caricamento interfaccia ---
+      if (localFeedEl) {
+          localFeedEl.classList.remove('hidden');
+      }
+
+      const placeholder = document.getElementById('remote-video-placeholder');
+      if (placeholder) {
+          if (peers.length === 0) {
+              placeholder.textContent = t('waiting_others');
+          } else {
+              placeholder.remove();
+          }
+      }
+
       userNickname = serverAssignedNickname; 
       
       const localLabel = document.getElementById('local-nickname-display');
       if(localLabel) localLabel.textContent = userNickname;
       
+      // Aggiorna la lista nick locale
       remoteNicknames[newPeerId] = serverAssignedNickname; 
       
-      // 2. Aggiorna UI Stanza (Topic, Password, Colore)
       updateRoomInfoUI(topic, hasPassword);
       applyRoomBrandColor(nameColor); 
 
-      // 3. Gestione Interfaccia Operatore (Scudo Giallo)
+      // Gestione Bottone OP
       const opBtn = document.getElementById('op-settings-btn');
-      
       if (userNickname.startsWith('@')) {
-		  const toggleEl = document.getElementById('op-moderate-toggle');
+          const toggleEl = document.getElementById('op-moderate-toggle');
           if(toggleEl) toggleEl.checked = isModerated;
-          // SEI OPERATORE
           opBtn.classList.remove('hidden');
           opBtn.classList.add('op-attention');
-          
-          // Pre-compila i campi nel modale OP
           if(document.getElementById('op-topic-input')) document.getElementById('op-topic-input').value = topic;
           if(opColorInput) opColorInput.value = nameColor;
-          if(opModerateToggle) opModerateToggle.checked = isModerated; // Aggiorna checkbox moderazione
-
+          if(opModerateToggle) opModerateToggle.checked = isModerated;
       } else {
-          // NON SEI OPERATORE
           opBtn.classList.add('hidden');
           opBtn.classList.remove('op-attention');
-          // Aggiorna comunque lo stato del toggle moderazione (visualizzazione passiva se necessario)
           if(opModerateToggle) opModerateToggle.checked = isModerated;
       }
 
-      // 4. Messaggi di Sistema in Chat (SOLO se è un nuovo ingresso effettivo)
       if (!isSilentRejoin) {
           addChatMessage(userNickname, `${t('welcome')} #${currentRoomId}!`, false, 'system'); 
-          
-          // Avviso specifico per OP
-          if (userNickname.startsWith('@')) {
-               setTimeout(() => {
-                  addChatMessage('Sistema', '👑 Sei l\'Operatore (@). Gestisci Topic e Password dallo scudo in alto.', false, 'system');
-              }, 500); 
-          }
-
-          // Avviso specifico per Modalità Moderata
-          if (isModerated) {
-              setTimeout(() => {
-                  addChatMessage('Sistema', '⚠️ Questa stanza è in modalità Moderata (+m). Solo OP (@) e Voice (+) possono parlare.', false, 'system');
-              }, 600);
-          }
+          // ... messaggi di sistema opzionali ...
       }
       
-      // 5. Ricrea connessioni peer per i video
+      // Avvia connessioni video (WebRTC)
       peers.forEach(peer => { 
           if(peer.id !== socket.id) { 
               remoteNicknames[peer.id] = peer.nickname; 
@@ -2914,8 +2994,6 @@ function initializeSocket(){
     const rId = roomId.toLowerCase();
     const cId = currentRoomId ? currentRoomId.toLowerCase() : "";
 
-    console.log(`[Chat] Msg da ${sender} in ${rId}. Stanza attuale: ${cId}`);
-
     if (rId === cId) {
         // Se è la stanza che sto guardando, mostra il messaggio
         addChatMessage(sender, message, false, 'public', msgId);
@@ -2963,29 +3041,65 @@ function initializeSocket(){
           }
       }
   });
+  
   // Standard events
-  socket.on('peer-joined', (peerId,nickname)=>{ remoteNicknames[peerId] = nickname; createPeerConnection(peerId); addChatMessage(t('system'), `${nickname} ${t('user_joined')}`, false, 'system'); });
+	socket.on('peer-joined', (evtRoomId, peerId, nickname) => {
+    // A. Se l'evento è per la stanza che sto guardando ORA
+		if (currentRoomId && evtRoomId.toLowerCase() === currentRoomId.toLowerCase()) {
+			remoteNicknames[peerId] = nickname;
+			createPeerConnection(peerId);
+			addChatMessage(t('system'), `${nickname} ${t('user_joined')}`, false, 'system');
+		} 
+		// B. Se è per un'altra stanza in cui sono connesso (background)
+		else {
+			// Opzionale: Aggiungi logica per salvare il messaggio in memoria 'roomChatsData'
+			if (!roomChatsData[evtRoomId]) roomChatsData[evtRoomId] = [];
+			roomChatsData[evtRoomId].push({
+				sender: 'Sistema',
+				text: `${nickname} ${t('user_joined')}`,
+				type: 'system',
+				timestamp: Date.now()
+			});
+			
+			// Evidenzia la stanza nella sidebar se esiste
+			const channelItem = Array.from(document.querySelectorAll('.channel-item span'))
+				.find(el => el.textContent.toLowerCase().includes(evtRoomId.toLowerCase()));
+			if(channelItem) {
+				channelItem.style.color = 'var(--primary-color)'; // Evidenzia
+				channelItem.style.fontWeight = 'bold';
+			}
+		}
+	});
   
-  socket.on('peer-left', (peerId, nickname)=>{ 
-      removeRemoteFeed(peerId); 
-      // Se il server manda il nick usalo, altrimenti fallback
-      const name = nickname || 'Utente';
-      addChatMessage(t('system'), `${name} è uscito.`, false, 'system'); 
-  });
-  
-  socket.on('new-private-message', (s, m) => { addChatMessage(`Privato da ${s}`, m, false, 'private'); });
-  socket.on('audio-status-changed', (pid, talk) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f) { f.classList.toggle('is-talking', talk); f.querySelector('.remote-mic-status').textContent = talk ? 'mic' : 'mic_off'; } });
-  // Gestione Video Status Remoto (No Cam Image)
-  socket.on('remote-video-status-changed', (peerId, isEnabled) => {
-      const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
-      if (feed) {
-          const overlay = feed.querySelector('.no-cam-overlay');
-          if (overlay) {
-              if (isEnabled) overlay.classList.add('hidden');
-              else overlay.classList.remove('hidden');
-          }
-      }
-  });
+  // NOTA: Ora riceviamo evtRoomId come primo argomento
+	socket.on('peer-left', (evtRoomId, peerId, nickname) => {
+		// A. Se l'evento è per la stanza attiva
+		if (currentRoomId && evtRoomId.toLowerCase() === currentRoomId.toLowerCase()) {
+			removeRemoteFeed(peerId);
+			const name = nickname || 'Utente';
+			addChatMessage(t('system'), `${name} è uscito.`, false, 'system');
+		}
+		// B. Se è per una stanza in background
+		else {
+			// Pulizia logica delle connessioni (importante per il multi-stanza)
+			if(peerConnections[peerId]) { 
+				peerConnections[peerId].close(); 
+				delete peerConnections[peerId]; 
+			}
+			// ...rimuovi feed video se per errore era rimasto...
+			const el = document.querySelector(`[data-peer-id="${peerId}"]`);
+			if(el) el.remove();
+			
+			// Salva messaggio sistema in background
+			if (!roomChatsData[evtRoomId]) roomChatsData[evtRoomId] = [];
+			roomChatsData[evtRoomId].push({
+				sender: 'Sistema',
+				text: `${nickname || 'Utente'} è uscito.`,
+				type: 'system',
+				timestamp: Date.now()
+			});
+		}
+	});
   socket.on('remote-stream-type-changed', (pid, ratio) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f){ f.classList.remove('ratio-4-3', 'ratio-16-9'); f.classList.add(`ratio-${ratio}`); } });
   
   // WebRTC Signaling
@@ -2998,7 +3112,32 @@ function initializeSocket(){
   socket.on('admin-login-fail', () => { adminMsg.textContent = 'Password errata.'; });
   socket.on('admin-data-update', (data) => { renderAdminDashboard(data); });
   socket.on('kicked-by-admin', () => { alert("Sei stato espulso."); location.reload(); });
-  socket.on('room-closed-by-admin', () => { alert("Stanza chiusa."); location.reload(); });
+  socket.on('room-closed-by-admin', (closedRoomId) => { 
+
+      if (!closedRoomId) return; 
+      
+      const roomName = closedRoomId.toLowerCase();
+
+      // Mostra alert solo se l'utente è "consapevole" di quella stanza
+      if (myJoinedChannels.includes(roomName)) {
+          alert(`La stanza #${roomName} è stata chiusa dall'amministratore.`);
+      }
+
+      // 1. Rimuovi dalla lista canali
+      myJoinedChannels = myJoinedChannels.filter(r => r !== roomName);
+      renderSidebarChannels(); 
+
+      // 2. Se ero dentro quella stanza, portami via
+      if (currentRoomId === roomName) {
+          document.getElementById('room-name-display').textContent = '';
+          
+          if (myJoinedChannels.length > 0) {
+              switchChannel(myJoinedChannels[0]);
+          } else {
+              resetAndShowOverlay();
+          }
+      } 
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -3049,7 +3188,7 @@ function setupDataChannel(dc, peerId) { dc.onopen = () => { dataChannels[peerId]
 if (joinButton) {
     joinButton.addEventListener('click', async ()=>{
       const nickname = nicknameInput.value.trim();
-      const roomId = roomIdInput.value.trim().toLowerCase(); 
+      const roomId = roomIdInput.value.trim().replace('#', '').toLowerCase();
       const password = document.getElementById('room-password-input').value.trim();
 
       if(!nickname || !roomId){ alert('Dati mancanti'); return; }
@@ -3362,7 +3501,6 @@ if (opSaveBtn) {
         const toggleEl = document.getElementById('op-moderate-toggle');
         const isModerated = toggleEl ? toggleEl.checked : false; 
         
-        console.log("[Client] Salvataggio OP. Moderazione attiva:", isModerated); // Debug
 
         if (socket && currentRoomId) {
             // Inviamo 5 parametri (l'ultimo è isModerated)

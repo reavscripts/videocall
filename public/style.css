@@ -2946,23 +2946,24 @@ body.light-theme .system-msg-content {
     display: none !important;
 }
 
+#remote-video-placeholder {
+    display: none !important;
+}
+
 
 /* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
 @media (max-width: 768px) {
 
     /* 1. Header (Intestazione) */
     #room-header {
-        display: flex !important;
-        justify-content: space-between !important; /* Spinge titolo a SX e bottoni a DX */
-        align-items: center !important;
-        flex-wrap: wrap !important; /* Permette al topic di andare a capo */
-        height: auto !important;
-        min-height: 60px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 150;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+        border-bottom: none;
         padding-top: 15px;
-        padding-bottom: 10px;
-        padding-left: 10px;  /* Margine di sicurezza a SX */
-        padding-right: 10px; /* Margine di sicurezza a DX */
-        padding-top: env(safe-area-inset-top, 15px) !important; 
     }
 
     #room-header h3 {
@@ -3331,6 +3332,8 @@ body.light-theme .system-msg-content {
         transform: translateX(-50%) translateY(20px); /* Animazione uscita verso il basso */
     }
 
+
+    /* 1. L'Header deve adattarsi in altezza (non più fisso a 60px) */
     #room-header {
         height: auto !important;     /* Altezza automatica per contenere due righe */
         min-height: 60px;
@@ -3339,23 +3342,23 @@ body.light-theme .system-msg-content {
         padding-bottom: 12px;        /* Spazio extra sotto */
     }
 
-    .header-controls {
-        margin-left: auto !important; /* <--- QUESTO SPINGE LE ICONE A DESTRA */
-        display: flex !important;
-        gap: 8px;
-        position: relative;
-        z-index: 20;
-    }
-
+    /* 2. Il contenitore del Topic smette di essere assoluto */
     #room-topic-container {
-        width: 100% !important; /* Occupa tutta la riga successiva */
-        order: 3; /* Si posiziona DOPO titolo e bottoni */
-        margin-top: 5px !important;
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        transform: none !important;
+        width: 100% !important;
+        margin-top: -5px !important; /* Lo avvicina un po' al titolo */
+        margin-bottom: 5px !important;
+        padding: 0 10px !important;
+        order: 3;
         display: flex;
         justify-content: center;
-        pointer-events: none; /* Lascia cliccare sotto se serve */
+        z-index: 15;
     }
 
+    /* 2. Stile del Testo: Rimuoviamo il box scuro e mettiamo il gradiente */
     #room-topic-display {
         /* Su mobile resettiamo il gradiente testo per massima leggibilità */
         background: rgba(0, 0, 0, 0.6) !important; /* Sfondo scuro semi-trasparente */
@@ -3413,8 +3416,7 @@ body.light-theme .system-msg-content {
     
     /* Sistemiamo il padding per allinearlo visivamente col resto */
     .header-left {
-        flex-shrink: 0; /* Impedisce al titolo di schiacciarsi */
-        margin-right: 10px;
+        padding-left: 5px;
     }
 
 	/* 1. Barra in alto (Header): Forza icone bianche su sfondo sfumato scuro */
