@@ -3233,8 +3233,11 @@ if (recordButton) {
 if (showChatBtn) {
     showChatBtn.addEventListener('click', (e) => {
         e.stopPropagation(); 
-        
-        if (chatPanel.classList.contains('hidden')) {
+
+        const isMobile = window.innerWidth <= 768;
+
+        if (chatPanel.classList.contains('hidden') || (isMobile && !chatPanel.classList.contains('active'))) {
+            
             chatPanel.classList.remove('hidden');
             setTimeout(() => {
                 chatPanel.classList.add('active');
