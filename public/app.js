@@ -1,5 +1,5 @@
-//const RENDER_SERVER_URL = "http://localhost:3000";
-const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
+const RENDER_SERVER_URL = "http://localhost:3000";
+//const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
 const nicknameOverlay = document.getElementById('nickname-overlay');
 const joinButton = document.getElementById('join-button');
@@ -740,12 +740,14 @@ function initSpeechRecognition() {
         if (finalTranscript && socket && currentRoomId) {
 
             if (isGlobalMeetingRecording) {
-                const data = {
-                    nickname: userNickname,
-                    text: finalTranscript,
-                    timestamp: new Date().toLocaleTimeString()
-                };
-                socket.emit('global-transcript-chunk', currentRoomId, data);
+                if (isLocalTalking) { 
+                    const data = {
+                        nickname: userNickname,
+                        text: finalTranscript,
+                        timestamp: new Date().toLocaleTimeString()
+                    };
+                    socket.emit('global-transcript-chunk', currentRoomId, data);
+                }
             }
 
             if (isTranscribingLocal) {
