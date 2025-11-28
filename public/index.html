@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="style.css?v=1.4.2" />
+<link rel="stylesheet" href="style.css?v=1.5.12" />
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon/favicon-32x32.png">
@@ -80,6 +80,43 @@
     </div>
 </div>
 
+<div id="join-channel-modal" class="hidden">
+    <div class="settings-content" style="max-width: 400px;">
+        <div class="settings-header">
+            <h3>Join Channel</h3>
+            <button id="close-join-modal-btn"><span class="material-icons">close</span></button>
+        </div>
+        <div class="settings-body">
+            
+            <div style="margin-top: 10px;">
+                <label style="display:block; margin-bottom:8px; color:var(--muted); font-size:0.85em; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px;">Channel Name</label>
+                
+                <div style="display: flex; align-items: stretch; background: var(--surface-2); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; transition: border-color 0.2s;">
+                    
+                    <span style="padding: 0 15px; background: rgba(255,255,255,0.05); color: var(--muted); display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--border-color); font-weight:bold; font-size: 1.1em;">
+                        #
+                    </span>
+                    
+                    <input type="text" id="new-channel-name-input" placeholder="general" 
+                           style="flex: 1; padding: 12px 15px; background: transparent; border: none; color: #fff; outline: none; font-size: 1em;">
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                 <label style="display:block; margin-bottom:8px; color:var(--muted); font-size:0.85em; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px;">Password (Optional)</label>
+                 <input type="password" id="new-channel-password-input" placeholder="Room password"
+                        style="width: 100%; padding: 12px 15px; background: var(--surface-2); border: 1px solid var(--border-color); color: #fff; border-radius: 8px; outline: none;">
+            </div>
+
+            <div style="text-align:center; margin-top:25px; margin-bottom: 10px;">
+                <button id="confirm-join-btn" class="btn-secondary" style="width: 100%; background: var(--primary-color) !important; color: white !important; padding: 14px !important; font-weight: bold; border-radius: 8px; border:none; cursor: pointer; font-size: 1em;">
+                    JOIN ROOM
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="admin-panel" class="hidden">
     <div class="admin-header">
         <h3>🛡️ Admin Dashboard</h3>
@@ -111,22 +148,25 @@
 </div>
 
 <div id="conference-container" class="hidden">
-    <aside id="channel-sidebar">
+	<aside id="channel-sidebar">
 		<div class="sidebar-header">
 			<img src="images/logo.png" alt="Logo" class="sidebar-logo">
 		</div>
 		
+		<div class="sidebar-controls">
+			<button id="open-join-modal-btn" class="sidebar-action-btn" title="Join a specific channel">
+				<span class="icon-hash">#</span> Join
+			</button>
+			<button id="open-server-list-btn" class="sidebar-action-btn" title="Public Channel List">
+				<span class="material-icons">list</span> List
+			</button>
+		</div>
+
 		<div class="sidebar-section">
 			<small id="channels-header">YOUR CHANNELS</small>
 			<div id="my-channels-list"></div>
 		</div>
-
-		<div class="sidebar-footer">
-			<button id="open-server-list-btn" class="btn-sidebar-action">
-				<span class="material-icons">tag</span> Chan List
-			</button>
-		</div>
-	</aside>
+    </aside>
 
     <div id="content-wrapper"> 
         <header id="room-header">
@@ -402,7 +442,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
-<script src="app.js?v=1.4.2"></script>
+<script src="app.js?v=1.5.12"></script>
 
 <script>
     if ('serviceWorker' in navigator) {

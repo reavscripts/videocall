@@ -1,5 +1,5 @@
-//const RENDER_SERVER_URL = "http://localhost:3000";
-const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
+const RENDER_SERVER_URL = "http://localhost:3000";
+//const RENDER_SERVER_URL = "https://videocall-webrtc-signaling-server.onrender.com";
 
 const nicknameOverlay = document.getElementById('nickname-overlay');
 const joinButton = document.getElementById('join-button');
@@ -14,9 +14,11 @@ const closeServerListBtn = document.getElementById('close-server-list-btn');
 const serverListContainer = document.getElementById('server-list-container');
 const refreshServerListModalBtn = document.getElementById('refresh-server-list-modal-btn');
 let myJoinedChannels = []; 
+let channelUsersRegistry = {};
 const myChannelsListEl = document.getElementById('my-channels-list');
 const roomChatsData = {}; 
 const opModerateToggle = document.getElementById('op-moderate-toggle');
+
 
 const opSettingsBtn = document.getElementById('op-settings-btn');
 const opModal = document.getElementById('op-modal');
@@ -907,17 +909,20 @@ function showReadersDialog(msgId) {
 }
 
 function showOverlay(show){
+  const logo = document.getElementById('app-logo');
+
   if(show){
     nicknameOverlay.classList.remove('hidden');
     settingsBtnOverlay.classList.remove('hidden'); 
     document.getElementById('conference-container').classList.add('hidden');
+    if(logo) logo.style.display = 'block';
   } else {
     nicknameOverlay.classList.add('hidden');
     settingsBtnOverlay.classList.add('hidden'); 
     document.getElementById('conference-container').classList.remove('hidden');
+    if(logo) logo.style.display = 'none'; 
   }
 }
-
 function resetAndShowOverlay() {
     videosGrid.innerHTML = '';
     
@@ -1579,40 +1584,107 @@ function renderSidebarChannels() {
     myChannelsListEl.innerHTML = '';
 
     myJoinedChannels.forEach(room => {
-        const div = document.createElement('div');
-        div.className = `channel-item ${room === currentRoomId ? 'active' : ''}`;
-        div.style.justifyContent = 'space-between'; 
+        const container = document.createElement('div');
+        container.className = `channel-item ${room === currentRoomId ? 'active' : ''}`;
         
-        const span = document.createElement('span');
-        span.textContent = `#${room}`;
-        div.appendChild(span);
+        // --- Header (Channel Name) ---
+        const headerRow = document.createElement('div');
+        headerRow.className = 'channel-header-row';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = `#${room}`;
+        headerRow.appendChild(nameSpan);
 
         const closeBtn = document.createElement('button');
         closeBtn.className = 'remove-chan-btn';
-        closeBtn.innerHTML = '<span class="material-icons" style="font-size:14px">close</span>';
-        closeBtn.title = "Leave Channel";
-        
-        closeBtn.style.background = 'transparent';
-        closeBtn.style.border = 'none';
-        closeBtn.style.color = '#ff5252';
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.style.opacity = '0.7';
-
+        closeBtn.innerHTML = '<span class="material-icons">close</span>';
         closeBtn.onclick = (e) => {
             e.stopPropagation(); 
-            if(confirm(`Leave channel #${room}?`)) {
-                removeChannelFromSidebar(room);
-            }
+            if(confirm(`Leave channel #${room}?`)) removeChannelFromSidebar(room);
         };
-        div.appendChild(closeBtn);
+        headerRow.appendChild(closeBtn);
 
-        div.onclick = () => {
-            if (room !== currentRoomId) {
-                switchChannel(room, ""); 
-            }
+        headerRow.onclick = () => {
+            if (room !== currentRoomId) switchChannel(room, ""); 
         };
 
-        myChannelsListEl.appendChild(div);
+        container.appendChild(headerRow);
+
+        // --- USER LIST (Only for active room) ---
+        if (room === currentRoomId) {
+            const userListDiv = document.createElement('div');
+            userListDiv.className = 'channel-user-list';
+            
+            // 1. Get users
+            let usersInRoom = channelUsersRegistry[room] || [];
+            
+            // 2. Ensure "YOU" are in the list (FIXED CRASH)
+            // Usiamo un controllo sicuro: se socket è null, usiamo 'temp-local-id'
+            const mySocketId = socket ? socket.id : 'temp-local-id';
+            
+            // Controlla se ci siamo già, evitando errori se socket è null
+            const amIHere = usersInRoom.find(u => u.id === mySocketId);
+            
+            if (userNickname && !amIHere) {
+                // Aggiungiamo noi stessi alla lista visiva
+                usersInRoom.push({ id: mySocketId, nickname: userNickname });
+            }
+
+            // 3. Sort Alphabetically
+            const sortedUsers = [...usersInRoom].sort((a, b) => a.nickname.localeCompare(b.nickname));
+
+            // 4. Render Items
+            sortedUsers.forEach(user => {
+                const userEntry = document.createElement('div');
+                userEntry.className = 'channel-user-item';
+                
+                const displayName = user.nickname;
+                let dotClass = 'regular';
+                
+                // Determine CSS Classes based on Role
+                // FIX: Aggiunto controllo di sicurezza su socket
+                if ((socket && user.id === socket.id) || user.id === 'temp-local-id') {
+                    userEntry.classList.add('is-me');
+                } 
+                
+                if (displayName.startsWith('@')) {
+                    userEntry.classList.add('is-op');
+                    dotClass = 'is-op';
+                } 
+                else if (displayName.startsWith('+')) {
+                    userEntry.classList.add('is-voice');
+                    dotClass = 'is-voice';
+                }
+
+                userEntry.innerHTML = `<span class="user-status-dot ${dotClass}"></span> ${displayName}`;
+                
+                // --- ADD CONTEXT MENU EVENT (Right Click) ---
+                // FIX: Non mostrare menu su se stessi (gestendo anche l'ID temporaneo)
+                const isMe = (socket && user.id === socket.id) || user.id === 'temp-local-id';
+                
+                if (!isMe) { 
+                    userEntry.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        chatTargetUser = displayName.replace(/^[@+]/, '');
+                        
+                        const chatContextMenu = document.getElementById('chat-context-menu');
+                        chatContextMenu.classList.remove('hidden');
+                        
+                        chatContextMenu.style.top = `${e.clientY}px`;
+                        chatContextMenu.style.left = `${e.clientX}px`;
+                    });
+                }
+                // ---------------------------------------------
+
+                userListDiv.appendChild(userEntry);
+            });
+
+            container.appendChild(userListDiv);
+        }
+
+        myChannelsListEl.appendChild(container);
     });
 }
 
@@ -2545,6 +2617,7 @@ function initializeSocket(){
 
 	socket.on('user-nick-updated', (socketId, newNick) => {
 		remoteNicknames[socketId] = newNick;
+		
 		const feed = document.querySelector(`[data-peer-id="${socketId}"]`);
 		if(feed) {
 			feed.querySelector('.remote-nickname').textContent = newNick;
@@ -2552,10 +2625,9 @@ function initializeSocket(){
 
 		if (socket && socketId === socket.id) {
 			userNickname = newNick; 
-			
 			const localLabel = document.getElementById('local-nickname-display');
 			if(localLabel) localLabel.textContent = userNickname;
-
+			
 			const opBtn = document.getElementById('op-settings-btn');
 			if (opBtn) {
 				if (newNick.startsWith('@')) {
@@ -2568,6 +2640,16 @@ function initializeSocket(){
 				}
 			}
 		}
+        for (const rId in channelUsersRegistry) {
+            const usersList = channelUsersRegistry[rId];
+            if (usersList) {
+                const userIndex = usersList.findIndex(u => u.id === socketId);
+                if (userIndex !== -1) {
+                    usersList[userIndex].nickname = newNick;
+                }
+            }
+        }
+		renderSidebarChannels();
 	});
 
   socket.on('transcription-request', (requesterId, enable) => {
@@ -2671,64 +2753,69 @@ function initializeSocket(){
   });
 
   socket.on('admin-data-update', (data) => { renderAdminDashboard(data); });
-  socket.on('connect', ()=> console.log('Connected', socket.id));
+  socket.on('connect', () => {
+      console.log('Connected to server with ID:', socket.id);
+      // Se eravamo già in una stanza prima di disconnetterci, rientriamo per sincronizzare la lista
+      if (currentRoomId && userNickname) {
+          console.log('Re-joining room to sync users...');
+          socket.emit('join-room', currentRoomId, userNickname, currentRoomPassword);
+      }
+  });
 
   socket.on('nickname-in-use', (msg) => { alert(msg); resetAndShowOverlay(); if (socket) socket.disconnect(); socket = null; });
   
-  socket.on('welcome', (joinedRoomId, newPeerId, serverAssignedNickname, peers=[], topic="", hasPassword=false, nameColor="#00b8ff", isSilentRejoin=false, isModerated=false) => { 
-      if (joinedRoomId !== currentRoomId) {
-          return;
-      }
-
-      if (localFeedEl) {
-          localFeedEl.classList.remove('hidden');
-      }
-
-      const placeholder = document.getElementById('remote-video-placeholder');
-      if (placeholder) {
-          if (peers.length === 0) {
-              placeholder.textContent = t('waiting_others');
-          } else {
-              placeholder.remove();
-          }
-      }
-
-      userNickname = serverAssignedNickname; 
-      
-      const localLabel = document.getElementById('local-nickname-display');
-      if(localLabel) localLabel.textContent = userNickname;
-      
-      remoteNicknames[newPeerId] = serverAssignedNickname; 
-      
-      updateRoomInfoUI(topic, hasPassword);
-      applyRoomBrandColor(nameColor); 
-
-      const opBtn = document.getElementById('op-settings-btn');
-      if (userNickname.startsWith('@')) {
-          const toggleEl = document.getElementById('op-moderate-toggle');
-          if(toggleEl) toggleEl.checked = isModerated;
-          opBtn.classList.remove('hidden');
-          opBtn.classList.add('op-attention');
-          if(document.getElementById('op-topic-input')) document.getElementById('op-topic-input').value = topic;
-          if(opColorInput) opColorInput.value = nameColor;
-          if(opModerateToggle) opModerateToggle.checked = isModerated;
-      } else {
-          opBtn.classList.add('hidden');
-          opBtn.classList.remove('op-attention');
-          if(opModerateToggle) opModerateToggle.checked = isModerated;
-      }
-
-      if (!isSilentRejoin) {
-          addChatMessage(userNickname, `${t('welcome')} #${currentRoomId}!`, false, 'system'); 
-      }
-      
-      peers.forEach(peer => { 
-          if(peer.id !== socket.id) { 
-              remoteNicknames[peer.id] = peer.nickname; 
-              createPeerConnection(peer.id); 
-          } 
-      });  
+  socket.on('update-user-list', (roomId, users) => {
+      console.log(`User list updated for #${roomId}:`, users); // Debug log
+      channelUsersRegistry[roomId] = users;
+      renderSidebarChannels();
   });
+
+    socket.on('welcome', (joinedRoomId, newPeerId, serverAssignedNickname, peers=[], topic="", hasPassword=false, nameColor="#00b8ff", isSilentRejoin=false, isModerated=false) => {
+        if (joinedRoomId !== currentRoomId) return;
+
+        if (localFeedEl) localFeedEl.classList.remove('hidden');
+
+        const placeholder = document.getElementById('remote-video-placeholder');
+        if (placeholder) {
+            if (peers.length === 0) placeholder.textContent = t('waiting_others');
+            else placeholder.remove();
+        }
+
+        userNickname = serverAssignedNickname;
+        const localLabel = document.getElementById('local-nickname-display');
+        if(localLabel) localLabel.textContent = userNickname;
+
+        updateRoomInfoUI(topic, hasPassword);
+        applyRoomBrandColor(nameColor);
+
+        const opBtn = document.getElementById('op-settings-btn');
+        if (userNickname.startsWith('@')) {
+            const toggleEl = document.getElementById('op-moderate-toggle');
+            if(toggleEl) toggleEl.checked = isModerated;
+            opBtn.classList.remove('hidden');
+            opBtn.classList.add('op-attention');
+            if(document.getElementById('op-topic-input')) document.getElementById('op-topic-input').value = topic;
+            if(opColorInput) opColorInput.value = nameColor;
+            if(opModerateToggle) opModerateToggle.checked = isModerated;
+        } else {
+            opBtn.classList.add('hidden');
+            opBtn.classList.remove('op-attention');
+            if(opModerateToggle) opModerateToggle.checked = isModerated;
+        }
+
+        const hasHistory = roomChatsData[joinedRoomId] && roomChatsData[joinedRoomId].length > 0;
+
+        if (!isSilentRejoin && !hasHistory) {
+            addChatMessage(userNickname, `${t('welcome')} #${currentRoomId}!`, false, 'system');
+        }
+
+        peers.forEach(peer => {
+            if(peer.id !== socket.id) {
+                remoteNicknames[peer.id] = peer.nickname;
+                createPeerConnection(peer.id);
+            }
+        });
+    });
   
   socket.on('room-info-updated', (newTopic, hasPassword, topicChanged, passwordAction, newColor, isModerated, modeChanged) => {
       updateRoomInfoUI(newTopic, hasPassword);
@@ -2847,6 +2934,7 @@ function initializeSocket(){
 			remoteNicknames[peerId] = nickname;
 			createPeerConnection(peerId);
 			addChatMessage(t('system'), `${nickname} ${t('user_joined')}`, false, 'system');
+			renderSidebarChannels();
 		} 
 		else {
 			if (!roomChatsData[evtRoomId]) roomChatsData[evtRoomId] = [];
@@ -2869,6 +2957,8 @@ function initializeSocket(){
 	socket.on('peer-left', (evtRoomId, peerId, nickname) => {
 		if (currentRoomId && evtRoomId.toLowerCase() === currentRoomId.toLowerCase()) {
 			removeRemoteFeed(peerId);
+			delete remoteNicknames[peerId]; // Ensure it is removed from list
+			renderSidebarChannels();
 			const name = nickname || 'User';
 			addChatMessage(t('system'), `${name} left.`, false, 'system');
 		}
@@ -3399,6 +3489,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// --- JOIN CHANNEL MODAL LOGIC ---
+const openJoinModalBtn = document.getElementById('open-join-modal-btn');
+const joinChannelModal = document.getElementById('join-channel-modal');
+const closeJoinModalBtn = document.getElementById('close-join-modal-btn');
+const confirmJoinBtn = document.getElementById('confirm-join-btn');
+const newChannelInput = document.getElementById('new-channel-name-input');
+const newChannelPass = document.getElementById('new-channel-password-input');
+
+if (openJoinModalBtn) {
+    openJoinModalBtn.addEventListener('click', () => {
+        joinChannelModal.classList.remove('hidden');
+        setTimeout(() => newChannelInput.focus(), 100); 
+    });
+}
+
+if (closeJoinModalBtn) {
+    closeJoinModalBtn.addEventListener('click', () => {
+        joinChannelModal.classList.add('hidden');
+    });
+}
+
+function performJoin() {
+    const roomName = newChannelInput.value.trim().replace('#', ''); // Strip # if user typed it
+    const roomPass = newChannelPass.value.trim();
+
+    if (roomName) {
+        handleJoinCommand(roomName, roomPass); 
+        newChannelInput.value = '';
+        newChannelPass.value = '';
+        joinChannelModal.classList.add('hidden');
+        
+        const sidebar = document.getElementById('channel-sidebar');
+        if (sidebar && sidebar.classList.contains('mobile-open')) {
+             sidebar.classList.remove('mobile-open');
+        }
+    } else {
+        alert("Please enter a valid channel name.");
+    }
+}
+
+if (confirmJoinBtn) {
+    confirmJoinBtn.addEventListener('click', performJoin);
+}
+
+if (newChannelInput) {
+    newChannelInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') performJoin();
+    });
+}
 
 const chatContextMenu = document.getElementById('chat-context-menu');
 let chatTargetUser = null; 

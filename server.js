@@ -47,6 +47,14 @@ function logToAdmin(message) {
     });
 }
 
+function getRoomUsers(roomId) {
+    if (!rooms[roomId]) return [];
+    return Object.entries(rooms[roomId]).map(([id, nickname]) => ({
+        id: id,
+        nickname: nickname
+    }));
+}
+
 io.on('connection', (socket) => {
     const clientIp = getClientIp(socket);
 	socket.emit('server-instance-id', SERVER_INSTANCE_ID);
@@ -61,7 +69,7 @@ io.on('connection', (socket) => {
 
     socket.on('join-room', (roomIdRaw, nickname, password = "") => {
         const roomId = String(roomIdRaw).replace('#', '').toLowerCase();
-        
+
         if (bannedIPs.has(clientIp)) {
             socket.emit('error-message', 'You are banned.');
             return;
@@ -72,39 +80,41 @@ io.on('connection', (socket) => {
         }
 
         if (rooms[roomId][socket.id]) {
-            const currentNick = rooms[roomId][socket.id]; 
+            const currentNick = rooms[roomId][socket.id];
             const config = roomConfigs[roomId] || { topic: "", nameColor: "#00b8ff", password: "" };
-            
+
             const peers = Object.entries(rooms[roomId])
                 .filter(([id]) => id !== socket.id)
                 .map(([id, nick]) => ({ id, nickname: nick }));
 
-            socket.emit('welcome', 
+            socket.emit('welcome',
                 roomId,
-                socket.id, 
-                currentNick, 
-                peers, 
-                config.topic, 
-                !!config.password, 
+                socket.id,
+                currentNick,
+                peers,
+                config.topic,
+                !!config.password,
                 config.nameColor,
-                true, 
-				!!config.isModerated
+                true,
+                !!config.isModerated
             );
 
             socket.emit('room-info-updated', config.topic, !!config.password, false, null, config.nameColor, !!config.isModerated, false);
-            return; 
+            socket.emit('update-user-list', roomId, getRoomUsers(roomId));
+            return;
         }
 
+        let cleanNick = nickname.replace(/^[@+]+/, '');
         let isRoomCreator = (Object.keys(rooms[roomId]).length === 0);
-        let finalNickname = nickname.replace(/^@/, ''); 
-        
+        let finalNickname = cleanNick;
+
         if (isRoomCreator) {
-            finalNickname = '@' + finalNickname; 
+            finalNickname = '@' + cleanNick;
         }
 
         if (!roomConfigs[roomId]) {
-            roomConfigs[roomId] = { 
-                password: password, 
+            roomConfigs[roomId] = {
+                password: password,
                 isLocked: false,
                 topic: "",
                 nameColor: "#00b8ff",
@@ -116,12 +126,12 @@ io.on('connection', (socket) => {
         if (config.isLocked) { socket.emit('error-message', 'Room locked.'); return; }
         if (config.password && config.password !== password) { socket.emit('error-message', 'Wrong password.'); return; }
 
-        const existingUserEntry = Object.entries(rooms[roomId]).find(([id, n]) => n.toLowerCase().replace('@','') === finalNickname.toLowerCase());
-        
+        const existingUserEntry = Object.entries(rooms[roomId]).find(([id, n]) => n.toLowerCase().replace(/^[@+]+/, '') === finalNickname.toLowerCase());
+
         if (existingUserEntry) {
             const [oldSocketId, oldNick] = existingUserEntry;
             const isAuth = (!config.password || config.password === password);
-            
+
             if (isAuth) {
                 if (oldNick.startsWith('@') && !finalNickname.startsWith('@')) {
                     finalNickname = '@' + finalNickname.replace(/^@/, '');
@@ -133,15 +143,15 @@ io.on('connection', (socket) => {
             }
         }
 
-        socket.join(roomId); 
-        rooms[roomId][socket.id] = finalNickname; 
-        
+        socket.join(roomId);
+        rooms[roomId][socket.id] = finalNickname;
+
         const peers = Object.entries(rooms[roomId])
             .filter(([id]) => id !== socket.id)
             .map(([id, nick]) => ({ id, nickname: nick }));
 
         socket.to(roomId).emit('peer-joined', roomId, socket.id, finalNickname);
-        
+
         if (!roomMessages[roomId]) roomMessages[roomId] = [];
         roomMessages[roomId].push({
             sender: 'System',
@@ -152,25 +162,27 @@ io.on('connection', (socket) => {
         });
 
         socket.emit('welcome', roomId, socket.id, finalNickname, peers, config.topic, !!config.password, config.nameColor, false, !!config.isModerated);
-        
+
         io.emit('server-room-list-update', getPublicRoomList());
         broadcastAdminUpdate();
         if (roomMessages[roomId].length > 0) {
             socket.emit('chat-history', roomMessages[roomId]);
         }
+        io.to(roomId).emit('update-user-list', roomId, getRoomUsers(roomId));
     });
 
     socket.on('leave-room', (roomIdRaw) => {
         if (!roomIdRaw) return;
 
         const roomId = String(roomIdRaw).trim().replace('#', '').toLowerCase();
-        
+
         if (rooms[roomId]) {
             if (rooms[roomId][socket.id]) {
                 const nickname = rooms[roomId][socket.id];
                 delete rooms[roomId][socket.id];
-                
+
                 socket.to(roomId).emit('peer-left', roomId, socket.id, nickname);
+                io.to(roomId).emit('update-user-list', roomId, getRoomUsers(roomId));
 
                 if (Object.keys(rooms[roomId]).length === 0) {
                     delete rooms[roomId];
@@ -178,12 +190,42 @@ io.on('connection', (socket) => {
                     if(roomMessages[roomId]) delete roomMessages[roomId];
                 }
             }
-        } 
+        }
 
-        socket.leave(roomId); 
+        socket.leave(roomId);
 
         io.emit('server-room-list-update', getPublicRoomList());
         broadcastAdminUpdate();
+    });
+
+    socket.on('disconnect', (reason) => {
+        if (admins.has(socket.id)) admins.delete(socket.id);
+
+        let updateNeeded = false;
+
+        for (const roomId in rooms) {
+            if (rooms[roomId][socket.id]) {
+                const nickname = rooms[roomId][socket.id];
+
+                delete rooms[roomId][socket.id];
+                updateNeeded = true;
+
+                socket.to(roomId).emit('peer-left', roomId, socket.id, nickname);
+                socket.to(roomId).emit('remote-typing-stop', roomId, socket.id);
+                io.to(roomId).emit('update-user-list', roomId, getRoomUsers(roomId));
+
+                if (Object.keys(rooms[roomId]).length === 0) {
+                    delete rooms[roomId];
+                    delete roomConfigs[roomId];
+                    if (roomMessages[roomId]) delete roomMessages[roomId];
+                }
+            }
+        }
+
+        if (updateNeeded) {
+            broadcastAdminUpdate();
+            io.emit('server-room-list-update', getPublicRoomList());
+        }
     });
 
     function getCleanNick(nickname) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chan-v1.4.2'; 
+const CACHE_NAME = 'chan-v1.5.12'; 
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
