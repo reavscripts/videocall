@@ -3367,7 +3367,11 @@ async function switchCamera() {
                 sender.replaceTrack(newVideoTrack);
             }
         }
-        localVideoEl.style.transform = 'scaleX(1)';
+        if (currentFacingMode === 'user') {
+            localVideoEl.style.transform = 'scaleX(-1)';
+        } else {
+            localVideoEl.style.transform = 'scaleX(1)';
+        }
     } catch (err) {
         console.error("Camera switch error:", err);
         if (constraints.video.facingMode.exact) {

@@ -2712,7 +2712,8 @@ body.light-theme .system-msg-content {
     }
 	
 	#local-video {
-		transform: scaleX(1) !important;
+		transform: scaleX(-1);
+		-webkit-transform: scaleX(-1); /* Per compatibilità Safari/Chrome vecchi */
 	}
 
     #main-controls-bar {
