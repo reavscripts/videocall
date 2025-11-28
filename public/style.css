@@ -86,6 +86,7 @@ body.light-theme #close-chat-btn {
 html, body {
     height: 100%;
     margin: 0;
+    overscroll-behavior-y: contain; 
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: var(--text-color);
     font-family: Roboto, Arial, sans-serif;
@@ -94,6 +95,7 @@ html, body {
     background-position: center;
     background-attachment: fixed;
     background-repeat: no-repeat;
+    touch-action: manipulation; 
 }
 
 .hidden {

@@ -12,6 +12,8 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin";
 const clientUrl = (process.env.CLIENT_URL || "").replace(/\/$/, "");
 
 const io = new Server(server, {
+    pingTimeout: 60000,
+    pingInterval: 25000,
     cors: { 
         origin: [
             "http://localhost:3000", 

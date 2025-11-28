@@ -108,6 +108,11 @@ const adminLogsConsole = document.getElementById('admin-logs-console');
 const adminBannedCount = document.getElementById('admin-banned-count');
 
 let socket = null;
+let wakeLock = null;
+const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD//////////////////////////////////////////////////////////////////wAAAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASAAAAAAAASAAAAAAAAB//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD//////////////////////////////////////////////////////////////////wAAAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASAAAAAAAASAAAAAAAAB");
+silentAudio.loop = true;
+silentAudio.volume = 0.01;
+
 let localStream = null;
 let userNickname = 'Guest';
 let currentRoomId = null;
@@ -2959,6 +2964,7 @@ function setupDataChannel(dc, peerId) { dc.onopen = () => { dataChannels[peerId]
 
 if (joinButton) {
     joinButton.addEventListener('click', async ()=>{
+	  activateKeepAlive();
       const nickname = nicknameInput.value.trim();
       const roomId = roomIdInput.value.trim().replace('#', '').toLowerCase();
       const password = document.getElementById('room-password-input').value.trim();
@@ -3088,6 +3094,17 @@ if (chatMessageInput) {
         }, 2000);
     });
 }
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === 'visible') {
+        console.log("App tornata in primo piano");
+        if (socket && currentRoomId) {
+             socket.emit('typing-stop', currentRoomId); 
+        }
+    } else {
+        console.log("App in background");
+    }
+});
 
 document.addEventListener('click', (e) => {
     if (!contextMenuEl.classList.contains('hidden') && 
@@ -3427,5 +3444,37 @@ function hideChatContextMenu() {
 document.addEventListener('click', (e) => {
     if (!chatContextMenu.classList.contains('hidden') && !chatContextMenu.contains(e.target)) {
         hideChatContextMenu();
+    }
+});
+
+async function requestWakeLock() {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Wake Lock attivo: lo schermo non si spegnerà.');
+            document.addEventListener('visibilitychange', async () => {
+                if (wakeLock !== null && document.visibilityState === 'visible') {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            });
+        }
+    } catch (err) {
+        console.warn(`Wake Lock error: ${err.name}, ${err.message}`);
+    }
+}
+
+function activateKeepAlive() {
+    silentAudio.play().then(() => {
+        console.log("Silent audio playing for background persistence.");
+    }).catch(e => console.warn("Audio play failed (user gesture needed):", e));
+    requestWakeLock();
+}
+
+window.addEventListener('beforeunload', (e) => {
+    if (currentRoomId && socket && socket.connected) {
+        const confirmationMessage = 'Sei in una chiamata. Vuoi davvero uscire?';       
+        e.preventDefault();
+        e.returnValue = confirmationMessage;
+        return confirmationMessage;
     }
 });
