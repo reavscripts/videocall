@@ -1579,20 +1579,25 @@ function switchChannel(newRoomId, newPassword = "") {
     }
 }
 
+/* Sostituisci la funzione renderSidebarChannels esistente con questa */
 function renderSidebarChannels() {
     if(!myChannelsListEl) return;
     myChannelsListEl.innerHTML = '';
 
+    const safeCurrentRoomId = currentRoomId ? currentRoomId.toLowerCase() : null;
+
     myJoinedChannels.forEach(room => {
-        const container = document.createElement('div');
-        container.className = `channel-item ${room === currentRoomId ? 'active' : ''}`;
+        const roomName = room.toLowerCase();
+        const isActive = (roomName === safeCurrentRoomId);
         
-        // --- Header (Channel Name) ---
+        const container = document.createElement('div');
+        container.className = `channel-item ${isActive ? 'active' : ''}`;
+
         const headerRow = document.createElement('div');
         headerRow.className = 'channel-header-row';
         
         const nameSpan = document.createElement('span');
-        nameSpan.textContent = `#${room}`;
+        nameSpan.textContent = `#${room}`; // Mostriamo il nome originale
         headerRow.appendChild(nameSpan);
 
         const closeBtn = document.createElement('button');
@@ -1605,45 +1610,39 @@ function renderSidebarChannels() {
         headerRow.appendChild(closeBtn);
 
         headerRow.onclick = () => {
-            if (room !== currentRoomId) switchChannel(room, ""); 
+            if (!isActive) switchChannel(room, ""); 
         };
 
         container.appendChild(headerRow);
 
-        // --- USER LIST (Only for active room) ---
-        if (room === currentRoomId) {
+        if (isActive) {
             const userListDiv = document.createElement('div');
             userListDiv.className = 'channel-user-list';
+
+            let usersInRoom = channelUsersRegistry[room] || channelUsersRegistry[roomName] || [];
             
-            // 1. Get users
-            let usersInRoom = channelUsersRegistry[room] || [];
-            
-            // 2. Ensure "YOU" are in the list (FIXED CRASH)
-            // Usiamo un controllo sicuro: se socket è null, usiamo 'temp-local-id'
+            // Assicuriamoci che TU ci sia nella lista visiva
             const mySocketId = socket ? socket.id : 'temp-local-id';
-            
-            // Controlla se ci siamo già, evitando errori se socket è null
             const amIHere = usersInRoom.find(u => u.id === mySocketId);
-            
+
+            let displayUsers = [...usersInRoom];
+
             if (userNickname && !amIHere) {
-                // Aggiungiamo noi stessi alla lista visiva
-                usersInRoom.push({ id: mySocketId, nickname: userNickname });
+                displayUsers.push({ id: mySocketId, nickname: userNickname });
             }
 
-            // 3. Sort Alphabetically
-            const sortedUsers = [...usersInRoom].sort((a, b) => a.nickname.localeCompare(b.nickname));
+            displayUsers.sort((a, b) => a.nickname.localeCompare(b.nickname));
 
-            // 4. Render Items
-            sortedUsers.forEach(user => {
+            displayUsers.forEach(user => {
                 const userEntry = document.createElement('div');
                 userEntry.className = 'channel-user-item';
                 
                 const displayName = user.nickname;
                 let dotClass = 'regular';
                 
-                // Determine CSS Classes based on Role
-                // FIX: Aggiunto controllo di sicurezza su socket
-                if ((socket && user.id === socket.id) || user.id === 'temp-local-id') {
+                const isMe = (user.id === mySocketId);
+
+                if (isMe) {
                     userEntry.classList.add('is-me');
                 } 
                 
@@ -1658,26 +1657,17 @@ function renderSidebarChannels() {
 
                 userEntry.innerHTML = `<span class="user-status-dot ${dotClass}"></span> ${displayName}`;
                 
-                // --- ADD CONTEXT MENU EVENT (Right Click) ---
-                // FIX: Non mostrare menu su se stessi (gestendo anche l'ID temporaneo)
-                const isMe = (socket && user.id === socket.id) || user.id === 'temp-local-id';
-                
                 if (!isMe) { 
                     userEntry.addEventListener('contextmenu', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        
                         chatTargetUser = displayName.replace(/^[@+]/, '');
-                        
                         const chatContextMenu = document.getElementById('chat-context-menu');
                         chatContextMenu.classList.remove('hidden');
-                        
                         chatContextMenu.style.top = `${e.clientY}px`;
                         chatContextMenu.style.left = `${e.clientX}px`;
                     });
                 }
-                // ---------------------------------------------
-
                 userListDiv.appendChild(userEntry);
             });
 
@@ -3250,29 +3240,23 @@ let currentFacingMode = 'user';
 
 async function switchCamera() {
     if (!localStream || !isVideoEnabled) return;
-
-    currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
-    
+    currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';   
     const constraints = {
         video: { 
             facingMode: { exact: currentFacingMode } 
         },
         audio: false 
     };
-
     try {
         const newStream = await navigator.mediaDevices.getUserMedia(constraints);
         const newVideoTrack = newStream.getVideoTracks()[0];
-
         const oldVideoTrack = localStream.getVideoTracks()[0];
         if (oldVideoTrack) {
             localStream.removeTrack(oldVideoTrack);
             oldVideoTrack.stop(); 
         }
-        localStream.addTrack(newVideoTrack);
-        
+        localStream.addTrack(newVideoTrack);       
         localVideoEl.srcObject = localStream;
-
         for (const peerId in peerConnections) {
             const pc = peerConnections[peerId];
             const sender = pc.getSenders().find(s => s.track.kind === 'video');
@@ -3280,13 +3264,7 @@ async function switchCamera() {
                 sender.replaceTrack(newVideoTrack);
             }
         }
-        
-        if (currentFacingMode === 'user') {
-            localVideoEl.style.transform = 'scaleX(-1)';
-        } else {
-            localVideoEl.style.transform = 'scaleX(1)';
-        }
-
+        localVideoEl.style.transform = 'scaleX(1)';
     } catch (err) {
         console.error("Camera switch error:", err);
         if (constraints.video.facingMode.exact) {
@@ -3617,4 +3595,65 @@ window.addEventListener('beforeunload', (e) => {
         e.returnValue = confirmationMessage;
         return confirmationMessage;
     }
+});
+
+function enableSwipeGestures() {
+    const minSwipeDistance = 75;
+
+    function addSwipeListener(element, direction, actionCallback) {
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        element.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        element.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleGesture();
+        }, { passive: true });
+
+        function handleGesture() {
+            const distance = touchStartX - touchEndX;
+
+            if (direction === 'left' && distance > minSwipeDistance) {
+                actionCallback();
+            }
+
+            if (direction === 'right' && distance < -minSwipeDistance) {
+                actionCallback();
+            }
+        }
+    }
+
+    const sidebarEl = document.getElementById('channel-sidebar');
+    if (sidebarEl) {
+        addSwipeListener(sidebarEl, 'left', () => {
+            if (sidebarEl.classList.contains('mobile-open')) {
+                sidebarEl.classList.remove('mobile-open');
+                console.log('Sidebar chiusa con swipe');
+            }
+        });
+    }
+
+    const chatEl = document.getElementById('chat-panel');
+    if (chatEl) {
+        addSwipeListener(chatEl, 'right', () => {
+            // Verifica se la chat è aperta
+            if (chatEl.classList.contains('active')) {
+                // Logica di chiusura identica a quella del pulsante "Close"
+                chatEl.classList.remove('active');
+                setTimeout(() => {
+                    chatEl.classList.add('hidden');
+                    const closeBtn = document.getElementById('close-chat-btn');
+                    if (closeBtn) closeBtn.remove();
+                }, 300);
+                console.log('Chat chiusa con swipe');
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    enableSwipeGestures();
 });

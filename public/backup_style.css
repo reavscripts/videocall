@@ -1,0 +1,3990 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Inter:wght@400;600;700&display=swap');
+
+:root {
+    /* Brand Colors */
+    --brand-gradient: linear-gradient(135deg, #d422ce 0%, #00c6ff 100%);
+    --dynamic-brand-color: #00b8ff;
+    --primary-color: #00c6ff;
+    --accent-color: #d422ce;
+    
+    /* Base Colors */
+    --text-color: #ffffff;
+    --muted: #a1a1aa;
+    --bg: #0a0a0a;
+    --surface: #161616;
+    --surface-2: #2a2a2a;
+    --border-color: #333;
+    
+    /* Status Colors */
+    --danger: #ef4444;
+    --success: #22c55e;
+}
+
+body.light-theme {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --surface-2: #e4e6eb;
+    --text-color: #1c1e21;
+    --muted: #65676b;
+    --border-color: #ccc;
+    --primary-color: #008ba3;
+}
+
+/* 1. Bottoni nella barra in alto (Header) in Tema Chiaro */
+body.light-theme .header-controls button {
+    color: #333333 !important; /* Icone Scure (Grigio scuro/Nero) */
+    background: rgba(0, 0, 0, 0.08) !important; /* Sfondo leggermente scuro */
+    border: 1px solid rgba(0, 0, 0, 0.15) !important; /* Bordo per definizione */
+}
+
+/* Effetto Hover (Tema Chiaro) */
+body.light-theme .header-controls button:hover {
+    background: rgba(0, 0, 0, 0.15) !important;
+    color: #000000 !important;
+    border-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 2. Bottone Impostazioni Fluttuante (Overlay Home) */
+/* Lo rendiamo solido e definito per non perdersi sugli sfondi */
+body.light-theme .settings-floating-btn {
+    background: #ffffff !important;
+    color: #333333 !important;
+    border: 1px solid #ccc !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+}
+
+body.light-theme .settings-floating-btn:hover {
+    background: #f0f0f0 !important;
+    transform: scale(1.05);
+}
+
+/* 3. Bottone "Torna alle webcam" (Mobile) in Tema Chiaro */
+body.light-theme #close-chat-btn {
+    background-color: rgba(0, 0, 0, 0.08) !important;
+    color: #333333 !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overscroll-behavior-y: contain; 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: var(--text-color);
+    font-family: Roboto, Arial, sans-serif;
+    transition: background 0.3s ease, color 0.3s ease;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    touch-action: manipulation; 
+}
+
+.hidden {
+    display: none !important;
+}
+
+#nickname-overlay {
+    position: fixed;
+    inset: 0;
+    
+    /* QUI applichiamo il viola SOLO per il login */
+    background-color: #301c7b; 
+    
+    /* Aggiungiamo una sfumatura leggera per renderlo moderno e non "piatto" */
+    background-image: radial-gradient(circle at top right, rgba(0, 198, 255, 0.15), transparent 40%),
+                      radial-gradient(circle at bottom left, rgba(0, 0, 0, 0.4), transparent 40%);
+                      
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+#app-logo {
+    width: 180px;
+    height: auto;
+    margin-bottom: 10px;
+    animation: fadeIn 0.4s ease;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    padding: 40px;
+    border-radius: 24px;
+}
+
+.card h2 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+.input-group.floating {
+    position: relative; /* Necessario per posizionare la label */
+    margin-bottom: 5px;
+}
+
+/* Stile Base Input (La "scatola") */
+.card input[type="text"],
+.card input[type="password"] {
+    width: 100%;
+    margin-bottom: 0; /* Reset dei margini (gestisce tutto il 'gap' sopra) */
+    
+    /* DEFINIZIONE VISIVA */
+    background: rgba(0, 0, 0, 0.4) !important; /* Sfondo più scuro della card */
+    border: 1px solid rgba(255, 255, 255, 0.2) !important; /* Bordo grigio chiaro per definire il box */
+    border-radius: 12px; /* Angoli arrotondati */
+    
+    padding: 16px 20px; /* Spazio interno comodo */
+    color: #ffffff !important;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+/* Effetto quando clicchi sulla casella */
+.card input:focus {
+    border-color: #00c6ff !important; /* Bordo Ciano quando scrivi */
+    background: rgba(0, 0, 0, 0.6) !important;
+    box-shadow: 0 0 0 4px rgba(0, 198, 255, 0.1);
+}
+
+.card input::placeholder {
+    color: var(--muted);
+}
+
+.card button {
+    background: var(--primary-color);
+    color: #fff;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.card button:hover {
+    background: var(--accent-color);
+}
+
+.settings-floating-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--surface);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 201;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+#settings-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1200;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.settings-content {
+    background: var(--surface);
+    width: 90%;
+    max-width: 400px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color);
+}
+
+.settings-header {
+    background: var(--surface-2);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.settings-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+    color: var(--text-color);
+}
+
+.settings-header button {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.settings-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-color);
+}
+
+.bg-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.bg-option {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.bg-option:hover {
+    transform: scale(1.05);
+}
+
+.bg-option.selected {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 8px var(--primary-color);
+}
+
+.bg-option.default-bg {
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+}
+
+.separator {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 5px 0;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+.btn-secondary {
+    background: var(--surface-2) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--border-color) !important;
+    font-size: 0.9em !important;
+    padding: 8px 15px !important;
+}
+
+.btn-secondary:hover {
+    background: var(--border-color) !important;
+}
+
+#admin-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 600px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    z-index: 4000 !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeIn 0.3s ease;
+}
+
+.admin-header {
+    background: #2c3e50;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #444;
+}
+
+.admin-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 1.2em;
+}
+
+#close-admin-btn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+}
+
+.admin-content {
+    padding: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: var(--surface);
+}
+
+#admin-login-view {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#admin-password-input {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--text-color);
+}
+
+#admin-login-btn {
+    padding: 10px;
+    background: var(--primary-color);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.stats-bar {
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    color: var(--muted);
+}
+
+#admin-rooms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.admin-room-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--text-color);
+}
+
+.room-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+}
+
+.room-name {
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.btn-close-room {
+    background: var(--danger);
+    color: white;
+    border: none;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-left: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.btn-close-room:hover {
+    background: #c62828;
+}
+
+.admin-user-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#admin-refresh-btn {
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%; /* Lo facciamo largo quanto il pannello per comodità */
+    margin-top: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    transition: transform 0.1s, background 0.2s;
+}
+
+#admin-refresh-btn:hover {
+    background: var(--accent-color);
+    transform: translateY(-1px);
+}
+
+#admin-refresh-btn:active {
+    transform: translateY(1px);
+}
+
+.admin-user-item {
+    padding: 8px 0; /* Più spazio verticale tra gli utenti */
+}
+
+.btn-kick {
+    background: var(--surface-2);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 500;
+    transition: all 0.2s;
+    margin-right: 5px;
+}
+
+.btn-kick:hover {
+    background: var(--muted);
+    color: #fff;
+}
+
+#admin-logs-console {
+    background: #000;
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+    padding: 10px;
+    border-radius: 6px;
+    height: 150px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    border: 1px solid #333;
+    font-size: 0.85em;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.log-entry {
+    border-bottom: 1px solid #111;
+    padding-bottom: 2px;
+}
+
+.admin-section-title {
+    font-weight: bold;
+    color: var(--muted);
+    margin: 10px 0 5px 0;
+    text-transform: uppercase;
+    font-size: 0.8em;
+    letter-spacing: 1px;
+}
+
+.btn-admin-action {
+    height: 32px;
+    min-width: 32px;
+    padding: 0 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: opacity 0.2s;
+}
+
+.btn-admin-action:hover {
+    opacity: 0.9;
+}
+
+.btn-admin-action .material-icons {
+    font-size: 1.1em;
+}
+
+.btn-lock {
+    background: #ff9800;
+}
+
+.btn-lock.locked {
+    background: #d32f2f;
+}
+
+.btn-pass {
+    background: #2196f3;
+}
+
+.btn-ban {
+    background: var(--danger); /* Rosso */
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.btn-ban:hover {
+    background: #d32f2f; /* Rosso più scuro */
+}
+
+#conference-container {
+    display: flex;
+    flex-direction: row; /* Sidebar a sinistra, resto a destra */
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#channel-sidebar {
+    width: 240px; 
+    min-width: 200px;
+    background: var(--surface);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    z-index: 160;
+    transition: width 0.3s ease, transform 0.3s ease;
+}
+
+#channel-sidebar.collapsed {
+    width: 0 !important;
+    min-width: 0 !important; /* <--- QUESTA È LA CHIAVE */
+    flex-basis: 0 !important; /* Assicura che il layout flex non riservi spazio */
+    
+    transform: translateX(-100%);
+    overflow: hidden;
+    border: none;
+    padding: 0 !important; /* Rimuove eventuali padding interni */
+}
+
+#content-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+}
+
+/* Stili Sidebar Interni */
+
+.sidebar-logo {
+    max-width: 80%;
+    height: auto;
+}
+
+.sidebar-section {
+    padding: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.sidebar-section small {
+    color: var(--muted);
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.channel-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    cursor: pointer;
+    font-weight: normal;
+    color: var(--muted);
+    transition: color 0.2s, background 0.2s;
+}
+
+.channel-header-row > span:first-child {
+    font-family: 'Montserrat', sans-serif;
+    letter-spacing: 0.5px;
+}
+
+.channel-item:not(.active) .channel-header-row:hover {
+    background: transparent;
+    color: var(--text-color);
+    border-radius: 0;
+}
+
+.channel-item:hover .channel-header-row {
+    background: var(--surface-2);
+}
+
+.channel-item.active .channel-header-row {
+    color: #fff;
+    font-weight: normal; /* <--- CAMBIATO DA 700 A NORMAL */
+    background: transparent; /* Trasparente perché eredita dal genitore */
+}
+
+.channel-item {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 6px; /* Un po' più di spazio tra i canali */
+    border-radius: 8px;
+    
+    /* Transizione fluida identica alla Chan List */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+    
+    /* Bordi invisibili di base */
+    border: 1px solid transparent; 
+    border-left: 3px solid transparent; 
+    
+    /* FONDAMENTALE: Nasconde la scrollbar orizzontale */
+    overflow: hidden !important; 
+    position: relative;
+}
+
+/* 2. Effetto Hover (IL "POP" E IL GLOW) */
+.channel-item:hover {
+    background: #333 !important; 
+    border-color: rgba(0, 198, 255, 0.3) !important; 
+    border-left-color: var(--primary-color) !important; 
+    box-shadow: 0 8px 20px rgba(0, 198, 255, 0.15) !important;
+    transform: translateY(-2px) !important; 
+    
+    z-index: 10; /* Assicura che l'ombra stia sopra agli altri */
+}
+
+.channel-item.active {
+    background: var(--surface-2); 
+    border-left-color: var(--primary-color); 
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); 
+}
+
+.channel-item .remove-chan-btn {
+    opacity: 0; /* Invisibile finché non passi col mouse */
+    transition: opacity 0.2s, color 0.2s;
+    background: transparent !important; /* Nessuno sfondo */
+    border: none !important;            /* Nessun bordo */
+    padding: 0;                         /* Nessun padding extra */
+    margin-left: 10px;                  /* Un po' di aria dal nome */
+    color: var(--danger);               /* Rosso */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.channel-item:hover .remove-chan-btn { opacity: 1; }
+.remove-chan-btn:hover { 
+    color: #ff0000; /* Rosso più acceso */
+    transform: scale(1.1); /* Leggero zoom per feedback */
+}
+
+.remove-chan-btn .material-icons {
+    font-family: 'Material Icons' !important;
+    font-weight: normal !important;
+    font-size: 18px;
+    display: inline-block;
+    font-style: normal;
+}
+
+.channel-user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-bottom: 10px; /* Spazio in fondo al blocco */
+    animation: fadeIn 0.3s ease;
+}
+
+.channel-user-item {
+    padding: 6px 15px 6px 28px; /* 28px di indentazione per allinearsi visivamente sotto il nome canale */
+    font-size: 0.9em;
+    color: var(--muted); /* Colore base spento */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: context-menu;
+    transition: all 0.2s;
+    position: relative;
+}
+
+/* Hover Effect */
+.channel-user-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    padding-left: 32px; /* Leggero movimento a destra per feedback tattile */
+}
+
+.channel-user-item .user-status-dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.channel-user-item.is-me {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.user-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5); /* Glow base */
+}
+
+/* Standard User */
+.user-status-dot.regular { background-color: var(--muted); }
+
+/* ME (You) */
+.channel-user-item.is-me {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.channel-user-item.is-me .user-status-dot {
+    background-color: var(--primary-color);
+    box-shadow: 0 0 8px var(--primary-color);
+}
+
+/* OPERATOR (@) - Gold */
+.channel-user-item.is-op {
+    color: #ffd740;
+}
+
+.channel-user-item.is-op .user-status-dot {
+    background-color: #ffd740;
+    box-shadow: 0 0 8px rgba(255, 215, 64, 0.6);
+}
+
+/* VOICE (+) - Green/Cyan */
+.channel-user-item.is-voice {
+    color: #69f0ae;
+}
+.channel-user-item.is-voice .user-status-dot {
+    background-color: #69f0ae;
+    box-shadow: 0 0 8px rgba(105, 240, 174, 0.6);
+}
+
+.channel-user-item:not(.is-me):not(.is-op):not(.is-voice) {
+    color: #b0b0b0;
+}
+
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: 15px;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+#refresh-channels-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--muted);
+    padding: 5px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+#refresh-channels-btn:hover { color: #fff; border-color: #fff; }
+
+
+/* 2. Chat Resizer (Maniglia) */
+#chat-resizer {
+    width: 5px;
+    background: transparent;
+    cursor: col-resize;
+    position: absolute;
+    left: 0; /* Sul bordo sinistro del pannello chat */
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+    transition: background 0.2s;
+}
+#chat-resizer:hover, #chat-resizer.resizing {
+    background: var(--primary-color);
+}
+
+#room-header {
+    display: flex;
+    justify-content: space-between; /* Spinge sx e dx ai lati */
+    align-items: center;
+    padding: 0 20px;
+    height: 60px; /* Altezza fissa per stabilità */
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-color);
+    position: relative; /* Necessario per il posizionamento assoluto del centro */
+}
+
+/* --- HEADER: TOPIC CENTRALE (STYLE MATCHING ROOM NAME) --- */
+#room-topic-container {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    text-align: center;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* --- STILE TOPIC DESKTOP (Testo Gradiente) --- */
+#room-topic-display {
+    /* Usa la variabile dinamica per creare il gradiente */
+    background: linear-gradient(to right, var(--dynamic-brand-color) 0%, #ffffff 150%);
+    
+    /* Applica gradiente al testo */
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 800;
+    font-size: 1.1em;
+    letter-spacing: -0.5px;
+    
+    /* Glow colorato usando la variabile */
+    filter: drop-shadow(0 0 8px var(--dynamic-brand-color));
+    
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 5px; /* Un po' di padding per il glow */
+}
+
+#room-topic-display.hidden {
+    opacity: 0 !important;
+    visibility: hidden;
+}
+
+/* Modifichiamo il prefisso per essere testo semplice integrato nel gradiente */
+#room-topic-display::before {
+    content: '// '; /* Simbolo minimal invece della scritta TOPIC dorata */
+    margin-right: 5px;
+    
+    /* Assicuriamoci che erediti il gradiente */
+    background: none;
+    -webkit-text-fill-color: inherit;
+    color: inherit;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    font-size: 1em;
+    font-weight: 900;
+}
+
+#room-header h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.1em;
+}
+
+.room-title-wrapper h3 {
+    margin: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+}
+
+#room-name-display {
+    /* Nuovo Font: Geometrico e Moderno */
+    font-family: 'Montserrat', sans-serif; 
+    font-weight: 900;        /* Peso massimo per impatto */
+    font-size: 1.9rem;       /* Grande */
+    letter-spacing: -0.5px;  /* Lettere vicine per compattezza */
+    text-transform: uppercase; /* Tutto maiuscolo stile LOGO */
+    
+    /* NUOVO GRADIENTE: Electric Violet -> Bright Cyan */
+    background: linear-gradient(to right, #bd00ff 0%, #00b8ff 100%);
+    
+    /* Applicazione gradiente al testo */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent; 
+    
+    /* Glow colorato per staccarlo dallo sfondo */
+    filter: drop-shadow(0 0 15px rgba(189, 0, 255, 0.4));
+    
+    /* Posizionamento */
+    padding-right: 10px;
+    cursor: default;
+    transition: all 0.3s ease;
+}
+
+/* Hover: Effetto "Accensione" */
+#room-name-display:hover {
+    filter: drop-shadow(0 0 25px rgba(0, 184, 255, 0.6));
+    transform: scale(1.02) skewX(-5deg); /* Leggera inclinazione dinamica */
+}
+
+.header-controls {
+    display: flex;
+    gap: 8px;
+    /* AGGIUNGI QUESTI DUE: */
+    position: relative; 
+    z-index: 20; 
+}
+
+.header-controls button,
+.header-controls input[type="button"] {
+    background: var(--surface-2);
+    color: var(--text-color);
+    border: none;
+    border-radius: 5px;
+    padding: 8px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.header-controls button:hover {
+    background: var(--border-color);
+}
+
+#main-area {
+    flex-grow: 1;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+}
+
+#videos-grid {
+    flex-grow: 1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    background: transparent;
+    overflow-y: auto;
+    transition: margin-right 0.3s ease;
+}
+
+.video-feed {
+    background: #000; /* Sfondo nero essenziale per i video verticali */
+    position: relative;
+    /* Assicuriamo che il contenitore non forzi il taglio */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.video-feed.ratio-4-3 {
+    width: 240px;
+    height: 180px;
+}
+
+.video-feed.ratio-16-9 {
+    width: 240px;
+    height: 135px;
+}
+
+.video-feed.is-focused video {
+    object-fit: contain !important;
+    background: #000;
+}
+
+.video-feed.is-focused.ratio-4-3 {
+    width: 640px;
+    height: 480px;
+}
+
+.video-feed.is-focused.ratio-16-9 {
+    width: 800px;
+    height: 450px;
+}
+
+.video-feed.is-talking {
+    border-color: #4caf50 !important;
+    box-shadow: 0 0 10px #4caf50;
+}
+
+.video-feed video {
+    width: 100%;
+    height: 100%;
+    /* contain: Mostra tutto il video, aggiungendo bande nere se necessario */
+    object-fit: contain !important; 
+    display: block;
+}
+
+#remote-video-placeholder {
+    width: 300px;
+    height: 225px;
+    background-color: var(--surface-2);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--muted);
+    font-size: 1.1em;
+    text-align: center;
+}
+
+.video-label {
+    position: absolute;
+    bottom: 10px; /* Un po' più in alto del bordo */
+    left: 10px;
+    
+    /* Sfondo semitrasparente per leggere bene il testo sopra l'immagine */
+    background: rgba(0, 0, 0, 0.7); 
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: bold; /* Testo grassetto per evidenziare lo status */
+    
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    
+    /* FIX: Z-INDEX DEVE ESSERE ALTO PER STARE SOPRA L'IMMAGINE */
+    z-index: 20 !important; 
+    
+    /* Piccola ombra per staccarlo */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    transition: all 0.3s ease;
+}
+
+#record-button.active {
+    background-color: var(--danger) !important;
+    color: white !important;
+    animation: pulseRecord 1.5s infinite;
+}
+
+@keyframes pulseRecord {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(239, 83, 80, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 83, 80, 0);
+    }
+}
+
+.context-menu-trigger {
+    position: absolute;
+    top: 5px;
+    right: 50px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 1.2em;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.video-feed:hover .context-menu-trigger {
+    opacity: 1;
+}
+
+#chat-panel {
+    background: var(--surface); /* Torna scura (grigio/nero) */
+    min-width: 250px;
+    max-width: 60vw;
+    position: relative;
+    display: flex;          /* Fondamentale per la struttura verticale */
+    flex-direction: column; /* Impila header, messaggi, footer */
+    height: 100%;           /* Occupa tutta l'altezza disponibile */
+    border-left: 1px solid var(--border-color);
+    z-index: 50;
+}
+
+/* Modifica stile messaggi Action (Slap) */
+.chat-message.action-msg {
+    font-style: italic;
+    color: #ff4081 !important; /* Rosa acceso */
+}
+
+#chat-panel.hidden {
+    display: none !important;
+}
+
+#chat-panel > h3 {
+    /* Sfondo e Colori coerenti con il tema */
+    background: var(--surface) !important; 
+    border-bottom: 1px solid var(--border-color) !important;
+    
+    /* Testo pulito, niente font terminale */
+    color: var(--text-color) !important;
+    font-family: 'Montserrat', sans-serif !important; /* Stesso font del titolo stanza */
+    font-size: 1.1em !important;
+    font-weight: 800;
+    
+    /* Rimuoviamo effetti neon e ombre pesanti */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: none !important;
+    
+    /* Spaziatura standard */
+    padding: 15px 20px !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Spazio per eventuale tasto chiudi */
+}
+
+/* RIMUOVE IL CURSORE LAMPEGGIANTE >_ */
+#chat-panel > h3::before {
+    content: none !important;
+    display: none !important;
+}
+
+#messages-container {
+    flex-grow: 1;           /* Si espande per occupare lo spazio vuoto */
+    overflow-y: auto;       /* Abilita lo scroll interno solo qui */
+    padding: 15px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 0;              /* Trucco CSS per forzare lo scroll nei container flex */
+}
+
+.chat-message {
+	color: var(--text-color) !important;
+    font-weight: 400;
+    font-size: 1em;
+    line-height: 1.5;
+    padding: 8px 10px;
+}
+
+.sender-me {
+    color: #00c6ff !important; /* Ciano Elettrico */
+    font-weight: 700;
+    text-shadow: 0 0 15px rgba(0, 198, 255, 0.2); /* Leggero alone */
+}
+
+.sender-remote {
+    color: #d422ce !important; /* Fucsia Elettrico */
+    font-weight: 700;
+    text-shadow: 0 0 15px rgba(212, 34, 206, 0.2);
+}
+
+.sender-system {
+    color: #FFEB3B;
+    font-weight: bold;
+}
+
+body.light-theme .sender-system {
+    color: #dcb400;
+}
+
+.sender-private {
+    color: #8BC34A;
+    font-weight: bold;
+}
+
+body.light-theme .sender-private {
+    color: #558b2f;
+}
+
+#chat-input-area {
+    display: none !important;
+}
+
+/* Il contenitore principale in fondo alla chat */
+#chat-footer {
+    flex-shrink: 0;         /* Impedisce al footer di schiacciarsi */
+    background: var(--surface-2);
+    border-top: 1px solid var(--border-color);
+    padding: 10px 15px;
+}
+
+.btn-sidebar-action {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+.btn-sidebar-action:hover {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+
+/* =========================================
+   SERVER LIST MODAL STYLING (Uniformed)
+   ========================================= */
+
+.server-list-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Spazio tra le card */
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px 5px; /* Padding laterale */
+}
+
+/* Stile specifico per le card dentro la lista server */
+/* Usiamo !important per vincere sulle regole della Sidebar */
+.server-list-grid .channel-item {
+    display: flex !important;
+    flex-direction: row !important; /* Allinea orizzontalmente (Nome sx, Utenti dx) */
+    align-items: center !important;
+    justify-content: space-between !important;
+    
+    /* Stile Visivo "Card" */
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border-color);
+    border-left: 3px solid transparent; 
+    border-radius: 8px;
+    
+    padding: 15px 20px !important;
+    margin: 0 !important;
+    height: auto !important; /* Reset altezza */
+    
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    overflow: visible !important; /* Permette all'ombra di vedersi */
+}
+
+/* Effetto Hover */
+.server-list-grid .channel-item:hover {
+    background: #333 !important; 
+    border-color: var(--primary-color) !important;
+    border-left-color: var(--primary-color) !important;
+    transform: translateY(-2px) !important; /* Sollevamento */
+    box-shadow: 0 8px 20px rgba(0, 198, 255, 0.15) !important;
+}
+
+/* Tipografia Nome Canale */
+.server-list-grid .channel-item > span {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 1.1em;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Icone lucchetto/chiave nel nome */
+.server-list-grid .channel-item > span span {
+    font-size: 0.9em; 
+    font-weight: normal;
+}
+
+/* Tipografia Conteggio Utenti (Badge a destra) */
+.server-list-grid .channel-item small {
+    background: rgba(0,0,0,0.4);
+    padding: 5px 10px;
+    border-radius: 6px;
+    color: var(--primary-color) !important;
+    font-family: 'Roboto', sans-serif;
+    font-weight: bold;
+    font-size: 0.85em;
+    border: 1px solid rgba(255,255,255,0.05);
+    display: block; /* Assicura che sia visibile */
+}
+
+/* --- FIX BOTTONE REFRESH --- */
+#refresh-server-list-modal-btn {
+    width: 100%;
+    margin-top: 15px;
+    padding: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+#refresh-server-list-modal-btn:hover {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+/* --- NUOVA TOOLBAR --- */
+.chat-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 5px;       /* Spazio tra i due pulsanti */
+    padding-left: 5px;
+}
+
+/* Stile unico per entrambi i pulsanti */
+.chat-toolbar-btn {
+    /* 1. Dimensioni Fisse e Uguali */
+    width: 36px;       
+    height: 36px;
+    
+    /* 2. Resetta sfondo e bordi */
+    background: transparent !important; /* Il !important toglie il bianco dal vecchio stile */
+    border: 1px solid transparent !important;
+    border-radius: 6px;
+    
+    /* 3. Centratura Icona */
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* 4. Colore e Transizioni */
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Dimensione delle icone (Faccina e GIF) */
+.chat-toolbar-btn .material-icons {
+    font-size: 20px !important; /* Leggermente più piccole e definite */
+}
+
+/* Effetto al passaggio del mouse */
+.chat-toolbar-btn:hover {
+    background: rgba(255, 255, 255, 0.1) !important; /* Sfondo leggero al passaggio */
+    color: var(--primary-color);
+}
+
+/* FIX SPECIFICO: Assicuriamoci che l'ID non abbia stili vecchi che interferiscono */
+#emoji-toggle-btn,
+#sticker-toggle-btn {
+    width: 36px !important;
+    height: 36px !important;
+    background: transparent;
+}
+
+/* --- AREA INPUT CHAT (Full Width & Minimal) --- */
+#chat-input-row {
+    display: flex;
+    align-items: center;    /* Allinea verticalmente al centro */
+    justify-content: space-between;
+    gap: 8px;               /* Spazio minimo tra icone e testo */
+    padding: 10px 10px;     /* Padding ridotto ai lati per massimizzare la larghezza */
+
+    background: var(--surface);
+    border-top: 1px solid var(--border-color);
+    position: relative;
+    width: 100%;            /* Assicura che la barra usi tutto lo spazio */
+}
+
+/* 2. Campo Input: Si allarga per coprire tutto lo spazio vuoto */
+#chat-message-input {
+    flex: 1;                /* <--- QUESTA È LA CHIAVE: Occupa tutto lo spazio disponibile */
+    width: 100%;            /* Forza l'espansione */
+    min-width: 0;           /* Previene che l'input esca dal contenitore su schermi piccoli */
+    height: 40px;           /* Altezza fissa comoda */
+    
+    background: transparent !important; /* Trasparente per stile pulito */
+    border: none !important;
+    outline: none !important;
+    
+    color: var(--text-color) !important;
+    font-size: 0.95rem;
+    padding: 0 10px;
+}
+
+#chat-message-input::placeholder {
+    color: var(--muted);
+    opacity: 0.5;
+}
+
+/* 3. Toolbar (Emoji/GIF): Compatti a sinistra */
+.chat-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;               /* Icone vicine tra loro */
+    flex-shrink: 0;         /* Impedisce che si schiaccino */
+}
+
+/* 4. Bottoni (Emoji e Invia): Stile Sobrio */
+.chat-toolbar-btn,
+#emoji-toggle-btn,
+#sticker-toggle-btn,
+#send-chat-button {
+    background: transparent !important;
+    border: none !important;
+    color: var(--muted) !important;
+    
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;         /* Non si rimpiccioliscono mai */
+    transform: none !important; /* Raddrizza il tasto invia */
+}
+
+/* Hover delicato */
+#emoji-toggle-btn:hover,
+#sticker-toggle-btn:hover,
+#send-chat-button:hover {
+    color: var(--primary-color) !important;
+    background: var(--surface-2) !important;
+}
+
+/* Icone dritte */
+#send-chat-button .material-icons {
+    transform: rotate(0deg) !important;
+    font-size: 1.3em;
+}
+
+
+#main-controls-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 12px 20px;
+    border-radius: 12px;
+    z-index: 200;
+}
+
+#main-controls-bar button {
+    background: var(--surface);
+    color: var(--text-color);
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+#main-controls-bar button:hover {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+#main-controls-bar button .material-icons {
+    font-size: 1.8em;
+}
+
+#disconnect-button {
+    background: var(--danger) !important;
+    color: white !important;
+}
+
+#disconnect-button:hover {
+    background: #c62828 !important;
+}
+
+#remote-context-menu {
+    position: fixed;
+    background: var(--surface);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+    overflow: hidden;
+    padding: 5px 0;
+    min-width: 180px;
+    border: 1px solid var(--border-color);
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background-color 0.15s ease;
+    color: var(--text-color);
+}
+
+.menu-item:hover {
+    background: var(--surface-2);
+}
+
+.menu-item .material-icons {
+    font-size: 1.2em;
+}
+
+.menu-item.active-toggle {
+    background: rgba(0, 188, 212, 0.2);
+    font-weight: bold;
+}
+
+#whiteboard-container {
+    position: absolute;
+    inset: 0;
+    z-index: 140;
+    background: rgba(15, 15, 16, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.wb-toolbar {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e1e1e;
+    padding: 10px 20px;
+    border-radius: 10px;
+    display: flex;
+    gap: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 150;
+}
+
+.wb-colors {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border-right: 1px solid #444;
+    padding-right: 20px;
+}
+
+.color-btn {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.2s;
+}
+
+.color-btn:hover {
+    transform: scale(1.1);
+}
+
+.color-btn.active {
+    border-color: #fff;
+    transform: scale(1.2);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+.wb-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.wb-actions button {
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.wb-actions button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#whiteboard-canvas {
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.file-transfer-status {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px;
+    font-size: 0.8em;
+    z-index: 10;
+}
+
+#file-transfer-container {
+    position: absolute;
+    bottom: 100px;
+    right: 20px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 160;
+    pointer-events: none;
+}
+
+.file-toast {
+    background: var(--surface);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    pointer-events: auto;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.file-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+.file-name {
+    font-weight: bold;
+    color: var(--primary-color);
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-percent {
+    color: var(--muted);
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent-color);
+    transition: width 0.2s;
+}
+
+#toggle-whiteboard-button.has-notification {
+    position: relative !important;
+    background-color: #333;
+    overflow: visible !important;
+}
+
+#toggle-whiteboard-button.has-notification::after {
+    content: '';
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 12px;
+    height: 12px;
+    background-color: #ff5252;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    z-index: 10;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.95);
+        opacity: 1;
+    }
+}
+
+#videos-grid.has-fullscreen {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    overflow: hidden;
+}
+
+.video-feed.fullscreen-active {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 10;
+    border-radius: 0;
+    border: none;
+}
+
+.video-feed.fullscreen-active video {
+    object-fit: contain !important;
+    width: 100%;
+    height: 100%;
+}
+
+.video-feed.pip-mode {
+    position: absolute;
+    bottom: 100px;
+    left: 20px;
+    width: 180px !important;
+    height: 135px !important;
+    z-index: 20;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.video-feed.pip-mode:nth-of-type(1) {
+    left: 20px;
+}
+
+.video-feed.pip-mode:nth-of-type(2) {
+    left: 210px;
+}
+
+.video-feed.pip-mode:nth-of-type(3) {
+    left: 400px;
+}
+
+.video-feed.pip-mode .video-label {
+    font-size: 0.7em;
+    padding: 2px 5px;
+}
+
+#show-chat-btn {
+    position: relative; /* Necessario per posizionare il badge */
+}
+
+/* --- NOTIFICHE CHAT --- */
+#show-chat-btn {
+    position: relative; /* Necessario per posizionare il badge */
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: var(--danger);
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.75em;
+    font-weight: bold;
+    border: 2px solid var(--surface-2);
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 10;
+}
+
+@keyframes popIn {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+}
+
+/* --- RICEVUTE DI LETTURA --- */
+.chat-message {
+    position: relative;
+    padding-bottom: 15px; /* Spazio per l'icona di lettura */
+    cursor: pointer; /* Indica che è cliccabile */
+    transition: background 0.2s;
+    border-radius: 4px;
+    padding: 5px;
+}
+
+.chat-message:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.read-status {
+    font-size: 0.7em;
+    color: var(--muted);
+    position: absolute;
+    bottom: 0px;
+    right: 5px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.read-status .material-icons {
+    font-size: 1.1em;
+}
+
+.read-status.seen {
+    color: var(--primary-color); /* Diventa blu/ciano quando letto */
+}
+
+/* Modale semplice per lista letture */
+.readers-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.readers-dialog {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    border-radius: 8px;
+    min-width: 250px;
+    max-width: 80%;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    color: var(--text-color);
+}
+
+.readers-list {
+    margin: 10px 0;
+    padding-left: 20px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#switch-camera-button {
+    display: none !important;
+}
+
+/* Posizionamento del menu sopra la barra di controllo */
+#extras-menu {
+    position: fixed;
+    bottom: 90px; /* Sopra la barra che è a bottom: 20px + altezza */
+    left: 50%;
+    transform: translateX(-50%) scale(0.9);
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column; /* Lista verticale per chiarezza */
+    gap: 5px;
+	z-index: 2500 !important; /* Era 2000, ora sta sotto la chat ma sopra i video */
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    min-width: 200px;
+}
+
+#extras-menu.active {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(-50%) scale(1);
+}
+
+/* Stile degli elementi dentro il menu */
+#extras-menu .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-color);
+    transition: background 0.2s;
+    font-size: 0.95em;
+}
+
+#extras-menu .menu-item:hover {
+    background: var(--surface-2);
+}
+
+#extras-menu .menu-item .material-icons {
+    font-size: 1.3em;
+    color: var(--primary-color);
+}
+
+/* Gestione stati specifici dei bottoni spostati */
+#extras-menu #record-button.active .material-icons {
+    color: var(--danger);
+    animation: pulseRecord 1.5s infinite;
+}
+
+#extras-menu #toggle-whiteboard-button.active-toggle {
+    background: rgba(0, 188, 212, 0.2);
+}
+
+/* Badge notifica sulla lavagna nel menu */
+#extras-menu #toggle-whiteboard-button.has-notification::after {
+    top: 10px;
+    right: 10px;
+}
+
+/* Badge notifica sul pulsante "Altro" principale (se c'è una notifica dentro) */
+#more-options-btn.has-notification::after {
+    content: '';
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--danger);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+}
+
+.subtitle-overlay {
+    position: absolute;
+    bottom: 30px; /* Sopra l'etichetta del nome */
+    left: 5%;
+    width: 90%;
+    text-align: center;
+    pointer-events: none; /* Lascia cliccare il video sotto */
+    z-index: 20;
+    
+    /* Stile testo */
+    color: #fff;
+    font-size: 1.1em;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    
+    /* Sfondo semi-trasparente adattivo */
+    background: rgba(0, 0, 0, 0.6);
+    padding: 8px;
+    border-radius: 8px;
+    
+    /* Animazione apparizione */
+    transition: opacity 0.3s ease;
+    min-height: 1.5em; /* Altezza minima per evitare saltelli */
+}
+
+.subtitle-overlay.hidden {
+    opacity: 0;
+    display: block !important; /* Mantiene il layout ma invisibile */
+}
+
+/* Evidenzia il menu se attivo */
+#menu-toggle-cc.active-cc {
+    background: rgba(76, 175, 80, 0.2); /* Verde chiaro */
+    color: #4caf50;
+}
+
+/* --- MEETING TRANSCRIPT PANEL (Ottimizzato) --- */
+#meeting-transcript-panel {
+    position: fixed; /* Usa fixed per rimanere stabile durante lo scroll */
+    top: auto;       /* Rimuovi il posizionamento in alto */
+    bottom: 100px;   /* Posiziona in basso, sopra la barra controlli */
+    left: 20px;      /* Allineato a sinistra */
+    width: 320px;    /* Larghezza fissa su desktop */
+    max-height: 35vh; /* Altezza dinamica: max 35% dell'altezza schermo */
+    
+    background: rgba(20, 20, 20, 0.85); /* Sfondo leggermente più scuro e leggibile */
+    backdrop-filter: blur(12px);        /* Sfocatura sfondo aumentata */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    
+    display: flex;
+    flex-direction: column;
+    z-index: 140; 
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
+}
+
+#meeting-transcript-panel.hidden {
+    display: none !important;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.transcript-header {
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px 12px 0 0;
+    cursor: default; /* Indica che è l'intestazione */
+}
+
+.transcript-header h4 {
+    margin: 0;
+    font-size: 0.95em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.transcript-header button {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.transcript-header button:hover { 
+    background: var(--danger); 
+}
+
+.transcript-header button .material-icons {
+    font-size: 16px; /* Icona chiusura più piccola ed elegante */
+}
+
+#transcript-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 15px;
+    font-size: 0.9em;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+}
+
+/* Scrollbar personalizzata sottile per il transcript */
+#transcript-content::-webkit-scrollbar {
+    width: 6px;
+}
+#transcript-content::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+}
+
+.transcript-line {
+    line-height: 1.5;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 8px;
+}
+.transcript-line:last-child {
+    border-bottom: none;
+}
+
+.t-time { 
+    color: var(--muted); 
+    font-size: 0.75em; 
+    margin-right: 6px;
+    font-family: monospace;
+}
+
+/* Indicatore attivo nel menu */
+#global-transcript-btn.active-recording {
+    background: rgba(244, 67, 54, 0.2);
+}
+#global-transcript-btn.active-recording .material-icons {
+    color: var(--danger);
+    animation: pulse 1.5s infinite;
+}
+
+/* --- DIVISORE CHAT (CRONOLOGIA) --- */
+.chat-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 20px 0; /* Spazio sopra e sotto */
+    color: var(--muted);
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.8;
+}
+
+.chat-divider::before,
+.chat-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color); /* Linea dello stesso colore dei bordi */
+    opacity: 0.6;
+}
+
+.chat-divider span {
+    padding: 0 15px; /* Spazio attorno al testo */
+    font-weight: 600;
+    background: var(--surface); /* Sfondo uguale al pannello chat per coprire la riga */
+    border-radius: 10px;
+}
+
+/* --- STILE MESSAGGI DI SISTEMA (IRC / MINIMAL - LEFT ALIGN) --- */
+.message-system-wrapper {
+    display: flex;
+    justify-content: flex-start; /* <--- CAMBIATO: Allinea a sinistra */
+    margin: 4px 0;
+    width: 100%;
+    opacity: 0.9;
+}
+
+.system-msg-content {
+    color: #94a3b8 !important; /* Grigio Bluastro moderno */
+    font-family: 'Inter', sans-serif !important; /* Via il font da hacker */
+    font-size: 0.85rem !important;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+.system-msg-content::before {
+    content: '• ' !important; 
+    color: #555;
+    margin-right: 4px;
+}
+
+/* --- STILE TOPIC --- */
+.room-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+	
+/* --- MODALE OP STILE IRC / TERMINALE --- */
+.op-modal-content.irc-theme {
+    background-color: #0a0a0a;
+    border: 2px solid #00ff00; /* Verde Hacker */
+    border-radius: 0; /* Squadrato */
+    font-family: 'Courier New', Courier, monospace;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+    width: 400px;
+    max-width: 95%;
+}
+
+/* --- FIX VISIBILITÀ ICONE HEADER --- */
+/* Forza le icone della barra superiore ad essere sempre bianche */
+.header-controls button {
+    color: #ffffff !important; 
+    background: rgba(255, 255, 255, 0.1) !important; /* Sfondo leggero traslucido */
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Effetto al passaggio del mouse */
+.header-controls button:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+    border-color: #ffffff !important;
+}
+
+/* --- PULSANTE OP (POWER MODE) --- */
+#op-settings-btn {
+    /* Stile base uguale agli altri bottoni header */
+    background: rgba(255, 215, 64, 0.15) !important; /* !important protegge lo sfondo giallo */
+    color: #ffd740 !important; /* !important protegge il colore del testo/icona */
+    border: 1px solid rgba(255, 215, 64, 0.5) !important; /* Bordo giallo più visibile */
+    
+    border-radius: 6px; 
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(255, 215, 64, 0.1); 
+}
+
+/* Hover: diventa più luminoso e solido */
+#op-settings-btn:hover {
+    background: #ffd740;
+    color: #000; /* Testo nero su oro per massimo contrasto (Power) */
+    box-shadow: 0 0 15px rgba(255, 215, 64, 0.6);
+    transform: translateY(-1px);
+}
+
+#op-settings-btn .material-icons {
+    font-size: 1.3em; /* Dimensione coerente con le altre icone */
+}
+
+/* Animazione Pulsazione (quando entri ed il sistema vuole attirare l'attenzione) */
+@keyframes opPowerPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 215, 64, 0.7); border-color: #ffd740; }
+    70% { box-shadow: 0 0 0 6px rgba(255, 215, 64, 0); border-color: #ffd740; }
+    100% { box-shadow: 0 0 0 0 rgba(255, 215, 64, 0); border-color: rgba(255, 215, 64, 0.3); }
+}
+
+.op-attention {
+    animation: opPowerPulse 2s infinite !important;
+    background-color: #ffd740 !important;
+    color: #000 !important;
+    font-weight: bold;
+}
+
+/* --- MODALE OP (DESIGN MINIMALE / MODERNO) --- */
+#op-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75); /* Sfondo leggermente più scuro per focus */
+    backdrop-filter: blur(5px);       /* Sfocatura sfondo dietro al modale */
+    z-index: 2500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.op-modal-content {
+    background: var(--surface);       /* Grigio scuro standard */
+    border: 1px solid var(--border-color);
+    border-radius: 16px;              /* Bordi più morbidi */
+    width: 380px;
+    max-width: 90%;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+}
+
+/* Header Ridisegnato: Centrato e Pulito */
+.op-header {
+    background: var(--surface);       /* Stesso colore del corpo per continuità */
+    padding: 20px 20px 10px 20px;     /* Più spazio sopra */
+    display: flex;
+    justify-content: center;          /* CENTRATO */
+    align-items: center;
+    position: relative;               /* Per posizionare la X assoluta */
+    border-bottom: none;              /* Rimuoviamo la linea divisoria dura */
+}
+
+.op-header h4 {
+    margin: 0;
+    color: var(--text-color);
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.2em;                 /* Un po' più grande */
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Bottone Chiudi (X) posizionato in alto a destra in modo discreto */
+.op-header button#close-op-modal {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.op-header button#close-op-modal:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+}
+
+/* Corpo del Modale */
+.op-body {
+    padding: 10px 25px 30px 25px;     /* Spaziatura bilanciata */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Etichette e Input */
+.op-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.op-field-group label {
+    font-size: 0.85em;
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;        /* Etichette maiuscole piccole ed eleganti */
+    letter-spacing: 0.5px;
+    margin-left: 2px;
+}
+
+.op-field-group input {
+    width: 100%;
+    background: var(--surface-2);     /* Input leggermente più chiari dello sfondo */
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 15px;
+    color: var(--text-color);
+    font-size: 0.95em;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+/* Focus Input: Bordo color Oro/Ambra delicato */
+.op-field-group input:focus {
+    border-color: #ffd740;
+    background: rgba(255, 215, 64, 0.05); /* Sfondo leggermente colorato al focus */
+}
+
+.op-field-group small {
+    font-size: 0.75em;
+    color: var(--muted);
+    opacity: 0.7;
+    margin-top: 4px;
+}
+
+/* --- COLOR PICKER STYLES --- */
+.color-picker-wrapper {
+    position: relative;
+    width: 100%;
+    height: 45px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+}
+
+.color-picker-wrapper:hover {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+/* Input colore espanso per coprire tutto il wrapper */
+#op-color-input {
+    -webkit-appearance: none;
+    border: none;
+    width: 150%; /* Più largo per nascondere i bordi nativi */
+    height: 150%;
+    position: absolute;
+    top: -25%;
+    left: -25%;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    background: none;
+}
+
+/* Hint testo sopra il colore */
+.color-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none; /* Lascia passare il click all'input */
+    color: #fff;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.1); /* Leggero velo per leggere il testo */
+}
+
+/* Input con icona (Password) */
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon .icon {
+    position: absolute;
+    left: 12px;
+    font-size: 1.2em;
+    color: var(--muted);
+    pointer-events: none;
+}
+
+.input-with-icon input {
+    padding-left: 40px; /* Spazio per l'icona */
+}
+
+/* --- PULSANTE SALVA MINIMALE --- */
+.op-actions {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center; /* Bottone Centrato */
+}
+
+#op-save-btn {
+    /* Stile Minimale Scuro/Elegante */
+    background: var(--surface-2);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    
+    width: 100%;             /* Bottone largo quanto il modale */
+    padding: 12px 0;
+    border-radius: 8px;
+    
+    font-family: 'Roboto', sans-serif;
+    font-weight: 600;
+    font-size: 0.95em;
+    letter-spacing: 0.5px;
+    
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Hover: Diventa leggermente più chiaro/dorato */
+#op-save-btn:hover {
+    background: #ffd740;     /* Diventa Oro al passaggio */
+    color: #000;             /* Testo nero su Oro */
+    border-color: #ffd740;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+#op-save-btn:active {
+    transform: translateY(0);
+}
+
+/* Rimuoviamo il contenuto "save" generato dal CSS precedente che duplicava il testo */
+#op-save-btn::before {
+    content: none !important; 
+}
+
+.irc-input-group {
+    margin-bottom: 20px;
+}
+
+.irc-input-group label {
+    display: block;
+    color: #00ff00;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.irc-input-group input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid #333;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    font-size: 1.1em;
+    padding: 5px 0;
+    border-radius: 0;
+}
+
+.irc-input-group input:focus {
+    outline: none;
+    border-bottom: 2px solid #00ff00;
+    box-shadow: 0 4px 0 -2px rgba(0,255,0,0.2);
+}
+
+.irc-status-line {
+    color: #444;
+    font-size: 0.8em;
+    margin-bottom: 20px;
+}
+
+.blinking-cursor {
+    animation: blink 1s step-end infinite;
+    color: #00ff00;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+
+.irc-actions {
+    text-align: right;
+}
+
+#op-save-btn {
+    background: transparent;
+    color: #00ff00;
+    border: 2px solid #00ff00;
+    padding: 10px 20px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#op-save-btn:hover {
+    background: #00ff00;
+    color: #000;
+    box-shadow: 0 0 15px #00ff00;
+}
+
+
+.op-hint { font-size: 0.75em; color: var(--muted); margin-top: 5px; text-align: center; }
+
+/* Adattamento per tema chiaro (facoltativo) */
+body.light-theme .system-msg-content {
+    color: #00796b; /* Verde scuro su sfondo chiaro */
+    text-shadow: none;
+}
+
+/* Animazione per attirare l'attenzione dell'OP */
+@keyframes opPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 215, 64, 0.7); transform: scale(1); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 215, 64, 0); transform: scale(1.1); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 215, 64, 0); transform: scale(1); }
+}
+
+.op-attention {
+    animation: opPulse 2s infinite;
+    background-color: rgba(255, 215, 64, 0.2) !important;
+    border: 1px solid #ffd740 !important;
+}
+
+.picmo__popupContainer {
+    z-index: 99999 !important; /* Altissimo per stare sopra al pannello chat (che è 3000) */
+    position: fixed !important;
+}
+
+/* Opzionale: Stile scuro per il picker per adattarsi al tuo tema */
+.picmo__picker {
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+	background: var(--surface) !important;
+}
+
+/* 2. Barra del titolo del terminale */
+.terminal-bar {
+    background: linear-gradient(90deg, #bd00ff 0%, #00b8ff 100%); /* Gradiente Fucsia -> Ciano */
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #00b8ff;
+}
+
+.terminal-title {
+    color: #000;
+    font-weight: 900;
+    font-size: 0.85em;
+    letter-spacing: 1px;
+}
+
+.terminal-controls .ctrl {
+    display: inline-block;
+    margin-left: 8px;
+    font-weight: bold;
+    cursor: default;
+    color: #000;
+}
+
+/* 3. Corpo del terminale */
+.terminal-body {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ascii-art-placeholder {
+    color: #555;
+    font-size: 0.75em;
+    margin-bottom: 10px;
+    line-height: 1.4;
+    border-left: 2px solid #333;
+    padding-left: 10px;
+}
+
+/* 4. Input Lines stile Prompt */
+.irc-input-line {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #333; /* Linea sottile scura */
+    transition: border-color 0.3s ease;
+}
+
+.irc-input-line:focus-within {
+    border-bottom: 1px solid #00b8ff; /* Diventa Ciano al focus */
+    box-shadow: 0 5px 10px -5px rgba(0, 184, 255, 0.2);
+}
+
+.prompt {
+    color: #bd00ff; /* Prompt Fucsia */
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-right: 10px;
+    white-space: pre;
+    text-shadow: 0 0 5px rgba(189, 0, 255, 0.4);
+}
+
+/* Override degli input esistenti */
+.card.irc-terminal input[type="text"],
+.card.irc-terminal input[type="password"] {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    color: #00b8ff; /* Testo Ciano */
+    font-family: 'Courier New', monospace;
+    font-size: 1.1em;
+    padding: 10px 0;
+    margin: 0;
+    width: 100%;
+    outline: none;
+}
+
+.card.irc-terminal input::placeholder {
+    color: #444; /* Placeholder molto scuro */
+    font-style: italic;
+    opacity: 0.5;
+}
+
+/* 5. Bottone Esegui */
+.irc-actions {
+    margin-top: 15px;
+    text-align: right;
+}
+
+.glitch-btn {
+    background: transparent;
+    color: #00b8ff; /* Testo Ciano */
+    border: 1px solid #00b8ff;
+    padding: 12px 25px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Effetto Hover "Fill" */
+.glitch-btn:hover {
+    background: #00b8ff;
+    color: #000;
+    box-shadow: 
+        0 0 10px #00b8ff,
+        0 0 20px rgba(189, 0, 255, 0.5); /* Alone misto */
+    border-color: #bd00ff;
+}
+
+/* Cursore lampeggiante negli input (Simulazione) */
+@keyframes blinkCursor {
+    0% { border-right-color: transparent; }
+    50% { border-right-color: #00b8ff; }
+    100% { border-right-color: transparent; }
+}
+
+.irc-input-line:focus-within input {
+    /* Un piccolo trucco per simulare il cursore a blocco se voluto, 
+       ma il cursore di default colorato è meglio per usabilità */
+    caret-color: #bd00ff; /* Cursore Fucsia */
+}
+
+#join-button {
+    margin-top: 10px;
+    background: var(--brand-gradient) !important;
+    border: none !important;
+    color: white !important;
+    padding: 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif !important; /* Via il font da hacker */
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(0, 198, 255, 0.15);
+}
+
+#join-button:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+}
+
+/* Opzionale: Aggiunge un cursore lampeggiante prima della scritta CHAT */
+#chat-panel h3::before {
+    content: '>_';
+    color: #bd00ff; /* Il prompt è Fucsia */
+    animation: blink 1s step-end infinite;
+}
+
+/* Definiamo l'animazione lampeggio se non esiste già */
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* --- STICKER PICKER --- */
+#sticker-picker-container {
+    position: absolute;
+    
+    /* MODIFICA 1: Alziamo il box (era 70px) */
+    /* 110px è perfetto: Input (45px) + Toolbar (35px) + Spazi (20px) */
+    bottom: 110px !important; 
+    
+    /* MODIFICA 2: Allineiamo a sinistra (era 50px) */
+    left: 15px !important; 
+    
+    width: 300px;
+    height: 350px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* style.css */
+
+/* Rimuovi eventuali stili vecchi .sticker-tabs e .tab-btn se vuoi pulire */
+
+.sticker-search-bar {
+    display: flex;
+    align-items: center;
+    background: var(--surface-2);
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+    gap: 8px;
+}
+
+.sticker-search-bar input {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    padding: 8px 10px;
+    border-radius: 6px;
+    outline: none;
+    font-size: 0.9em;
+}
+
+.sticker-search-bar input:focus {
+    border-color: var(--primary-color);
+}
+
+.sticker-search-bar .search-icon {
+    color: var(--muted);
+    font-size: 1.2em;
+}
+
+.giphy-attribution {
+    font-size: 10px;
+    color: #555;
+    text-align: right;
+    padding: 5px 10px;
+    background: #000;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+/* Le immagini devono adattarsi */
+.sticker-option {
+    width: 100%;
+    height: 80px; /* Altezza fissa per ordine */
+    object-fit: cover; /* Taglia l'eccedenza */
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.sticker-option:hover {
+    transform: scale(1.05);
+    border: 1px solid var(--primary-color);
+}
+
+.tab-btn:hover { color: var(--text-color); }
+.tab-btn.active { 
+    color: var(--primary-color); 
+    border-bottom: 2px solid var(--primary-color);
+    background: rgba(255,255,255,0.05);
+}
+
+.sticker-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 colonne */
+    gap: 8px;
+}
+
+.sticker-option {
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    object-fit: cover;
+    aspect-ratio: 1/1; /* Quadrati */
+}
+
+.sticker-option:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+/* --- STICKER DENTRO LA CHAT --- */
+.chat-media-img {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 8px;
+    margin-top: 5px;
+    display: block;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.chat-media-img:hover {
+    transform: scale(1.02);
+}
+
+/* --- FIX MODALE SERVER LIST --- */
+#server-list-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 3000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#server-list-modal.hidden {
+    display: none !important;
+}
+
+/* Assicuriamo che il contenuto abbia uno stile solido */
+#server-list-modal .settings-content {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    width: 90%;
+    max-width: 400px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+#my-channels-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; 
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 10px 5px 15px 5px; 
+}
+
+/* --- NO CAM OVERLAY --- */
+.no-cam-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1a1a1a; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 5; 
+    border-radius: 12px;
+    overflow: hidden;
+    
+    /* MODIFICA FONDAMENTALE: Ignora i click del mouse */
+    pointer-events: none; 
+}
+
+.no-cam-overlay img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    max-width: none !important;
+    opacity: 1 !important;
+    
+    /* Impedisce di selezionare o trascinare l'immagine */
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.no-cam-overlay.hidden {
+    display: none !important;
+}
+
+#remote-video-placeholder {
+    display: none !important;
+}
+
+#chat-context-menu {
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    z-index: 3000; /* Molto alto per stare sopra alla chat */
+    min-width: 160px;
+    overflow: hidden;
+    padding: 5px 0;
+    animation: fadeIn 0.1s ease;
+}
+
+#chat-context-menu .menu-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-color);
+    font-size: 0.9em;
+    transition: background 0.1s;
+}
+
+#chat-context-menu .menu-item:hover {
+    background: var(--surface-2);
+}
+
+/* Cursore speciale per i nomi in chat per far capire che sono cliccabili */
+.chat-sender-name {
+    cursor: context-menu;
+}
+.chat-sender-name:hover {
+    text-decoration: underline;
+}
+
+.sidebar-controls {
+    display: flex;
+    gap: 10px;
+    padding: 10px 15px 15px 15px; /* Aggiunto padding sopra per staccarlo dal logo */
+    justify-content: center; /* Centra il blocco orizzontalmente */
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.sidebar-action-btn {
+    flex: 1; /* I pulsanti si dividono lo spazio in parti uguali */
+    background: var(--surface-2);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    display: flex;
+    align-items: center;     /* Centra verticalmente */
+    justify-content: center; /* Centra orizzontalmente */
+    
+    padding: 10px 0; /* Rimuovi padding laterale fisso, usa flex per centrare */
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9em;
+    transition: all 0.2s;
+    line-height: 1; /* Importante per evitare disallineamenti verticali del testo */
+}
+
+.sidebar-action-btn:hover {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.sidebar-action-btn .material-icons {
+    font-size: 1.2em;
+    margin-right: 6px; /* Spazio tra icona e testo */
+}
+
+.icon-hash {
+    font-size: 1.4em; /* Un po' più grande per bilanciare le icone grafiche */
+    font-weight: 900; /* Molto grassetto per sembrare un'icona */
+    margin-right: 6px;
+    font-family: 'Roboto', sans-serif; /* Assicura un font pulito */
+    line-height: 1; 
+    display: inline-block;
+    transform: translateY(1px); /* Micro-aggiustamento ottico */
+}
+
+#join-channel-modal {
+    position: fixed;
+    inset: 0; /* Covers the whole screen */
+    background: rgba(0, 0, 0, 0.7); /* Dimmed background */
+    z-index: 3000; /* Places it above the sidebar and chat */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.2s ease;
+}
+
+#join-channel-modal .settings-content {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    width: 90%;
+    max-width: 400px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Ensure inputs are visible in Dark Mode */
+#join-channel-modal input {
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border-color) !important;
+    color: #fff !important; /* White text */
+}
+
+/* Highlight the input border when clicked */
+#join-channel-modal input:focus {
+    border-color: var(--primary-color) !important;
+    outline: none;
+}
+
+/* =========================================
+   GLOBAL BUTTON HOVER EFFECTS (Lift & Glow)
+   ========================================= */
+
+/* 1. Definiamo quali bottoni ricevono l'effetto */
+#join-button,                   /* Login principale */
+.sidebar-action-btn,            /* Join/List Sidebar */
+.header-controls button,        /* Icone in alto a destra */
+#main-controls-bar button,      /* Barra comandi in basso (Microfono, Video...) */
+#op-save-btn,                   /* Tasto Salva Opzioni */
+.btn-secondary,                 /* Tasti secondari modali */
+#admin-login-btn,               /* Login Admin */
+#admin-refresh-btn,             /* Refresh Admin */
+#confirm-join-btn,              /* Conferma Join Modale */
+.btn-admin-action,              /* Icone lucchetto/chiave admin */
+.btn-kick,                      /* Tasto Kick */
+#send-chat-button               /* Tasto invia chat */
+{
+    /* Assicuriamo una transizione fluida per l'effetto */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative; /* Necessario per il movimento */
+}
+
+/* 2. L'effetto HOVER (Sollevamento + Bagliore Ciano) */
+#join-button:hover,
+.sidebar-action-btn:hover,
+.header-controls button:hover,
+#main-controls-bar button:hover,
+#op-save-btn:hover,
+.btn-secondary:hover,
+#admin-login-btn:hover,
+#admin-refresh-btn:hover,
+#confirm-join-btn:hover,
+.btn-admin-action:hover,
+.btn-kick:hover,
+#send-chat-button:hover
+{
+    transform: translateY(-2px) !important; /* Si solleva verso l'alto */
+    box-shadow: 0 6px 15px rgba(0, 198, 255, 0.25) !important; /* Bagliore Ciano */
+    border-color: var(--primary-color) !important; /* Il bordo si illumina */
+}
+
+#main-controls-bar button:hover {
+    background: rgba(255,255,255,0.15) !important;
+    box-shadow: 0 0 15px var(--primary-color) !important; /* Glow diffuso circolare */
+    transform: translateY(-3px) !important; /* Si alzano un po' di più */
+}
+
+/* Mantieni il tasto rosso della chiamata coerente */
+#main-controls-bar #disconnect-button:hover {
+    background: #ff0000 !important;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.6) !important;
+}
+
+/* =========================================
+   CHAT INPUT AREA REDESIGN (Unified Style)
+   ========================================= */
+
+/* 1. Contenitore Principale (Footer Chat) */
+#chat-footer {
+    background: var(--surface); /* Stesso colore della sidebar */
+    border-top: 1px solid var(--border-color);
+    padding: 15px; /* Più spazio */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* 2. Toolbar Emoji/GIF (Spostiamola dentro l'input o sopra, qui la rendiamo pulsanti) */
+.chat-toolbar {
+    display: flex;
+    gap: 10px;
+    padding-left: 0;
+    margin-bottom: 5px;
+}
+
+/* Stile dei pulsanti Emoji/GIF uniformato a Join/List */
+.chat-toolbar-btn {
+    flex: 1; /* Si espandono */
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-color) !important;
+    border-radius: 8px !important;
+    
+    height: 36px !important; /* Altezza fissa */
+    width: auto !important;  /* Larghezza automatica */
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Icone Toolbar */
+.chat-toolbar-btn .material-icons {
+    font-size: 1.2em !important;
+    color: var(--muted);
+}
+
+/* Hover Toolbar (Lift & Glow) */
+.chat-toolbar-btn:hover {
+    background: #333 !important;
+    border-color: var(--primary-color) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 10px rgba(0, 198, 255, 0.15) !important;
+}
+.chat-toolbar-btn:hover .material-icons {
+    color: #fff;
+}
+
+/* 3. Riga Input + Tasto Invia */
+#chat-input-row {
+    display: flex;
+    gap: 10px;
+    background: transparent;
+    padding: 0;
+    border: none;
+    align-items: stretch; /* Altezza uguale per input e bottone */
+}
+
+/* Campo di testo */
+#chat-message-input {
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    color: #fff !important;
+    padding: 12px 15px !important;
+    height: 45px !important; /* Altezza comoda */
+    flex-grow: 1;
+    transition: border-color 0.2s;
+}
+
+#chat-message-input:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px rgba(0, 198, 255, 0.1);
+}
+
+/* Tasto Invia (Restyling completo) */
+#send-chat-button {
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--primary-color) !important; /* Icona colorata */
+    border-radius: 8px !important;
+    
+    width: 50px !important; /* Quadrato arrotondato */
+    height: 45px !important;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    
+    /* Rimuoviamo rotazioni strane se presenti */
+    transform: none !important; 
+}
+
+/* Icona Invia */
+#send-chat-button .material-icons {
+    font-size: 1.4em !important;
+    transform: translateX(2px); /* Centratura ottica dell'aeroplano */
+}
+
+/* Hover Tasto Invia (Lift & Glow) */
+#send-chat-button:hover {
+    background: var(--primary-color) !important; /* Diventa pieno */
+    color: #fff !important; /* Icona bianca */
+    border-color: var(--primary-color) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 15px rgba(0, 198, 255, 0.3) !important;
+}
+
+.chat-message, 
+.chat-message span, 
+.transcript-line {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+    cursor: text;
+}
+
+/* Evita che il tap sui pulsanti faccia "flashare" o deselezionare tutto */
+button, .btn-secondary, .sidebar-action-btn {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none; /* Il testo DEL BOTTONE non deve essere selezionabile */
+}
+
+/* --- OTTIMIZZAZIONE MOBILE DEFINITIVA --- */
+@media (max-width: 768px) {
+
+    /* 1. Header (Intestazione) */
+    #room-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 60px !important; /* Altezza fissa per evitare sovrapposizioni */
+        min-height: 60px;
+        z-index: 150;
+        background: rgba(0, 0, 0, 0.9); /* Sfondo più solido per leggibilità */
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        padding: 0 10px;
+        
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: nowrap !important; /* VIETATO andare a capo */
+    }
+
+    #room-header h3 {
+        font-size: 0.9em;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    }
+
+    /* 2. Layout Principale */
+    #conference-container { flex-direction: column; }
+	
+	#channel-sidebar {
+        position: fixed;
+        top: 60px !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: 50% !important;      
+        min-width: 200px !important; /* Era 280px, ora è più stretto */
+        
+        height: calc(100dvh - 60px) !important;
+        background: var(--surface);
+        border-right: 1px solid var(--border-color);
+        box-shadow: 5px 0 20px rgba(0,0,0,0.5);
+        
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        z-index: 2000 !important;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #channel-sidebar.mobile-open {
+        transform: translateX(0); /* Scivola dentro */
+    }
+	
+    #content-wrapper { width: 100%; }
+	
+    #main-area {
+        height: 100%;
+        padding: 0;
+    }
+
+    /* 3. Griglia Video */
+    #videos-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        padding-top: 90px !important;
+        padding-bottom: 100px !important; /* Spazio per la barra in basso */
+        padding-left: 10px;
+        padding-right: 10px;
+        background: transparent;
+        overflow-y: auto;
+        align-content: start;
+    }
+
+    .video-feed {
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        aspect-ratio: 3/4;
+        object-fit: cover;
+        border-radius: 12px;
+    }
+
+    .context-menu-trigger {
+        opacity: 1 !important;
+    }
+
+    /* Fullscreen Mobile */
+	#videos-grid.has-fullscreen {
+        display: flex !important;        /* Usa Flexbox per gestire il layout */
+        flex-direction: column;          /* Impila gli elementi verticalmente */
+        align-items: flex-end;           /* Allinea tutto a DESTRA */
+        justify-content: flex-start;     /* Inizia dall'alto */
+        
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw !important;
+        height: 100dvh !important;
+        z-index: 50;
+        background: #000;
+        
+        /* Padding superiore per non finire sotto l'header e iniziare la lista PIP */
+        padding-top: 80px !important; 
+        padding-right: 10px !important;  /* Margine destro per i PIP */
+        padding-bottom: 100px !important; /* Spazio per i controlli in basso */
+        
+        overflow-y: auto; /* Permette di scrollare se ci sono troppe webcam PIP */
+    }
+
+	.video-feed.fullscreen-active {
+        position: absolute !important; /* Toglilo dal flusso flex */
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 10; /* Livello base (sfondo) */
+        border-radius: 0 !important;
+        margin: 0 !important;
+    }
+
+	.video-feed.fullscreen-active video {
+        object-fit: contain !important;
+        width: 100%;
+        height: 100%;
+    }
+
+    /* PIP Mode (Tu in piccolo) */
+	.video-feed.pip-mode {
+        /* Reset posizionamento assoluto precedente */
+        position: relative !important; 
+        left: auto !important;
+        right: auto !important;
+        top: auto !important;
+        bottom: auto !important;
+        
+        /* Dimensioni e stile */
+        width: 100px !important;
+        height: 135px !important; /* Aspect ratio circa 3:4 */
+        flex-shrink: 0;           /* Impedisce che si schiaccino */
+        margin-bottom: 10px;      /* Spazio tra un PIP e l'altro */
+        
+        z-index: 20;              /* Sopra il video fullscreen */
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        border-radius: 8px;
+        background: #000;
+    }
+    
+	.video-feed.pip-mode .video-label,
+    .video-feed.pip-mode .context-menu-trigger {
+        display: none !important;
+    }
+
+    /* 4. BARRA CONTROLLI (FIX DIMENSIONI) */
+    #main-controls-bar {
+        bottom: 25px; /* Un po' più in alto */
+        background: rgba(20, 20, 20, 0.9); /* Sfondo leggermente più coprente */
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        
+        width: auto;      /* Lasciamo che si adatti al contenuto */
+        min-width: 280px; /* Larghezza minima sicura */
+        max-width: 90%;   /* Non toccare i bordi */
+        
+        padding: 10px 20px; /* Spaziatura interna comoda */
+        
+        display: flex;
+        justify-content: center; /* Centriamo i bottoni */
+        gap: 15px; /* Spazio arioso tra i bottoni */
+        
+        z-index: 200;
+        border-radius: 50px;
+        
+        left: 50%;
+        transform: translateX(-50%);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    #main-controls-bar button {
+        /* RIPRISTINATE DIMENSIONI GRANDI (Standard Desktop/Touch) */
+        width: 52px;       /* Da 36px a 52px */
+        height: 52px;
+        min-width: 52px;
+        
+        border-radius: 50%;
+        margin: 0;
+        padding: 0;
+        
+        background: rgba(255, 255, 255, 0.05); /* Leggero sfondo per definire il tocco */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+	#main-controls-bar button:active {
+        transform: scale(0.9);
+    }
+	
+    #main-controls-bar button .material-icons {
+        font-size: 1.8em; /* Icone grandi e leggibili (era 1.3em) */
+    }
+
+    #main-controls-bar button:hover,
+    #main-controls-bar button.active {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    #disconnect-button {
+        width: 60px !important; /* Leggermente più grande degli altri */
+        height: 52px !important;
+        border-radius: 20px !important; /* Forma a pillola per distinguerlo (opzionale) o 50% cerchio */
+        margin-left: 10px; /* Separalo un po' dagli altri */
+    }
+
+    /* Chat Panel Mobile */
+    #chat-panel {
+        position: fixed;
+        
+        /* Posizionamento: Sotto l'header, a destra */
+        top: 60px !important;
+        right: 0 !important;  /* Ancorata a destra */
+        left: auto !important; /* Non tocca sinistra */
+        bottom: 0 !important;
+        
+        /* Dimensioni: Non full screen, lascia vedere un pezzo di video a sinistra */
+        width: 85% !important;    
+        min-width: 280px !important;
+        height: calc(100dvh - 60px) !important;
+        
+        background: var(--surface);
+        border-left: 1px solid var(--border-color);
+        box-shadow: -5px 0 20px rgba(0,0,0,0.5); /* Ombra per staccarla dal video */
+        
+        /* Animazione: Entra da DESTRA (translateX) invece che dal basso */
+        transform: translateX(100%); 
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        
+        z-index: 2000 !important; /* Sotto al menu extra ma sopra i video */
+        display: flex;
+        flex-direction: column;
+        padding-top: 0; 
+    }
+
+    #chat-panel.active {
+        transform: translateX(0); /* Scivola dentro */
+    }
+	
+	#chat-panel h3 {
+        display: block !important; 
+        padding: 15px !important;
+        font-size: 1.1em !important;
+    }
+
+    /* Nascondiamo il bottone "Torna alle webcam" se generato per errore */
+    #close-chat-btn {
+        display: none !important;
+    }
+
+	#chat-input-area {
+		display: flex;
+		align-items: center; 
+		padding: 10px;
+		border-top: 1px solid var(--border-color);
+		gap: 8px;
+	}
+
+	
+/* Stile per il contenitore del Footer Chat (per ancorare il picker) */
+	#chat-footer {
+		position: relative;
+		background: var(--surface-2);
+	}
+	
+	#emoji-picker-container {
+    bottom: 110px !important;
+    left: 15px !important;
+    z-index: 2000; /* Assicuriamoci che stia sopra */
+	}
+	
+	#sticker-picker-container {
+        width: 90%;
+        left: 5%;
+        bottom: 80px;
+    }
+
+    /* Stile per il pulsante "Torna alle webcam" generato dal JS */
+	#close-chat-btn {
+		background-color: rgba(255, 255, 255, 0.08) !important; /* Sfondo semi-trasparente */
+		color: #ffffff !important; /* Testo Bianco Puro */
+		border: 1px solid rgba(255, 255, 255, 0.2) !important; /* Bordo sottile */
+		font-weight: 600 !important;
+		box-shadow: none !important;
+	}
+
+	#close-chat-btn:hover {
+		background-color: rgba(255, 255, 255, 0.15) !important;
+	}
+
+	#switch-camera-button {
+        display: flex !important;
+    }
+
+	#extras-menu {
+        width: 90%; /* Più largo su mobile */
+        bottom: 85px;
+    }
+    
+    #extras-menu .menu-item {
+        padding: 15px; /* Touch target più grandi */
+        font-size: 1.1em;
+    }
+
+	.video-feed.fullscreen-active .context-menu-trigger {
+		top: 80px !important; /* Scende sotto la barra dei pulsanti (che è circa 60px) */
+		right: 15px !important; /* Un po' di margine dal bordo */
+		z-index: 200 !important; /* Assicura che sia cliccabile sopra il video */
+		background-color: rgba(0, 0, 0, 0.6); /* Sfondo scuro per vederlo meglio */
+		width: 40px; /* Leggermente più grande per facilitare il tocco */
+		height: 40px;
+	}
+
+	/* Opzionale: Assicuriamoci che l'etichetta del nome non dia fastidio in basso */
+	.video-feed.fullscreen-active .video-label {
+		bottom: 110px !important; /* Sposta il nome sopra la barra controlli inferiore */
+		left: 15px !important;
+		font-size: 1em !important;
+	}
+    
+	#meeting-transcript-panel {
+        left: 50%;
+        transform: translateX(-50%); /* Centrato orizzontalmente */
+        bottom: 90px; /* Appena sopra il menu "Altro" che si apre */
+        width: 94%;   /* Occupa quasi tutta la larghezza */
+        max-height: 25vh; /* Massimo 1/4 dello schermo per non coprire le facce */
+        font-size: 0.9em; /* Testo leggermente più piccolo */
+    }
+    
+    #meeting-transcript-panel.hidden {
+        transform: translateX(-50%) translateY(20px); /* Animazione uscita verso il basso */
+    }
+
+
+    /* 1. L'Header deve adattarsi in altezza (non più fisso a 60px) */
+    #room-header {
+        height: auto !important;     /* Altezza automatica per contenere due righe */
+        min-height: 60px;
+        flex-wrap: wrap;             /* Permette agli elementi di andare a capo */
+        gap: 10px;                   /* Spazio verticale tra la riga bottoni e il topic */
+        padding-bottom: 12px;        /* Spazio extra sotto */
+    }
+
+    /* 2. Il contenitore del Topic smette di essere assoluto */
+    #room-topic-container {
+		display: none !important;
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        transform: none !important;
+        width: 100% !important;
+        margin-top: -5px !important; /* Lo avvicina un po' al titolo */
+        margin-bottom: 5px !important;
+        padding: 0 10px !important;
+        order: 3;
+        display: flex;
+        justify-content: center;
+        z-index: 15;
+    }
+
+    /* 2. Stile del Testo: Rimuoviamo il box scuro e mettiamo il gradiente */
+    #room-topic-display {
+        /* Su mobile resettiamo il gradiente testo per massima leggibilità */
+        background: rgba(0, 0, 0, 0.6) !important; /* Sfondo scuro semi-trasparente */
+        backdrop-filter: blur(4px); /* Effetto vetro sfocato */
+        
+        /* Testo solido del colore del brand */
+        -webkit-text-fill-color: var(--dynamic-brand-color) !important;
+        color: var(--dynamic-brand-color) !important;
+        
+        /* Bordo sottile colorato ed elegante */
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-left: 3px solid var(--dynamic-brand-color); /* Accento laterale */
+        
+        border-radius: 6px;
+        padding: 8px 12px !important;
+        font-size: 0.95em !important;
+        width: auto !important;
+        display: inline-block !important;
+        
+        /* Riduciamo il glow su mobile per pulizia */
+        filter: none !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+	
+    /* 3. Aggiustiamo il prefisso "//" */
+    #room-topic-display::before {
+        content: '// ';
+        /* Eredita il gradiente del padre */
+        background: none !important;
+        -webkit-text-fill-color: inherit !important;
+        font-weight: 900 !important;
+        margin-right: 4px;
+        
+        /* Rimuovi vecchi stili badge */
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        font-size: 1em !important;
+    }
+	
+	#room-name-display {
+        font-size: 1.2rem !important; /* Un po' più piccolo su mobile */
+        white-space: nowrap;
+        /* 1. FORZIAMO IL MOTORE DI RENDERIZZAZIONE */
+        -webkit-background-clip: text !important;
+        background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;     
+        filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8)) !important;
+        text-shadow: none !important; /* Rimuove eventuali ombre nere dell'header che scuriscono il testo */
+        position: relative;
+        z-index: 160;    
+        /* Fix rendering iOS */
+        transform: translateZ(0);
+    }
+	
+	.header-controls {
+        flex-shrink: 0; /* Non si schiacciano mai */
+        display: flex;
+        gap: 5px;
+        position: static; /* Tornano nel flusso flex normale */
+    }
+
+    /* Rimpiccioliamo leggermente i bottoni header su mobile */
+    .header-controls button {
+        padding: 6px !important;
+        width: 36px;
+        height: 36px;
+    }
+    
+    /* Sistemiamo il padding per allinearlo visivamente col resto */
+    .header-left {
+        flex: 1;
+        min-width: 0; /* Permette al testo di troncare */
+        margin-right: 10px;
+    }
+	
+	.room-title-wrapper h3 {
+        display: block;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+	/* 1. Barra in alto (Header): Forza icone bianche su sfondo sfumato scuro */
+    body.light-theme .header-controls button {
+        color: #ffffff !important; 
+        background: rgba(255, 255, 255, 0.15) !important; /* Sfondo traslucido chiaro */
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+    
+    body.light-theme .header-controls button:hover {
+        background: rgba(255, 255, 255, 0.3) !important;
+    }
+
+    /* 2. Barra in basso (Controlli): Forza icone bianche perché la barra è nera */
+    body.light-theme #main-controls-bar button {
+        color: #ffffff !important;
+        background: transparent; /* O semi-trasparente se preferisci */
+    }
+    
+    /* Gestione stati attivi/hover nella barra in basso */
+    body.light-theme #main-controls-bar button:hover,
+    body.light-theme #main-controls-bar button.active {
+        background: rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
+    }
+
+    #emoji-picker-container {
+        position: fixed !important;
+        
+        /* Ancoraggio a DESTRA (per seguire il pannello chat) */
+        right: 10px !important; 
+        left: auto !important; /* Ignora il posizionamento a sinistra */
+        
+        /* Posizionato sopra la barra di input */
+        bottom: 90px !important; 
+        
+        /* Larghezza dinamica che sta dentro il pannello chat (85% - margini) */
+        width: calc(85% - 20px) !important; 
+        max-width: 350px !important; /* Evita che diventi enorme su tablet */
+        
+        z-index: 3005 !important; /* Sopra a tutto, anche alla chat */
+        display: flex;
+        justify-content: center;
+    }
+
+    /* Forza la libreria interna delle emoji ad adattarsi al contenitore */
+    .picmo__picker {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 12px !important;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.5) !important;
+        border: 1px solid var(--border-color) !important;
+    }
+	
+    /* 3. Assicuriamoci che il pulsante "Disconnect" resti Rosso */
+    body.light-theme #disconnect-button {
+        background: var(--danger) !important;
+        color: #ffffff !important;
+    }
+	
+    /* 4. Aumentiamo il padding del Grid Video affinché non finisca sotto l'header più alto */
+    #videos-grid {
+        padding-top: 70px !important;
+    }
+	
+    /* Mobile Whiteboard Adjustments */
+	.wb-toolbar {
+        top: 90px !important;
+        padding: 8px 12px;
+        width: 90%;
+        justify-content: space-between;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    .wb-colors { padding-right: 10px; gap: 5px; }
+    .color-btn { width: 28px; height: 28px; }
+
+	#chat-context-menu {
+        /* 1. Resetta posizionamento JS e ancora al basso */
+        position: fixed !important;
+        top: auto !important;  /* Ignora la coordinata Y del mouse */
+        left: 0 !important;    /* Ignora la coordinata X del mouse */
+        right: 0 !important;
+        bottom: 0 !important;
+        
+        /* 2. Stile Pannello */
+        width: 100%;
+        min-width: 100%;
+        border-radius: 20px 20px 0 0; /* Arrotonda solo sopra */
+        border: none;
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.7);
+        
+        /* 3. Spaziatura per dita e iPhone X+ */
+        padding: 20px 10px 30px 10px; /* Più spazio sotto per la Home Bar di iOS */
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        
+        /* 4. Animazione Slide Up */
+        transform: translateY(0);
+        animation: slideUpMenu 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Gestione stato nascosto */
+    #chat-context-menu.hidden {
+        display: none !important;
+        /* Opzionale: se volessi animare l'uscita servirebbe JS, 
+           ma display:none è immediato ed efficace */
+    }
+
+    /* Elementi del menu più grandi per il touch */
+    #chat-context-menu .menu-item {
+        padding: 15px 20px;
+        font-size: 1.1em;
+        border-radius: 12px;
+        background: transparent;
+    }
+
+    #chat-context-menu .menu-item:active {
+        background: var(--surface-2);
+        transform: scale(0.98);
+    }
+
+    #chat-context-menu .menu-item .material-icons {
+        font-size: 1.4em; /* Icone più grandi */
+    }
+
+    /* "Maniglia" visiva in alto */
+    #chat-context-menu::before {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        margin: -10px auto 15px auto; /* Centrato in alto */
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUpMenu {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+}
+
+.picmo__picker h3, 
+.picmo__categoryName {
+    background: transparent !important;
+    border: none !important;        
+    border-bottom: none !important; 
+    color: var(--text-color) !important;      
+    font-family: sans-serif !important; 
+    text-shadow: none !important;   
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    padding: 8px 12px !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+}
+
+.picmo__picker h3::before,
+.picmo__picker h3::after,
+.picmo__categoryName::before,
+.picmo__categoryName::after {
+    content: none !important;
+    display: none !important;
+    animation: none !important;
+    border: none !important;
+}
+
+.picmo__picker {
+    --accent-color: var(--primary-color); 
+    background: var(--surface) !important;       
+    border: 1px solid var(--border-color) !important;    
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+.picmo__searchContainer {
+    background: transparent !important;
+    padding: 10px !important;
+}
+
+.picmo__searchField {
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-color) !important;
+    border-radius: 6px !important;
