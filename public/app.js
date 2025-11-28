@@ -111,9 +111,8 @@ const adminBannedCount = document.getElementById('admin-banned-count');
 
 let socket = null;
 let wakeLock = null;
-const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD//////////////////////////////////////////////////////////////////wAAAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASAAAAAAAASAAAAAAAAB//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD//////////////////////////////////////////////////////////////////wAAAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASAAAAAAAASAAAAAAAAB");
-silentAudio.loop = true;
-silentAudio.volume = 0.01;
+let keepAliveCtx = null;
+let keepAliveOsc = null;
 
 let localStream = null;
 let userNickname = 'Guest';
@@ -124,6 +123,17 @@ const remoteNicknames = {};
 let focusedPeerId = null; 
 let screenStream = null; 
 const videoSenders = {}; 
+const roomVideoStates = {}; 
+const audioSenders = {}; 
+const roomAudioStates = {};
+
+function getRoomIdByPeerId(peerId) {
+    for (const [rId, users] of Object.entries(channelUsersRegistry)) {
+        if (users.find(u => u.id === peerId)) return rId;
+    }
+    return null;
+}
+
 let isAudioEnabled = true;
 let isVideoEnabled = true;
 const iceCandidateQueues = {};
@@ -923,6 +933,7 @@ function showOverlay(show){
     if(logo) logo.style.display = 'none'; 
   }
 }
+
 function resetAndShowOverlay() {
     videosGrid.innerHTML = '';
     
@@ -961,11 +972,15 @@ function resetAndShowOverlay() {
         isRecording = false;
     }
     
+    for (const key in roomVideoStates) delete roomVideoStates[key];
+    for (const key in roomAudioStates) delete roomAudioStates[key];
+
     Object.values(peerConnections).forEach(pc => pc.close());
     for (const key in peerConnections) delete peerConnections[key];
     for (const key in remoteNicknames) delete remoteNicknames[key];
     for (const key in iceCandidateQueues) delete iceCandidateQueues[key];
     for (const key in videoSenders) delete videoSenders[key];
+    for (const key in audioSenders) delete audioSenders[key];
     for (const key in manuallyMutedPeers) delete manuallyMutedPeers[key];
     
     isManualFocus = false;
@@ -973,13 +988,6 @@ function resetAndShowOverlay() {
     if (autoFocusTimer) clearTimeout(autoFocusTimer);
     autoFocusTimer = null;
     monitorLocalAudio(false); 
-
-    const placeholder = document.createElement('div');
-    placeholder.id = 'remote-video-placeholder';
-    placeholder.className = 'video-placeholder';
-    placeholder.textContent = t('waiting_others');
-    
-    videosGrid.appendChild(placeholder);
     
     videosGrid.appendChild(localFeedEl);
     
@@ -1236,7 +1244,7 @@ function removeRemoteFeed(socketId){
   if (dataChannels[socketId]) { dataChannels[socketId].close(); delete dataChannels[socketId]; }
   delete fileChunks[socketId]; delete fileMetadata[socketId];
   delete remoteNicknames[socketId]; delete iceCandidateQueues[socketId];
-  delete videoSenders[socketId]; delete manuallyMutedPeers[socketId]; 
+  delete videoSenders[socketId]; delete audioSenders[socketId]; delete manuallyMutedPeers[socketId]; 
   
   if (currentSpeakerId === socketId) currentSpeakerId = null;
   if (autoFocusTimer) { clearTimeout(autoFocusTimer); autoFocusTimer = null; }
@@ -1246,16 +1254,6 @@ function removeRemoteFeed(socketId){
   }
 
   const remoteVideos = videosGrid.querySelectorAll('.video-feed:not(#local-feed)');
-  if(remoteVideos.length === 0){
-    const oldPh = document.getElementById('remote-video-placeholder');
-    if(oldPh) oldPh.remove();
-
-    const placeholder = document.createElement('div');
-    placeholder.id = 'remote-video-placeholder';
-    placeholder.className = 'video-placeholder';
-    placeholder.textContent = t('waiting_others');
-    videosGrid.insertBefore(placeholder, localFeedEl);
-  }
 }
 
 async function enableMediaIfNeeded() {
@@ -1264,8 +1262,8 @@ async function enableMediaIfNeeded() {
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             updateLocalVideo();
             
-            localStream.getAudioTracks().forEach(t => t.enabled = isAudioEnabled);
-            localStream.getVideoTracks().forEach(t => t.enabled = isVideoEnabled);
+            localStream.getAudioTracks().forEach(t => t.enabled = true);
+            localStream.getVideoTracks().forEach(t => t.enabled = true);
             
             for(const peerId in peerConnections) {
                 const pc = peerConnections[peerId];
@@ -1287,40 +1285,96 @@ async function enableMediaIfNeeded() {
     return true;
 }
 
-async function toggleAudio(){
-    if(!localStream) {
+async function toggleAudio() {
+    if (!currentRoomId) return;
+
+    if (!localStream) {
         isAudioEnabled = true; 
-        await enableMediaIfNeeded();
+        const success = await enableMediaIfNeeded();
+        if (!success) return;
+        roomAudioStates[currentRoomId] = true;
     } else {
-        isAudioEnabled = !isAudioEnabled;
-        localStream.getAudioTracks().forEach(track => track.enabled = isAudioEnabled);
+        if (typeof roomAudioStates[currentRoomId] === 'undefined') {
+            roomAudioStates[currentRoomId] = true; 
+        } else {
+            roomAudioStates[currentRoomId] = !roomAudioStates[currentRoomId];
+        }
     }
+
+    const isEnabledForThisRoom = roomAudioStates[currentRoomId];
+    isAudioEnabled = isEnabledForThisRoom; 
+
+    toggleAudioButton.querySelector('.material-icons').textContent = isEnabledForThisRoom ? 'mic' : 'mic_off';
+    if(localMicStatusIcon) localMicStatusIcon.textContent = isEnabledForThisRoom ? 'mic' : 'mic_off';
+    monitorLocalAudio(isEnabledForThisRoom);
+
+    const audioTrack = localStream.getAudioTracks()[0];
+    const usersInRoom = channelUsersRegistry[currentRoomId] || [];
+
+    usersInRoom.forEach(user => {
+        const peerId = user.id;
+        if (peerId === socket.id) return;
+
+        const sender = audioSenders[peerId];
+        if (sender) {
+            if (isEnabledForThisRoom) {
+                if (audioTrack && !audioTrack.enabled) audioTrack.enabled = true;
+                sender.replaceTrack(audioTrack).catch(e => console.error("Audio replace err:", e));
+            } else {
+                sender.replaceTrack(null).catch(e => console.error("Audio clear err:", e));
+            }
+        }
+    });
     
-    toggleAudioButton.querySelector('.material-icons').textContent = isAudioEnabled ? 'mic' : 'mic_off';
-    localMicStatusIcon.textContent = isAudioEnabled ? 'mic' : 'mic_off'; 
-    monitorLocalAudio(isAudioEnabled); 
+    if (socket) socket.emit('audio-status-changed', currentRoomId, isEnabledForThisRoom);
+    const isAudioNeededAnywhere = Object.values(roomAudioStates).some(state => state === true);
+    if (audioTrack) {
+        audioTrack.enabled = isAudioNeededAnywhere;
+    }
 }
 
-async function toggleVideo(){
-    if(!localStream) {
-        isVideoEnabled = true; 
-        await enableMediaIfNeeded();
+async function toggleVideo() {
+    if (!currentRoomId) return;
+    if (!localStream) {
+        const success = await enableMediaIfNeeded();
+        if (!success) return;
+        roomVideoStates[currentRoomId] = true;
     } else {
-        isVideoEnabled = !isVideoEnabled;
-        localStream.getVideoTracks().forEach(track => track.enabled = isVideoEnabled);
+        roomVideoStates[currentRoomId] = !roomVideoStates[currentRoomId];
     }
-    
-    toggleVideoButton.querySelector('.material-icons').textContent = isVideoEnabled ? 'videocam' : 'videocam_off';
-    
+    const isEnabledForThisRoom = roomVideoStates[currentRoomId];
+    isVideoEnabled = isEnabledForThisRoom; 
+    toggleVideoButton.querySelector('.material-icons').textContent = isEnabledForThisRoom ? 'videocam' : 'videocam_off';
     const localOverlay = document.getElementById('local-no-cam');
-	if (localOverlay) localOverlay.classList.add('hidden');
     if (localOverlay) {
-        if (isVideoEnabled) localOverlay.classList.add('hidden');
+        if (isEnabledForThisRoom) localOverlay.classList.add('hidden');
         else localOverlay.classList.remove('hidden');
     }
+    const videoTrack = localStream.getVideoTracks()[0];
+    const usersInRoom = channelUsersRegistry[currentRoomId] || [];
+    
+    usersInRoom.forEach(user => {
+        const peerId = user.id;
+        if (peerId === socket.id) return;
+
+        const sender = videoSenders[peerId];
+        if (sender) {
+            if (isEnabledForThisRoom) {
+                if (videoTrack && !videoTrack.enabled) videoTrack.enabled = true;
+                sender.replaceTrack(videoTrack).catch(e => console.error("Error replacing track:", e));
+            } else {
+                sender.replaceTrack(null).catch(e => console.error("Error clearing track:", e));
+            }
+        }
+    });
 
     if (socket && currentRoomId) {
-        socket.emit('video-status-changed', currentRoomId, isVideoEnabled);
+        socket.emit('video-status-changed', currentRoomId, isEnabledForThisRoom);
+    }
+    const isNeededAnywhere = Object.values(roomVideoStates).some(state => state === true);
+    
+    if (videoTrack) {
+        videoTrack.enabled = isNeededAnywhere;
     }
 }
 
@@ -1564,7 +1618,30 @@ function switchChannel(newRoomId, newPassword = "") {
     
     currentRoomId = newRoomId; 
     currentRoomPassword = newPassword;
+    if (typeof roomVideoStates[currentRoomId] === 'undefined') {
+        roomVideoStates[currentRoomId] = false;
+    }
     
+    const isCamOnInNewRoom = roomVideoStates[currentRoomId];
+    isVideoEnabled = isCamOnInNewRoom; 
+
+    if (toggleVideoButton) {
+        toggleVideoButton.querySelector('.material-icons').textContent = isCamOnInNewRoom ? 'videocam' : 'videocam_off';
+    }
+
+    const localOverlay = document.getElementById('local-no-cam');
+    if (localOverlay) {
+        if (isCamOnInNewRoom) localOverlay.classList.add('hidden');
+        else localOverlay.classList.remove('hidden');
+    }
+	if (typeof roomAudioStates[currentRoomId] === 'undefined') {
+        roomAudioStates[currentRoomId] = false;
+    }
+    const isAudioOnInNewRoom = roomAudioStates[currentRoomId];
+    isAudioEnabled = isAudioOnInNewRoom;
+    toggleAudioButton.querySelector('.material-icons').textContent = isAudioOnInNewRoom ? 'mic' : 'mic_off';
+    if(localMicStatusIcon) localMicStatusIcon.textContent = isAudioOnInNewRoom ? 'mic' : 'mic_off';
+    monitorLocalAudio(isAudioOnInNewRoom);
     document.getElementById('room-name-display').textContent = `#${newRoomId}`;
     
     loadChatFromMemory(newRoomId); 
@@ -1579,7 +1656,6 @@ function switchChannel(newRoomId, newPassword = "") {
     }
 }
 
-/* Sostituisci la funzione renderSidebarChannels esistente con questa */
 function renderSidebarChannels() {
     if(!myChannelsListEl) return;
     myChannelsListEl.innerHTML = '';
@@ -1694,7 +1770,10 @@ function removeChannelFromSidebar(roomToRemove) {
     }
 
     myJoinedChannels = myJoinedChannels.filter(r => r !== roomName);
-    
+	
+    if (roomChatsData[roomName]) delete roomChatsData[roomName];
+    if (typeof roomVideoStates[roomName] !== 'undefined') delete roomVideoStates[roomName]; 
+    if (typeof roomAudioStates[roomName] !== 'undefined') delete roomAudioStates[roomName];
     if (roomChatsData[roomName]) delete roomChatsData[roomName];
     
     renderSidebarChannels();
@@ -2305,6 +2384,7 @@ function renderAdminDashboard(data) {
 }
 
 function getRoomIdFromUrl(){ const urlParams = new URLSearchParams(window.location.search); return urlParams.get('room'); }
+
 function copyRoomLink(){ 
     let url = `${window.location.protocol}//${window.location.host}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
     
@@ -2324,7 +2404,7 @@ function copyRoomLink(){
 
 const originalAddChatMessage = addChatMessage;
 
-function addChatMessage(sender, message, isLocal = false, type = 'public', msgId = null) {
+function addChatMessage(sender, message, isLocal = false, type = 'public', msgId = null, saveToMemory = true) {
     const messageEl = document.createElement('div');
     messageEl.classList.add('chat-message');
 
@@ -2337,7 +2417,7 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
         messagesContainer.appendChild(messageEl);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-        if (typeof roomChatsData !== 'undefined' && currentRoomId) {
+        if (saveToMemory && typeof roomChatsData !== 'undefined' && currentRoomId) {
             if (!roomChatsData[currentRoomId]) roomChatsData[currentRoomId] = [];
             roomChatsData[currentRoomId].push({
                 sender: 'System',
@@ -2403,9 +2483,12 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
             e.preventDefault();
             e.stopPropagation();
             chatTargetUser = sender.replace(/^[@+]/, '');
-            chatContextMenu.classList.remove('hidden');
-            chatContextMenu.style.top = `${e.clientY}px`;
-            chatContextMenu.style.left = `${e.clientX}px`;
+            const chatContextMenu = document.getElementById('chat-context-menu'); // Assicurati che chatContextMenu sia accessibile o recuperalo qui
+            if(chatContextMenu) {
+                chatContextMenu.classList.remove('hidden');
+                chatContextMenu.style.top = `${e.clientY}px`;
+                chatContextMenu.style.left = `${e.clientX}px`;
+            }
         });
     }
 
@@ -2426,7 +2509,7 @@ function addChatMessage(sender, message, isLocal = false, type = 'public', msgId
         }
     }
 
-    if (typeof roomChatsData !== 'undefined' && currentRoomId) {
+    if (saveToMemory && typeof roomChatsData !== 'undefined' && currentRoomId) {
         if (!roomChatsData[currentRoomId]) roomChatsData[currentRoomId] = [];
 
         const exists = msgId && roomChatsData[currentRoomId].some(m => m.id === msgId);
@@ -3028,7 +3111,27 @@ function createPeerConnection(socketId){
   const pc = new RTCPeerConnection(iceConfiguration);
   peerConnections[socketId] = pc;
   iceCandidateQueues[socketId] = []; 
-  if(localStream) { localStream.getTracks().forEach(track => { const sender = pc.addTrack(track, localStream); if(track.kind === 'video') videoSenders[socketId] = sender; }); }
+  
+  if(localStream) { 
+      localStream.getTracks().forEach(track => { 
+          const sender = pc.addTrack(track, localStream); 
+          if(track.kind === 'video') {
+              videoSenders[socketId] = sender;
+              const peerRoom = getRoomIdByPeerId(socketId) || currentRoomId;
+
+              if (peerRoom && !roomVideoStates[peerRoom]) {
+                  setTimeout(() => sender.replaceTrack(null), 0);
+              }
+          }
+		  if(track.kind === 'audio') {
+			audioSenders[socketId] = sender;
+			const peerRoom = getRoomIdByPeerId(socketId) || currentRoomId;
+			if (peerRoom && !roomAudioStates[peerRoom]) {
+				setTimeout(() => sender.replaceTrack(null), 0);
+			}
+		}
+      }); 
+  }
   
   const shouldCreateOffer = (socket.id < socketId); 
   if (shouldCreateOffer) { const dc = pc.createDataChannel("fileTransfer"); setupDataChannel(dc, socketId); } 
@@ -3320,7 +3423,7 @@ function loadChatFromMemory(roomId) {
     if (roomChatsData[roomId]) {
         roomChatsData[roomId].forEach(msg => {
             const isMe = msg.sender === userNickname;
-            addChatMessage(msg.sender, msg.text, isMe, msg.type, msg.id);
+            addChatMessage(msg.sender, msg.text, isMe, msg.type, msg.id, false);
         });
     }
 }
@@ -3582,9 +3685,32 @@ async function requestWakeLock() {
 }
 
 function activateKeepAlive() {
-    silentAudio.play().then(() => {
-        console.log("Silent audio playing for background persistence.");
-    }).catch(e => console.warn("Audio play failed (user gesture needed):", e));
+    try {
+        if (!keepAliveCtx) {
+            keepAliveCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (keepAliveCtx.state === 'suspended') {
+            keepAliveCtx.resume().then(() => {
+                console.log("KeepAlive AudioContext resumed.");
+            });
+        }
+        if (!keepAliveOsc) {
+            keepAliveOsc = keepAliveCtx.createOscillator();
+            const gainNode = keepAliveCtx.createGain();
+            gainNode.gain.value = 0.0001; 
+
+            keepAliveOsc.connect(gainNode);
+            gainNode.connect(keepAliveCtx.destination);
+
+            keepAliveOsc.type = 'sine';
+            keepAliveOsc.frequency.setValueAtTime(20, keepAliveCtx.currentTime); // Frequenza bassa
+
+            keepAliveOsc.start();
+            console.log("Silent oscillator started (Web Audio API) for background persistence.");
+        }
+    } catch (e) {
+        console.warn("Web Audio API Keep-Alive error:", e);
+    }
     requestWakeLock();
 }
 

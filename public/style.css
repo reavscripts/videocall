@@ -585,7 +585,7 @@ html, body {
     height: 225px;
     background-color: var(--surface-2);
     border-radius: 8px;
-    display: flex;
+    display: none !important;
     justify-content: center;
     align-items: center;
     color: var(--muted);
