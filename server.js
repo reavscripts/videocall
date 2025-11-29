@@ -128,21 +128,43 @@ io.on('connection', (socket) => {
         if (config.isLocked) { socket.emit('error-message', 'Room locked.'); return; }
         if (config.password && config.password !== password) { socket.emit('error-message', 'Wrong password.'); return; }
 
-        const existingUserEntry = Object.entries(rooms[roomId]).find(([id, n]) => n.toLowerCase().replace(/^[@+]+/, '') === finalNickname.toLowerCase());
+        let baseNickname = finalNickname;
 
-        if (existingUserEntry) {
-            const [oldSocketId, oldNick] = existingUserEntry;
-            const isAuth = (!config.password || config.password === password);
+        while (true) {
+            const existingUserEntry = Object.entries(rooms[roomId]).find(([id, n]) => 
+                n.toLowerCase().replace(/^[@+]+/, '') === finalNickname.toLowerCase()
+            );
+
+            if (existingUserEntry) {
+                const [oldSocketId, oldNick] = existingUserEntry;
+                const isAuth = (config.password && config.password === password);
+
+                if (isAuth) {
+                    break; 
+                } else {
+                    const randomNum = Math.floor(Math.random() * 1000) + 1;
+                    let cleanBase = baseNickname.replace(/^[@+]+/, '');
+                    finalNickname = `${cleanBase}_${randomNum}`;
+                }
+            } else {
+                break;
+            }
+        }
+        
+        const existingUserEntryPostCheck = Object.entries(rooms[roomId]).find(([id, n]) => 
+            n.toLowerCase().replace(/^[@+]+/, '') === finalNickname.toLowerCase()
+        );
+
+        if (existingUserEntryPostCheck) {
+            const [oldSocketId, oldNick] = existingUserEntryPostCheck;
+            const isAuth = (config.password && config.password === password);
 
             if (isAuth) {
                 if (oldNick.startsWith('@') && !finalNickname.startsWith('@')) {
                     finalNickname = '@' + finalNickname.replace(/^@/, '');
                 }
                 delete rooms[roomId][oldSocketId];
-            } else {
-                socket.emit('nickname-in-use', `Nick '${finalNickname}' is already in use.`);
-                return;
-            }
+            } 
         }
 
         socket.join(roomId);
@@ -352,8 +374,8 @@ io.on('connection', (socket) => {
     socket.on('command-devoice', (roomId, targetNick) => {
         if(!rooms[roomId]) return;
         const myNick = rooms[roomId][socket.id];
-        
-        if(!myNick || !myNick.startsWith('@')) {
+
+        if(!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) {
             socket.emit('error-message', "Only operators can manage voice.");
             return;
         }

@@ -2584,6 +2584,28 @@ body.chat-wide-mode #main-controls-bar:hover {
     transform: translateX(-50%) translateY(0); /* Torna alla posizione originale */
 }
 
+/* --- Aggiungi in fondo a style.css --- */
+
+.channel-toggle-icon {
+    font-size: 1.2em;
+    color: var(--muted);
+    margin-right: 5px;
+    transition: transform 0.2s ease;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Quando il canale è attivo e la lista è chiusa, ruotiamo l'icona */
+.channel-item.collapsed .channel-toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.channel-header-row {
+    /* Assicuriamoci che l'header sia cliccabile */
+    cursor: pointer;
+    user-select: none;
+}
+
 @media (max-width: 768px) {
     #room-header {
         position: fixed;
