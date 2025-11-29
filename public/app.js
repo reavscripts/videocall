@@ -937,6 +937,7 @@ function showOverlay(show){
 }
 
 function resetAndShowOverlay() {
+	localWhiteboardHistory = [];
     videosGrid.innerHTML = '';
     
     messagesContainer.innerHTML = ''; 
@@ -1262,16 +1263,24 @@ async function enableMediaIfNeeded() {
     if (!localStream) {
         try {
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+            localStream.getAudioTracks().forEach(t => t.enabled = isAudioEnabled);
+
+            if (!isVideoEnabled) {
+                localStream.getVideoTracks().forEach(t => {
+                    t.stop(); 
+                });
+            }
+
             updateLocalVideo();
-            
-            localStream.getAudioTracks().forEach(t => t.enabled = true);
-            localStream.getVideoTracks().forEach(t => t.enabled = true);
             
             for(const peerId in peerConnections) {
                 const pc = peerConnections[peerId];
                 localStream.getTracks().forEach(track => {
+
                     const sender = pc.addTrack(track, localStream);
                     if(track.kind === 'video') videoSenders[peerId] = sender;
+                    if(track.kind === 'audio') audioSenders[peerId] = sender;
                 });
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
@@ -1337,46 +1346,88 @@ async function toggleAudio() {
 
 async function toggleVideo() {
     if (!currentRoomId) return;
-    if (!localStream) {
-        const success = await enableMediaIfNeeded();
-        if (!success) return;
-        roomVideoStates[currentRoomId] = true;
+
+    // Gestione dello stato
+    if (typeof roomVideoStates[currentRoomId] === 'undefined') {
+        roomVideoStates[currentRoomId] = true; 
     } else {
         roomVideoStates[currentRoomId] = !roomVideoStates[currentRoomId];
     }
+
     const isEnabledForThisRoom = roomVideoStates[currentRoomId];
     isVideoEnabled = isEnabledForThisRoom; 
+
     toggleVideoButton.querySelector('.material-icons').textContent = isEnabledForThisRoom ? 'videocam' : 'videocam_off';
+
     const localOverlay = document.getElementById('local-no-cam');
     if (localOverlay) {
         if (isEnabledForThisRoom) localOverlay.classList.add('hidden');
         else localOverlay.classList.remove('hidden');
     }
-    const videoTrack = localStream.getVideoTracks()[0];
-    const usersInRoom = channelUsersRegistry[currentRoomId] || [];
-    
-    usersInRoom.forEach(user => {
-        const peerId = user.id;
-        if (peerId === socket.id) return;
 
-        const sender = videoSenders[peerId];
-        if (sender) {
-            if (isEnabledForThisRoom) {
-                if (videoTrack && !videoTrack.enabled) videoTrack.enabled = true;
-                sender.replaceTrack(videoTrack).catch(e => console.error("Error replacing track:", e));
-            } else {
-                sender.replaceTrack(null).catch(e => console.error("Error clearing track:", e));
+    // LOGICA HARDWARE CAM
+    if (isEnabledForThisRoom) {
+
+        if (!localStream) {
+            await enableMediaIfNeeded();
+        } else {
+
+            try {
+                const newStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const newVideoTrack = newStream.getVideoTracks()[0];
+
+                localStream.getVideoTracks().forEach(t => {
+                    t.stop();
+                    localStream.removeTrack(t);
+                });
+
+                localStream.addTrack(newVideoTrack);
+                updateLocalVideo();
+
+                const usersInRoom = channelUsersRegistry[currentRoomId] || [];
+                usersInRoom.forEach(user => {
+                    const peerId = user.id;
+                    if (peerId === socket.id) return;
+
+                    const sender = videoSenders[peerId];
+                    if (sender) {
+                        sender.replaceTrack(newVideoTrack).catch(e => console.error("Error replacing track:", e));
+                    } else {
+                        // Se il sender non esisteva (caso limite), lo aggiungiamo ora (richiederebbe rinegoziazione)
+                        // Per semplicità nel contesto attuale ci affidiamo a replaceTrack
+                    }
+                });
+            } catch (e) {
+                console.error("Errore riattivazione video:", e);
+                roomVideoStates[currentRoomId] = false;
+                isVideoEnabled = false;
+                toggleVideoButton.querySelector('.material-icons').textContent = 'videocam_off';
+                return;
             }
         }
-    });
+    } else {
+
+        if (localStream) {
+
+            localStream.getVideoTracks().forEach(track => {
+                track.stop(); 
+
+            });
+
+            const usersInRoom = channelUsersRegistry[currentRoomId] || [];
+            usersInRoom.forEach(user => {
+                const peerId = user.id;
+                if (peerId === socket.id) return;
+                const sender = videoSenders[peerId];
+                if (sender) {
+                    sender.replaceTrack(null).catch(e => console.error("Error clearing track:", e));
+                }
+            });
+        }
+    }
 
     if (socket && currentRoomId) {
         socket.emit('video-status-changed', currentRoomId, isEnabledForThisRoom);
-    }
-    const isNeededAnywhere = Object.values(roomVideoStates).some(state => state === true);
-    
-    if (videoTrack) {
-        videoTrack.enabled = isNeededAnywhere;
     }
 }
 
@@ -1838,21 +1889,62 @@ fileInput.addEventListener('change', (e) => {
 
 async function sendFile(peerId, file) {
     const dc = dataChannels[peerId];
-    if (!dc || dc.readyState !== 'open') { console.warn(`Channel closed ${peerId}`); return; }
-    const toast = createProgressToast(`Sending: ${file.name}`, true);
-    const metadata = { type: 'file-metadata', name: file.name, size: file.size, fileType: file.type };
-    dc.send(JSON.stringify(metadata));
-    const arrayBuffer = await file.arrayBuffer();
-    let offset = 0;
-    while (offset < file.size) {
-        const chunk = arrayBuffer.slice(offset, offset + CHUNK_SIZE);
-        dc.send(chunk);
-        offset += chunk.byteLength;
-        const percent = Math.min(100, Math.round((offset / file.size) * 100));
-        updateProgressToast(toast, percent);
-        if (dc.bufferedAmount > 16000000) await new Promise(resolve => setTimeout(resolve, 100));
+    if (!dc || dc.readyState !== 'open') { 
+        console.warn(`Channel closed or not ready for ${peerId}`); 
+        return; 
     }
-    setTimeout(() => toast.remove(), 2000);
+
+    const toast = createProgressToast(`Sending: ${file.name}`, true);
+    
+    // Invia i metadati
+    const metadata = { type: 'file-metadata', name: file.name, size: file.size, fileType: file.type };
+    try {
+        dc.send(JSON.stringify(metadata));
+    } catch (e) {
+        console.error("Error sending metadata:", e);
+        alert("Errore invio metadati. Riprova.");
+        if(toast) toast.remove();
+        return;
+    }
+
+    const CHUNK_SIZE = 16384; // 16KB
+    let offset = 0;
+
+    try {
+        while (offset < file.size) {
+
+            if (dc.readyState !== 'open') throw new Error("Connection closed during transfer");
+
+            const chunk = file.slice(offset, offset + CHUNK_SIZE);
+            const buffer = await chunk.arrayBuffer();
+            
+            dc.send(buffer);
+
+            offset += buffer.byteLength;
+            
+            const percent = Math.min(100, Math.round((offset / file.size) * 100));
+            updateProgressToast(toast, percent);
+
+            if (dc.bufferedAmount > 1024 * 1024) { // 1MB threshold
+                await new Promise(resolve => {
+                    const checkBuffer = setInterval(() => {
+                        if (dc.bufferedAmount < 256 * 1024 || dc.readyState !== 'open') {
+                            clearInterval(checkBuffer);
+                            resolve();
+                        }
+                    }, 50);
+                });
+            }
+        }
+    } catch (err) {
+        console.error("File transfer error:", err);
+        if(toast) {
+            toast.querySelector('.file-name').textContent = "Error Sending File";
+            toast.querySelector('.progress-bar-fill').style.backgroundColor = 'red';
+        }
+    }
+
+    setTimeout(() => { if(toast) toast.remove(); }, 2000);
 }
 
 function handleDataChannelMessage(peerId, event) {
@@ -2066,7 +2158,9 @@ function drawRemote(data, saveToHistory = true){
     ctx.stroke(); 
     ctx.closePath();
 
-    if(saveToHistory) localWhiteboardHistory.push(data);
+    if(saveToHistory) {
+        localWhiteboardHistory.push(data);
+    }
 }
 
 function throttle(callback, delay) { let previousCall = new Date().getTime(); return function() { const time = new Date().getTime(); if ((time - previousCall) >= delay) { previousCall = time; callback.apply(null, arguments); } }; }
@@ -2942,10 +3036,14 @@ function initializeSocket(){
   socket.on('wb-clear', () => { if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height); localWhiteboardHistory = []; });
   socket.on('wb-history', (history) => { 
       if(!ctx) initWhiteboard(); 
-      ctx.clearRect(0, 0, canvas.width, canvas.height); 
-      localWhiteboardHistory = []; 
-      history.forEach(item => drawRemote(item)); 
-      if (whiteboardContainer.classList.contains('hidden') && history.length > 0) toggleWhiteboardButton.classList.add('has-notification'); 
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // Pulisce tutto
+      localWhiteboardHistory = history; // Aggiorna lo storico locale con quello del server
+      history.forEach(item => drawRemote(item, false)); // Ridisegna tutto (false = non ri-aggiungere all'array locale perché l'abbiamo appena fatto)
+      
+      // Notifica visuale se la lavagna è chiusa
+      if (whiteboardContainer.classList.contains('hidden') && history.length > 0) {
+          toggleWhiteboardButton.classList.add('has-notification'); 
+      }
   });
   
   socket.on('chat-history', (history) => {
@@ -3054,6 +3152,23 @@ function initializeSocket(){
 			});
 		}
 	});
+  
+  socket.on('remote-video-status-changed', (peerId, isEnabled) => {
+      const feed = videosGrid.querySelector(`[data-peer-id="${peerId}"]`);
+      if (!feed) return;
+
+      const noCamOverlay = feed.querySelector('.no-cam-overlay');
+      if (noCamOverlay) {
+          if (isEnabled) {
+              // Se il video è attivato, nascondi l'immagine di default
+              noCamOverlay.classList.add('hidden');
+          } else {
+              // Se il video è disattivato, mostra l'immagine di default (coprendo il fermo immagine)
+              noCamOverlay.classList.remove('hidden');
+          }
+      }
+  });
+  
   socket.on('remote-stream-type-changed', (pid, ratio) => { const f = videosGrid.querySelector(`[data-peer-id="${pid}"]`); if(f){ f.classList.remove('ratio-4-3', 'ratio-16-9'); f.classList.add(`ratio-${ratio}`); } });
   
   socket.on('offer', async (fid, o)=>{ const pc = createPeerConnection(fid); if(pc.signalingState !== 'stable') return; await pc.setRemoteDescription(new RTCSessionDescription(o)); if (iceCandidateQueues[fid]) { iceCandidateQueues[fid].forEach(c => pc.addIceCandidate(new RTCIceCandidate(c))); iceCandidateQueues[fid] = []; } const a = await pc.createAnswer(); await pc.setLocalDescription(a); socket.emit('answer', fid, pc.localDescription); });

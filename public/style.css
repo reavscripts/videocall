@@ -2571,6 +2571,19 @@ body.light-theme .system-msg-content {
     outline: none;
 }
 
+body.chat-wide-mode #main-controls-bar {
+    opacity: 0;
+    transform: translateX(-50%) translateY(40px); /* Sposta leggermente in basso */
+    pointer-events: auto; /* Mantiene la rilevazione del mouse per l'hover */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Quando passi il mouse sopra la zona della barra, falla riapparire */
+body.chat-wide-mode #main-controls-bar:hover {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0); /* Torna alla posizione originale */
+}
+
 @media (max-width: 768px) {
     #room-header {
         position: fixed;

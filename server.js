@@ -26,9 +26,11 @@ const io = new Server(server, {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+
 const rooms = {}; 
 const roomConfigs = {}; 
 const roomMessages = {}; 
+const roomWhiteboards = {};
 const bannedIPs = new Set(); 
 const admins = new Set(); 
 
@@ -188,6 +190,7 @@ io.on('connection', (socket) => {
                     delete rooms[roomId];
                     delete roomConfigs[roomId];
                     if(roomMessages[roomId]) delete roomMessages[roomId];
+					if (roomWhiteboards[roomId]) delete roomWhiteboards[roomId];
                 }
             }
         }
@@ -605,9 +608,34 @@ io.on('connection', (socket) => {
         io.to(roomId).emit('msg-read-update', messageId, readerNickname);
     });
     socket.on('send-private-message', (r, rid, s, m) => io.to(rid).emit('new-private-message', s, m));
-    socket.on('wb-draw', (r, d) => socket.to(r).emit('wb-draw', d));
-    socket.on('wb-clear', (r) => io.to(r).emit('wb-clear'));
-    socket.on('wb-undo', (r) => io.to(r).emit('wb-undo')); 
+	// --- GESTIONE WHITEBOARD (Sostituisci il blocco precedente con questo) ---
+
+    socket.on('wb-draw', (roomId, data) => {
+        if (!roomWhiteboards[roomId]) roomWhiteboards[roomId] = [];
+        roomWhiteboards[roomId].push(data); // Salva il tratto in memoria
+        socket.to(roomId).emit('wb-draw', data); // Invia agli altri
+    });
+
+    socket.on('wb-clear', (roomId) => {
+        if (roomWhiteboards[roomId]) roomWhiteboards[roomId] = []; // Pulisce memoria server
+        io.to(roomId).emit('wb-clear'); // Pulisce client
+    });
+
+    socket.on('wb-undo', (roomId) => {
+        if (roomWhiteboards[roomId] && roomWhiteboards[roomId].length > 0) {
+            roomWhiteboards[roomId].pop(); // Rimuove l'ultimo tratto dal server
+            // Invia l'intero storico aggiornato a tutti per assicurare la sincronia
+            io.to(roomId).emit('wb-history', roomWhiteboards[roomId]); 
+        }
+    });
+
+    socket.on('wb-request-history', (roomId) => {
+        if (roomWhiteboards[roomId]) {
+            socket.emit('wb-history', roomWhiteboards[roomId]);
+        }
+    });
+    
+    // -----------------------------------------------------------------------
     socket.on('offer', (id, o) => io.to(id).emit('offer', socket.id, o));
     socket.on('answer', (id, a) => io.to(id).emit('answer', socket.id, a));
     socket.on('candidate', (id, c) => io.to(id).emit('candidate', socket.id, c));
@@ -636,6 +664,7 @@ io.on('connection', (socket) => {
                     delete rooms[roomId];
                     delete roomConfigs[roomId];
                     if (roomMessages[roomId]) delete roomMessages[roomId];
+					if (roomWhiteboards[roomId]) delete roomWhiteboards[roomId];
                 }
             }
         }
