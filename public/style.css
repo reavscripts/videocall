@@ -321,11 +321,26 @@ html, body {
     transition: color 0.2s, background 0.2s;
 }
 
-.channel-header-row > span:first-child {
+/* Stile specifico per il NOME del canale */
+.channel-name {
     font-family: 'Montserrat', sans-serif;
     letter-spacing: 0.5px;
+    flex-grow: 1; /* Occupa lo spazio centrale */
+    padding-left: 8px; /* Spazio tra freccia e nome */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
+/* Assicura che l'icona usi il font corretto e non venga sovrascritta */
+.channel-toggle-icon {
+    font-family: 'Material Icons' !important;
+    font-size: 1.2em;
+    color: var(--muted);
+    min-width: 24px; /* Spazio fisso per l'icona */
+    text-align: center;
+    transition: transform 0.2s ease;
+}
 .channel-item:not(.active) .channel-header-row:hover {
     background: transparent;
     color: var(--text-color);
