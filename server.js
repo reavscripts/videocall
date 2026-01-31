@@ -106,7 +106,12 @@ function getClientIp(socket) {
 }
 
 /* ===================== Redis ===================== */
-const redis = createClient({ url: REDIS_URL });
+const redis = createClient({
+  url: REDIS_URL,
+  socket: {
+    tls: true
+  }
+});
 const redisSub = redis.duplicate();
 
 redis.on("error", (e) => console.error("Redis error:", e));
