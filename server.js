@@ -1,716 +1,995 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
+
+const { createClient } = require("redis");
+const { createAdapter } = require("@socket.io/redis-adapter");
 
 const app = express();
 const server = http.createServer(app);
+
 const SERVER_INSTANCE_ID = Date.now().toString();
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin";
-
+/* ===================== ENV ===================== */
+const REDIS_URL = (process.env.REDIS_URL || "").trim();
+const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || "").trim();
 const clientUrl = (process.env.CLIENT_URL || "").replace(/\/$/, "");
 
+if (!REDIS_URL) {
+  console.error("❌ Missing REDIS_URL");
+  process.exit(1);
+}
+if (!ADMIN_PASSWORD) {
+  console.error("❌ Missing ADMIN_PASSWORD");
+  process.exit(1);
+}
+
+/* ===================== Socket.IO ===================== */
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://videocall-webrtc-signaling-server.onrender.com",
+  clientUrl
+].filter(Boolean);
+
 const io = new Server(server, {
-    pingTimeout: 60000,
-    pingInterval: 25000,
-    cors: { 
-        origin: [
-            "http://localhost:3000", 
-            "https://videocall-webrtc-signaling-server.onrender.com", 
-            clientUrl
-        ], 
-        methods: ['GET', 'POST'] 
-    }
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"]
+  }
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+/* ===================== Static ===================== */
+app.use(express.static(path.join(__dirname, "public")));
 
+/* ===================== Limits / Validation ===================== */
+const LIMITS = {
+  ROOM_ID_MAX: 32,
+  NICK_MAX: 24,
+  MSG_MAX: 1200,
+  TOPIC_MAX: 120,
+  PASS_MAX: 64,
+  WB_MAX_STROKES: 8000,
+  WB_EVENT_MAX_BYTES: 8_000,
+  MSG_HISTORY_MAX: 100
+};
 
-const rooms = {}; 
-const roomConfigs = {}; 
-const roomMessages = {}; 
-const roomWhiteboards = {};
-const bannedIPs = new Set(); 
-const admins = new Set(); 
+/* ===================== Rate limiting (no deps) ===================== */
+const RATE = {
+  WINDOW_MS: 4000,
+  MAX_CHAT_EVENTS: 20,
+  MAX_WB_EVENTS: 120,
+  MAX_SIGNAL_EVENTS: 250
+};
 
+const rateBucket = new Map(); // socketId -> {t0, chat, wb, sig}
+
+function nowMs() {
+  return Date.now();
+}
+function bucketFor(socket) {
+  const id = socket.id;
+  const t = nowMs();
+  let b = rateBucket.get(id);
+  if (!b || (t - b.t0) > RATE.WINDOW_MS) {
+    b = { t0: t, chat: 0, wb: 0, sig: 0 };
+    rateBucket.set(id, b);
+  }
+  return b;
+}
+function allow(socket, type) {
+  const b = bucketFor(socket);
+  if (type === "chat") return (++b.chat) <= RATE.MAX_CHAT_EVENTS;
+  if (type === "wb") return (++b.wb) <= RATE.MAX_WB_EVENTS;
+  if (type === "sig") return (++b.sig) <= RATE.MAX_SIGNAL_EVENTS;
+  return true;
+}
+
+/* ===================== Small helpers ===================== */
+function safeStr(v, maxLen) {
+  const s = String(v ?? "").trim();
+  if (!s) return "";
+  return s.replace(/[\u0000-\u001F\u007F]/g, "").slice(0, maxLen);
+}
+function normalizeRoomId(roomIdRaw) {
+  return safeStr(roomIdRaw, LIMITS.ROOM_ID_MAX).replace("#", "").toLowerCase();
+}
+function getCleanNick(nickname) {
+  return String(nickname || "").replace(/^[@+]+/, "");
+}
 function getClientIp(socket) {
-    const header = socket.handshake.headers['x-forwarded-for'];
-    if (header) return header.split(',')[0].trim();
-    return socket.handshake.address;
+  const header = socket.handshake.headers["x-forwarded-for"];
+  if (header) return header.split(",")[0].trim();
+  return socket.handshake.address;
 }
 
-function logToAdmin(message) {
-    const time = new Date().toLocaleTimeString();
-    const logMsg = `[${time}] ${message}`;
-    console.log(logMsg); 
-    admins.forEach(adminId => {
-        io.to(adminId).emit('admin-log', logMsg);
+/* ===================== Redis ===================== */
+const redis = createClient({ url: REDIS_URL });
+const redisSub = redis.duplicate();
+
+redis.on("error", (e) => console.error("Redis error:", e));
+redisSub.on("error", (e) => console.error("RedisSub error:", e));
+
+const K = {
+  roomsIndex: () => "rooms:all",                        // SET roomIds
+  roomUsers: (roomId) => `room:${roomId}:users`,        // HASH socketId -> nickname
+  userRooms: (socketId) => `user:${socketId}:rooms`,    // SET roomIds
+  roomConfig: (roomId) => `room:${roomId}:config`,      // HASH
+  roomMessages: (roomId) => `room:${roomId}:messages`,  // LIST json
+  roomWB: (roomId) => `room:${roomId}:wb`,              // LIST json
+  roomCreator: (roomId) => `room:${roomId}:creator`,    // string (SETNX)
+  bannedIPs: () => "banned:ips"                         // SET ip
+};
+
+// Safety TTL for room-related keys (auto cleanup of stale data)
+const ROOM_TTL_SECONDS = 60 * 60 * 24; // 24h
+
+async function initRedisAndAdapter() {
+  await redis.connect();
+  await redisSub.connect();
+  io.adapter(createAdapter(redis, redisSub));
+  console.log("✅ Redis connected + Socket.IO Redis adapter enabled");
+}
+
+/* --------------------- Redis state helpers --------------------- */
+async function isIpBanned(ip) {
+  return await redis.sIsMember(K.bannedIPs(), ip);
+}
+async function banIp(ip) {
+  await redis.sAdd(K.bannedIPs(), ip);
+}
+
+async function ensureRoomInIndex(roomId) {
+  await redis.sAdd(K.roomsIndex(), roomId);
+}
+
+async function getRoomConfig(roomId) {
+  const raw = await redis.hGetAll(K.roomConfig(roomId));
+  return {
+    password: raw.password || "",
+    isLocked: raw.isLocked === "1",
+    topic: raw.topic || "",
+    nameColor: raw.nameColor || "#00b8ff",
+    isModerated: raw.isModerated === "1"
+  };
+}
+
+async function ensureRoomConfig(roomId, initialPassword = "") {
+  const key = K.roomConfig(roomId);
+  const exists = await redis.exists(key);
+  if (!exists) {
+    await redis.hSet(key, {
+      password: initialPassword || "",
+      isLocked: "0",
+      topic: "",
+      nameColor: "#00b8ff",
+      isModerated: "0"
     });
+  }
+  await redis.expire(key, ROOM_TTL_SECONDS);
 }
 
-function getRoomUsers(roomId) {
-    if (!rooms[roomId]) return [];
-    return Object.entries(rooms[roomId]).map(([id, nickname]) => ({
-        id: id,
-        nickname: nickname
-    }));
+async function setRoomConfig(roomId, patch) {
+  const key = K.roomConfig(roomId);
+  const mapped = {};
+  if ("password" in patch) mapped.password = patch.password || "";
+  if ("isLocked" in patch) mapped.isLocked = patch.isLocked ? "1" : "0";
+  if ("topic" in patch) mapped.topic = patch.topic || "";
+  if ("nameColor" in patch) mapped.nameColor = patch.nameColor || "#00b8ff";
+  if ("isModerated" in patch) mapped.isModerated = patch.isModerated ? "1" : "0";
+  await redis.hSet(key, mapped);
+  await redis.expire(key, ROOM_TTL_SECONDS);
 }
 
-io.on('connection', (socket) => {
-    const clientIp = getClientIp(socket);
-	socket.emit('server-instance-id', SERVER_INSTANCE_ID);
-    
-    if (bannedIPs.has(clientIp)) {
-        socket.emit('kicked-by-admin', 'Your IP address has been banned.');
-        socket.disconnect(true);
-        return; 
+async function addUserToRoom(roomId, socketId, nickname) {
+  const usersKey = K.roomUsers(roomId);
+  const userRoomsKey = K.userRooms(socketId);
+  const p = redis.multi();
+  p.hSet(usersKey, socketId, nickname);
+  p.sAdd(userRoomsKey, roomId);
+  p.expire(usersKey, ROOM_TTL_SECONDS);
+  p.expire(userRoomsKey, ROOM_TTL_SECONDS);
+  await p.exec();
+}
+
+async function removeUserFromRoom(roomId, socketId) {
+  const usersKey = K.roomUsers(roomId);
+  const userRoomsKey = K.userRooms(socketId);
+  const p = redis.multi();
+  p.hDel(usersKey, socketId);
+  p.sRem(userRoomsKey, roomId);
+  await p.exec();
+}
+
+async function getRoomUsers(roomId) {
+  const users = await redis.hGetAll(K.roomUsers(roomId));
+  return Object.entries(users).map(([id, nickname]) => ({ id, nickname }));
+}
+
+async function getUserRooms(socketId) {
+  return await redis.sMembers(K.userRooms(socketId));
+}
+
+async function pushRoomMessage(roomId, msgObj) {
+  const key = K.roomMessages(roomId);
+  await redis.rPush(key, JSON.stringify(msgObj));
+  await redis.lTrim(key, -LIMITS.MSG_HISTORY_MAX, -1);
+  await redis.expire(key, ROOM_TTL_SECONDS);
+}
+
+async function getRoomMessages(roomId) {
+  const key = K.roomMessages(roomId);
+  const arr = await redis.lRange(key, 0, -1);
+  return arr.map((s) => {
+    try { return JSON.parse(s); } catch { return null; }
+  }).filter(Boolean);
+}
+
+async function pushWB(roomId, stroke) {
+  const key = K.roomWB(roomId);
+  await redis.rPush(key, JSON.stringify(stroke));
+  await redis.lTrim(key, -LIMITS.WB_MAX_STROKES, -1);
+  await redis.expire(key, ROOM_TTL_SECONDS);
+}
+
+async function getWB(roomId) {
+  const key = K.roomWB(roomId);
+  const arr = await redis.lRange(key, 0, -1);
+  return arr.map((s) => {
+    try { return JSON.parse(s); } catch { return null; }
+  }).filter(Boolean);
+}
+
+async function clearWB(roomId) {
+  await redis.del(K.roomWB(roomId));
+}
+
+async function undoWB(roomId) {
+  await redis.rPop(K.roomWB(roomId));
+}
+
+async function deleteRoomIfEmpty(roomId) {
+  const usersKey = K.roomUsers(roomId);
+  const count = await redis.hLen(usersKey);
+  if (count !== 0) return false;
+
+  const p = redis.multi();
+  p.del(usersKey);
+  p.del(K.roomConfig(roomId));
+  p.del(K.roomMessages(roomId));
+  p.del(K.roomWB(roomId));
+  p.del(K.roomCreator(roomId));
+  p.sRem(K.roomsIndex(), roomId);
+  await p.exec();
+  return true;
+}
+
+async function getPublicRoomList() {
+  const roomIds = await redis.sMembers(K.roomsIndex());
+  if (!roomIds.length) return [];
+
+  const p = redis.multi();
+  for (const r of roomIds) {
+    p.hLen(K.roomUsers(r));
+    p.hGet(K.roomConfig(r), "isLocked");
+    p.hGet(K.roomConfig(r), "password");
+  }
+  const res = await p.exec();
+
+  const list = [];
+  for (let i = 0; i < roomIds.length; i++) {
+    const roomId = roomIds[i];
+    const count = Number(res[i * 3 + 0][1] || 0);
+    const isLocked = (res[i * 3 + 1][1] || "0") === "1";
+    const password = res[i * 3 + 2][1] || "";
+    if (count > 0) {
+      list.push({ name: roomId, count, isLocked, hasPass: !!password });
+    }
+  }
+  return list;
+}
+
+async function ensureCreatorOp(roomId, cleanNick) {
+  // first creator gets @ (SETNX)
+  const ok = await redis.setNX(K.roomCreator(roomId), "1");
+  if (ok) {
+    await redis.expire(K.roomCreator(roomId), ROOM_TTL_SECONDS);
+    return "@" + cleanNick;
+  }
+  return cleanNick;
+}
+
+/* ===================== Admin state (per instance) ===================== */
+const admins = new Set(); // socket IDs only (ok to be local)
+function logToAdmin(message) {
+  const time = new Date().toLocaleTimeString();
+  const logMsg = `[${time}] ${message}`;
+  console.log(logMsg);
+  admins.forEach((adminId) => {
+    io.to(adminId).emit("admin-log", logMsg);
+  });
+}
+function sendAdminData(adminSocketId) {
+  io.to(adminSocketId).emit("admin-data-update", {
+    totalUsers: io.engine.clientsCount
+    // (optional: you can add more stats by reading redis, but this is kept light)
+  });
+}
+
+/* ===================== Socket Handlers ===================== */
+io.on("connection", (socket) => {
+  const clientIp = getClientIp(socket);
+
+  socket.emit("server-instance-id", SERVER_INSTANCE_ID);
+
+  (async () => {
+    if (await isIpBanned(clientIp)) {
+      socket.emit("kicked-by-admin", "Your IP address has been banned.");
+      socket.disconnect(true);
+      return;
     }
 
     logToAdmin(`New connection: ${socket.id} (IP: ${clientIp})`);
 
-    socket.on('join-room', (roomIdRaw, nickname, password = "") => {
-        const roomId = String(roomIdRaw).replace('#', '').toLowerCase();
+    /* ---------- request-room-list ---------- */
+    socket.on("request-room-list", async () => {
+      socket.emit("server-room-list-update", await getPublicRoomList());
+    });
 
-        if (bannedIPs.has(clientIp)) {
-            socket.emit('error-message', 'You are banned.');
-            return;
-        }
+    /* ===================== JOIN ROOM ===================== */
+    socket.on("join-room", async (roomIdRaw, nicknameRaw, passwordRaw = "") => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return socket.emit("error-message", "Invalid room name.");
 
-        if (!rooms[roomId]) {
-            rooms[roomId] = {};
-        }
+      if (await isIpBanned(clientIp)) {
+        return socket.emit("error-message", "You are banned.");
+      }
 
-        if (rooms[roomId][socket.id]) {
-            const currentNick = rooms[roomId][socket.id];
-            const config = roomConfigs[roomId] || { topic: "", nameColor: "#00b8ff", password: "" };
+      const nicknameInput = safeStr(nicknameRaw, LIMITS.NICK_MAX);
+      if (!nicknameInput) return socket.emit("error-message", "Invalid nickname.");
 
-            const peers = Object.entries(rooms[roomId])
-                .filter(([id]) => id !== socket.id)
-                .map(([id, nick]) => ({ id, nickname: nick }));
+      const password = safeStr(passwordRaw, LIMITS.PASS_MAX);
 
-            socket.emit('welcome',
-                roomId,
-                socket.id,
-                currentNick,
-                peers,
-                config.topic,
-                !!config.password,
-                config.nameColor,
-                true,
-                !!config.isModerated
-            );
+      await ensureRoomInIndex(roomId);
+      await ensureRoomConfig(roomId, password);
 
-            socket.emit('room-info-updated', config.topic, !!config.password, false, null, config.nameColor, !!config.isModerated, false);
-            socket.emit('update-user-list', roomId, getRoomUsers(roomId));
-            return;
-        }
+      const config = await getRoomConfig(roomId);
 
-        let cleanNick = nickname.replace(/^[@+]+/, '');
-        let isRoomCreator = (Object.keys(rooms[roomId]).length === 0);
-        let finalNickname = cleanNick;
+      if (config.isLocked) return socket.emit("error-message", "Room locked.");
+      if (config.password && config.password !== password) return socket.emit("error-message", "Wrong password.");
 
-        if (isRoomCreator) {
-            finalNickname = '@' + cleanNick;
-        }
+      // Already joined this room? return snapshot
+      const alreadyNick = await redis.hGet(K.roomUsers(roomId), socket.id);
+      if (alreadyNick) {
+        const users = await getRoomUsers(roomId);
+        const peers = users.filter((u) => u.id !== socket.id).map((u) => ({ id: u.id, nickname: u.nickname }));
 
-        if (!roomConfigs[roomId]) {
-            roomConfigs[roomId] = {
-                password: password,
-                isLocked: false,
-                topic: "",
-                nameColor: "#00b8ff",
-                isModerated: false
-            };
-        }
-        const config = roomConfigs[roomId];
-
-        if (config.isLocked) { socket.emit('error-message', 'Room locked.'); return; }
-        if (config.password && config.password !== password) { socket.emit('error-message', 'Wrong password.'); return; }
-
-        let baseNickname = finalNickname;
-
-        while (true) {
-            const existingUserEntry = Object.entries(rooms[roomId]).find(([id, n]) => 
-                n.toLowerCase().replace(/^[@+]+/, '') === finalNickname.toLowerCase()
-            );
-
-            if (existingUserEntry) {
-                const [oldSocketId, oldNick] = existingUserEntry;
-                const isAuth = (config.password && config.password === password);
-
-                if (isAuth) {
-                    break; 
-                } else {
-                    const randomNum = Math.floor(Math.random() * 1000) + 1;
-                    let cleanBase = baseNickname.replace(/^[@+]+/, '');
-                    finalNickname = `${cleanBase}_${randomNum}`;
-                }
-            } else {
-                break;
-            }
-        }
-        
-        const existingUserEntryPostCheck = Object.entries(rooms[roomId]).find(([id, n]) => 
-            n.toLowerCase().replace(/^[@+]+/, '') === finalNickname.toLowerCase()
+        socket.emit(
+          "welcome",
+          roomId,
+          socket.id,
+          alreadyNick,
+          peers,
+          config.topic,
+          !!config.password,
+          config.nameColor,
+          true,
+          !!config.isModerated
         );
 
-        if (existingUserEntryPostCheck) {
-            const [oldSocketId, oldNick] = existingUserEntryPostCheck;
-            const isAuth = (config.password && config.password === password);
+        socket.emit("room-info-updated", config.topic, !!config.password, false, null, config.nameColor, !!config.isModerated, false);
+        socket.emit("update-user-list", roomId, users);
+        return;
+      }
 
-            if (isAuth) {
-                if (oldNick.startsWith('@') && !finalNickname.startsWith('@')) {
-                    finalNickname = '@' + finalNickname.replace(/^@/, '');
-                }
-                delete rooms[roomId][oldSocketId];
-            } 
-        }
+      // Normalize nickname + creator @ assignment
+      let cleanNick = getCleanNick(nicknameInput);
+      cleanNick = safeStr(cleanNick, LIMITS.NICK_MAX);
+      if (!cleanNick) return socket.emit("error-message", "Invalid nickname.");
 
-        socket.join(roomId);
-        rooms[roomId][socket.id] = finalNickname;
+      let finalNickname = await ensureCreatorOp(roomId, cleanNick);
 
-        const peers = Object.entries(rooms[roomId])
-            .filter(([id]) => id !== socket.id)
-            .map(([id, nick]) => ({ id, nickname: nick }));
-
-        socket.to(roomId).emit('peer-joined', roomId, socket.id, finalNickname);
-
-        if (!roomMessages[roomId]) roomMessages[roomId] = [];
-        roomMessages[roomId].push({
-            sender: 'System',
-            text: `${finalNickname} joined.`,
-            id: 'sys_' + Date.now(),
-            timestamp: Date.now(),
-            type: 'system'
-        });
-
-        socket.emit('welcome', roomId, socket.id, finalNickname, peers, config.topic, !!config.password, config.nameColor, false, !!config.isModerated);
-
-        io.emit('server-room-list-update', getPublicRoomList());
-        broadcastAdminUpdate();
-        if (roomMessages[roomId].length > 0) {
-            socket.emit('chat-history', roomMessages[roomId]);
-        }
-        io.to(roomId).emit('update-user-list', roomId, getRoomUsers(roomId));
-    });
-
-    socket.on('leave-room', (roomIdRaw) => {
-        if (!roomIdRaw) return;
-
-        const roomId = String(roomIdRaw).trim().replace('#', '').toLowerCase();
-
-        if (rooms[roomId]) {
-            if (rooms[roomId][socket.id]) {
-                const nickname = rooms[roomId][socket.id];
-                delete rooms[roomId][socket.id];
-
-                socket.to(roomId).emit('peer-left', roomId, socket.id, nickname);
-                io.to(roomId).emit('update-user-list', roomId, getRoomUsers(roomId));
-
-                if (Object.keys(rooms[roomId]).length === 0) {
-                    delete rooms[roomId];
-                    delete roomConfigs[roomId];
-                    if(roomMessages[roomId]) delete roomMessages[roomId];
-					if (roomWhiteboards[roomId]) delete roomWhiteboards[roomId];
-                }
-            }
-        }
-
-        socket.leave(roomId);
-
-        io.emit('server-room-list-update', getPublicRoomList());
-        broadcastAdminUpdate();
-    });
-
-    socket.on('disconnect', (reason) => {
-        if (admins.has(socket.id)) admins.delete(socket.id);
-
-        let updateNeeded = false;
-
-        for (const roomId in rooms) {
-            if (rooms[roomId][socket.id]) {
-                const nickname = rooms[roomId][socket.id];
-
-                delete rooms[roomId][socket.id];
-                updateNeeded = true;
-
-                socket.to(roomId).emit('peer-left', roomId, socket.id, nickname);
-                socket.to(roomId).emit('remote-typing-stop', roomId, socket.id);
-                io.to(roomId).emit('update-user-list', roomId, getRoomUsers(roomId));
-
-                if (Object.keys(rooms[roomId]).length === 0) {
-                    delete rooms[roomId];
-                    delete roomConfigs[roomId];
-                    if (roomMessages[roomId]) delete roomMessages[roomId];
-                }
-            }
-        }
-
-        if (updateNeeded) {
-            broadcastAdminUpdate();
-            io.emit('server-room-list-update', getPublicRoomList());
-        }
-    });
-
-    function getCleanNick(nickname) {
-        return nickname.replace(/^[@+]+/, '');
-    }
-
-    socket.on('command-action', (roomId, actionType, targetName) => {
-        if(!rooms[roomId] || !rooms[roomId][socket.id]) return;
-        const senderNick = rooms[roomId][socket.id];
-        
-        let msgText = "";
-        if(actionType === 'slap') {
-            msgText = `* ${senderNick} slaps ${targetName} around a bit with a large trout *`;
-        }
-
-        const msgId = 'act_' + Date.now();
-        if (!roomMessages[roomId]) roomMessages[roomId] = [];
-        const msgObj = {
-            sender: senderNick,
-            text: msgText,
-            id: msgId,
-            timestamp: Date.now(),
-            type: 'action'
-        };
-        roomMessages[roomId].push(msgObj);
-
-        io.to(roomId).emit('new-action-message', msgObj);
-    });
-
-    socket.on('command-op', (roomId, targetNick) => {
-        if (!rooms[roomId]) return;     
-        const myNick = rooms[roomId][socket.id];
-        if (!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) {
-            socket.emit('error-message', "You do not have permission to give OP.");
-            return;
-        }
-
-        const cleanTarget = getCleanNick(targetNick).toLowerCase();
-        const targetSocketId = Object.keys(rooms[roomId]).find(id => 
-            getCleanNick(rooms[roomId][id]).toLowerCase() === cleanTarget
+      // Ensure nickname uniqueness (within room). If password matches, allow takeover.
+      const usersMap = await redis.hGetAll(K.roomUsers(roomId));
+      const baseNickname = finalNickname;
+      while (true) {
+        const existing = Object.entries(usersMap).find(([_, n]) =>
+          String(n).toLowerCase().replace(/^[@+]+/, "") === String(finalNickname).toLowerCase().replace(/^[@+]+/, "")
         );
+        if (!existing) break;
 
-        if (targetSocketId) {
-            let oldNick = rooms[roomId][targetSocketId];
+        const isAuth = (config.password && config.password === password);
+        if (isAuth) break;
 
-            if (oldNick.startsWith('@')) {
-                socket.emit('error-message', "User is already an operator.");
-                return;
-            }
+        const randomNum = Math.floor(Math.random() * 1000) + 1;
+        const cleanBase = baseNickname.replace(/^[@+]+/, "");
+        finalNickname = `${cleanBase}_${randomNum}`.slice(0, LIMITS.NICK_MAX);
+      }
 
-            const baseNick = getCleanNick(oldNick);
-            const newNick = '@' + baseNick;
-
-            rooms[roomId][targetSocketId] = newNick;
-
-            io.to(roomId).emit('user-nick-updated', targetSocketId, newNick);
-            io.to(roomId).emit('new-message', roomId, 'Server', `${baseNick} is now an Operator (+o).`, 'sys_' + Date.now());
-        } else {
-            socket.emit('error-message', "User not found.");
+      // If takeover is allowed, remove old socketId entry (best-effort)
+      const existingPost = Object.entries(usersMap).find(([_, n]) =>
+        String(n).toLowerCase().replace(/^[@+]+/, "") === String(finalNickname).toLowerCase().replace(/^[@+]+/, "")
+      );
+      if (existingPost) {
+        const [oldSocketId, oldNick] = existingPost;
+        const isAuth = (config.password && config.password === password);
+        if (isAuth) {
+          if (String(oldNick).startsWith("@") && !String(finalNickname).startsWith("@")) {
+            finalNickname = "@" + finalNickname.replace(/^@/, "");
+          }
+          await redis.hDel(K.roomUsers(roomId), oldSocketId);
+          // also cleanup old user's room set
+          await redis.sRem(K.userRooms(oldSocketId), roomId);
         }
+      }
+
+      socket.join(roomId);
+      await addUserToRoom(roomId, socket.id, finalNickname);
+
+      const users = await getRoomUsers(roomId);
+      const peers = users.filter((u) => u.id !== socket.id).map((u) => ({ id: u.id, nickname: u.nickname }));
+
+      socket.to(roomId).emit("peer-joined", roomId, socket.id, finalNickname);
+
+      await pushRoomMessage(roomId, {
+        sender: "System",
+        text: `${finalNickname} joined.`,
+        id: "sys_" + Date.now(),
+        timestamp: Date.now(),
+        type: "system"
+      });
+
+      socket.emit(
+        "welcome",
+        roomId,
+        socket.id,
+        finalNickname,
+        peers,
+        config.topic,
+        !!config.password,
+        config.nameColor,
+        false,
+        !!config.isModerated
+      );
+
+      // send history + wb history
+      socket.emit("chat-history", await getRoomMessages(roomId));
+      const wbHist = await getWB(roomId);
+      if (wbHist.length) socket.emit("wb-history", wbHist);
+
+      io.to(roomId).emit("update-user-list", roomId, users);
+      io.emit("server-room-list-update", await getPublicRoomList());
     });
 
-    socket.on('command-deop', (roomId, targetNick) => {
-        if(!rooms[roomId]) return;
-        const myNick = rooms[roomId][socket.id];
-        if(!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) {
-            socket.emit('error-message', "You do not have permission to remove OP.");
-            return;
-        }
+    /* ===================== LEAVE ROOM ===================== */
+    socket.on("leave-room", async (roomIdRaw) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
 
-        const cleanTarget = getCleanNick(targetNick).toLowerCase();
-        const targetSocketId = Object.keys(rooms[roomId]).find(id => getCleanNick(rooms[roomId][id]).toLowerCase() === cleanTarget);
-        
-        if(targetSocketId) {
-            let oldNick = rooms[roomId][targetSocketId];
-            
-            if(oldNick.startsWith('@')) {
-                const newNick = getCleanNick(oldNick);
-                rooms[roomId][targetSocketId] = newNick;
-                
-                io.to(roomId).emit('user-nick-updated', targetSocketId, newNick);
-                io.to(roomId).emit('new-message', roomId, 'Server', `${newNick} is no longer an Operator (-o).`, 'sys_'+Date.now());
-            } else {
-                socket.emit('error-message', "That user is not an operator.");
-            }
-        } else {
-            socket.emit('error-message', "User not found.");
-        }
+      const nickname = await redis.hGet(K.roomUsers(roomId), socket.id);
+      if (nickname) {
+        await removeUserFromRoom(roomId, socket.id);
+
+        socket.to(roomId).emit("peer-left", roomId, socket.id, nickname);
+        socket.to(roomId).emit("remote-typing-stop", roomId, socket.id);
+
+        io.to(roomId).emit("update-user-list", roomId, await getRoomUsers(roomId));
+
+        await deleteRoomIfEmpty(roomId);
+      }
+
+      socket.leave(roomId);
+      io.emit("server-room-list-update", await getPublicRoomList());
     });
 
-    socket.on('command-voice', (roomId, targetNick) => {
-        if(!rooms[roomId]) return;
-        const myNick = rooms[roomId][socket.id];
-        if(!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) return;
+    /* ===================== COMMANDS / PERMISSIONS ===================== */
+    socket.on("command-action", async (roomIdRaw, actionTypeRaw, targetNameRaw) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+      if (!allow(socket, "chat")) return;
 
-        const cleanTarget = getCleanNick(targetNick).toLowerCase();
-        const targetSocketId = Object.keys(rooms[roomId]).find(id => getCleanNick(rooms[roomId][id]).toLowerCase() === cleanTarget);
+      const senderNick = await redis.hGet(K.roomUsers(roomId), socket.id);
+      if (!senderNick) return;
 
-        if(targetSocketId) {
-             let oldNick = rooms[roomId][targetSocketId];
-             
-             if(oldNick.startsWith('@')) {
-                 socket.emit('error-message', "User is already an Operator (already has voice).");
-                 return;
-             }
+      const actionType = safeStr(actionTypeRaw, 16);
+      const targetName = safeStr(targetNameRaw, LIMITS.NICK_MAX);
 
-             if(!oldNick.startsWith('+')) {
-                 const baseNick = getCleanNick(oldNick);
-                 const newNick = '+' + baseNick;
-                 
-                 rooms[roomId][targetSocketId] = newNick;
-                 
-                 io.to(roomId).emit('user-nick-updated', targetSocketId, newNick);
-                 io.to(roomId).emit('new-message', roomId, 'Server', `${baseNick} received voice (+v).`, 'sys_'+Date.now());
-             } else {
-                 socket.emit('error-message', "User already has voice.");
-             }
-        }
+      let msgText = "";
+      if (actionType === "slap") {
+        msgText = `* ${senderNick} slaps ${targetName} around a bit with a large trout *`;
+      } else {
+        return;
+      }
+
+      const msgObj = {
+        sender: senderNick,
+        text: msgText,
+        id: "act_" + Date.now(),
+        timestamp: Date.now(),
+        type: "action"
+      };
+
+      await pushRoomMessage(roomId, msgObj);
+      io.to(roomId).emit("new-action-message", msgObj);
     });
 
-    socket.on('command-devoice', (roomId, targetNick) => {
-        if(!rooms[roomId]) return;
-        const myNick = rooms[roomId][socket.id];
-
-        if(!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) {
-            socket.emit('error-message', "Only operators can manage voice.");
-            return;
-        }
-
-        const cleanTarget = getCleanNick(targetNick).toLowerCase();
-        const targetSocketId = Object.keys(rooms[roomId]).find(id => getCleanNick(rooms[roomId][id]).toLowerCase() === cleanTarget);
-
-        if(targetSocketId) {
-             let oldNick = rooms[roomId][targetSocketId];
-             
-             if(oldNick.startsWith('+')) {
-                 const newNick = getCleanNick(oldNick); 
-                 rooms[roomId][targetSocketId] = newNick;
-                 
-                 io.to(roomId).emit('user-nick-updated', targetSocketId, newNick);
-                 io.to(roomId).emit('new-message', roomId, 'Server', `${newNick} lost voice status (-v).`, 'sys_'+Date.now());
-             } else {
-                 socket.emit('error-message', "User does not have voice status (+).");
-             }
-        } else {
-            socket.emit('error-message', "User not found.");
-        }
-    });
-	
-    socket.on('command-moderate', (roomId, state) => { 
-        if(!rooms[roomId]) return;
-        const myNick = rooms[roomId][socket.id];
-        if(!myNick || (!myNick.startsWith('@') && !admins.has(socket.id))) {
-            socket.emit('error-message', "You do not have OP permissions.");
-            return;
-        }
-
-        if (!roomConfigs[roomId]) return;
-
-        const isNowModerated = (state === 'on');
-        const oldModerated = !!roomConfigs[roomId].isModerated;
-
-        if (isNowModerated === oldModerated) return;
-
-        roomConfigs[roomId].isModerated = isNowModerated;
-
-        io.to(roomId).emit('room-info-updated', 
-            roomConfigs[roomId].topic,
-            !!roomConfigs[roomId].password,
-            false,
-            null,
-            roomConfigs[roomId].nameColor,
-            isNowModerated,
-            true
-        );
-
-        io.to(roomId).emit('room-mode-updated', isNowModerated);
-    });
-	
-    socket.on('typing-start', (roomId, nickname) => {
-        socket.to(roomId).emit('remote-typing-start', roomId, socket.id, nickname);
-    });
-
-    socket.on('typing-stop', (roomId) => {
-        socket.to(roomId).emit('remote-typing-stop', roomId, socket.id);
-    });
-
-    socket.on('op-update-settings', (roomId, newTopic, newPassword, newColor, newIsModerated) => {
-        if (!rooms[roomId] || !rooms[roomId][socket.id]) return;
-
-        const currentNick = rooms[roomId][socket.id];
-        if (!currentNick.startsWith('@')) {
-            socket.emit('error-message', "You do not have Operator permissions (@).");
-            return;
-        }
-
-        if (roomConfigs[roomId]) {
-            const oldTopic = roomConfigs[roomId].topic || "";
-            const oldHasPassword = !!roomConfigs[roomId].password; 
-            const oldModerated = !!roomConfigs[roomId].isModerated;
-
-            roomConfigs[roomId].topic = newTopic || "";
-            roomConfigs[roomId].password = newPassword || ""; 
-            roomConfigs[roomId].nameColor = newColor || "#00b8ff"; 
-            roomConfigs[roomId].isModerated = !!newIsModerated; 
-
-            const newHasPassword = !!newPassword; 
-            const topicChanged = (oldTopic !== (newTopic || ""));
-            const modeChanged = (oldModerated !== roomConfigs[roomId].isModerated);
-            
-            let passwordAction = null; 
-            if (!oldHasPassword && newHasPassword) passwordAction = 'added';
-            else if (oldHasPassword && !newHasPassword) passwordAction = 'removed';
-            
-            io.to(roomId).emit('room-info-updated', 
-                newTopic, 
-                newHasPassword, 
-                topicChanged, 
-                passwordAction,
-                newColor,
-                roomConfigs[roomId].isModerated, 
-                modeChanged
-            );
-            
-            socket.emit('op-settings-saved');
-            broadcastAdminUpdate();
-        }
-    });
-    
-    socket.on('toggle-global-transcription', (roomId, isActive) => {
-        io.to(roomId).emit('global-transcription-status', isActive);
-    });
-
-    socket.on('global-transcript-chunk', (roomId, data) => {
-        io.to(roomId).emit('receive-global-transcript', data);
-    });
-
-    socket.on('admin-login', (password) => {
-        if (password === ADMIN_PASSWORD) {
-            admins.add(socket.id);
-            socket.emit('admin-login-success');
-            sendAdminData(socket.id);
-            logToAdmin(`Admin logged in: ${socket.id}`);
-        } else {
-            socket.emit('admin-login-fail');
-            logToAdmin(`Admin login failed from IP: ${clientIp}`);
-        }
-    });
-	
-    socket.on('admin-ban-ip', (targetSocketId) => {
-        if (!admins.has(socket.id)) return;
-        const targetSocket = io.sockets.sockets.get(targetSocketId);
-        if (targetSocket) {
-            const targetIp = getClientIp(targetSocket);
-            bannedIPs.add(targetIp);
-            targetSocket.emit('kicked-by-admin', "You have been permanently banned.");
-            targetSocket.disconnect(true);
-            logToAdmin(`IP BAN Executed on ${targetIp}`);
-            broadcastAdminUpdate();
-        }
-    });
-
-    socket.on('admin-toggle-lock', (roomId) => {
-        if (!admins.has(socket.id) || !roomConfigs[roomId]) return;
-        roomConfigs[roomId].isLocked = !roomConfigs[roomId].isLocked;
-        broadcastAdminUpdate();
-    });
-
-    socket.on('admin-set-password', (roomId, newPass) => {
-        if (!admins.has(socket.id) || !roomConfigs[roomId]) return;
-        roomConfigs[roomId].password = newPass;
-        broadcastAdminUpdate();
-    });
-
-    socket.on('admin-kick-user', (targetSocketId) => {
-        if (!admins.has(socket.id)) return;
-        const targetSocket = io.sockets.sockets.get(targetSocketId);
-        if (targetSocket) {
-            targetSocket.emit('kicked-by-admin', "Kicked by admin.");
-            targetSocket.disconnect(true);
-        }
-        broadcastAdminUpdate();
-    });
-
-    socket.on('admin-close-room', (roomIdRaw) => {
-        if (!admins.has(socket.id)) return;
-
-        const targetRoomId = String(roomIdRaw).toLowerCase();
-        
-        const usersInRoom = rooms[targetRoomId];
-        if (usersInRoom) {
-            Object.keys(usersInRoom).forEach(socketId => {
-                const s = io.sockets.sockets.get(socketId);
-                if (s) {
-                    s.emit('room-closed-by-admin', targetRoomId);
-                    s.leave(targetRoomId);
-                }
-            });
-        }
-
-        delete rooms[targetRoomId];
-        delete roomConfigs[targetRoomId]; 
-        delete roomMessages[targetRoomId];
-
-        broadcastAdminUpdate();
-        io.emit('server-room-list-update', getPublicRoomList());
-    });
-
-    socket.on('admin-refresh', () => {
-        if(admins.has(socket.id)) sendAdminData(socket.id);
-    });
-
-    function sendAdminData(adminSocketId) {
-        const stats = {
-            totalUsers: io.engine.clientsCount,
-            rooms: rooms,
-            configs: roomConfigs, 
-            bannedCount: bannedIPs.size
-        };
-        io.to(adminSocketId).emit('admin-data-update', stats);
+    async function canOp(roomId) {
+      const myNick = await redis.hGet(K.roomUsers(roomId), socket.id);
+      return !!myNick && (String(myNick).startsWith("@") || admins.has(socket.id));
     }
 
-    function broadcastAdminUpdate() {
-        if (admins.size === 0) return;
-        const stats = {
-            totalUsers: io.engine.clientsCount,
-            rooms: JSON.parse(JSON.stringify(rooms)),
-            configs: JSON.parse(JSON.stringify(roomConfigs)),
-            bannedCount: bannedIPs.size
-        };
-        
-        admins.forEach(adminId => io.to(adminId).emit('admin-data-update', stats));
-    }
+    socket.on("command-op", async (roomIdRaw, targetNickRaw) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
 
-    socket.on('request-room-list', () => {
-        socket.emit('server-room-list-update', getPublicRoomList());
+      if (!(await canOp(roomId))) {
+        socket.emit("error-message", "You do not have permission to give OP.");
+        return;
+      }
+
+      const cleanTarget = getCleanNick(safeStr(targetNickRaw, LIMITS.NICK_MAX)).toLowerCase();
+      const usersMap = await redis.hGetAll(K.roomUsers(roomId));
+      const targetSocketId = Object.keys(usersMap).find((id) =>
+        getCleanNick(usersMap[id]).toLowerCase() === cleanTarget
+      );
+
+      if (!targetSocketId) return socket.emit("error-message", "User not found.");
+
+      const oldNick = usersMap[targetSocketId];
+      if (String(oldNick).startsWith("@")) return socket.emit("error-message", "User is already an operator.");
+
+      const baseNick = getCleanNick(oldNick);
+      const newNick = "@" + baseNick;
+
+      await redis.hSet(K.roomUsers(roomId), targetSocketId, newNick);
+
+      io.to(roomId).emit("user-nick-updated", targetSocketId, newNick);
+      io.to(roomId).emit("new-message", roomId, "Server", `${baseNick} is now an Operator (+o).`, "sys_" + Date.now());
     });
 
-    socket.on('request-transcription', (targetId, requesterId, enable) => {
-        io.to(targetId).emit('transcription-request', requesterId, enable);
+    socket.on("command-deop", async (roomIdRaw, targetNickRaw) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+
+      if (!(await canOp(roomId))) {
+        socket.emit("error-message", "You do not have permission to remove OP.");
+        return;
+      }
+
+      const cleanTarget = getCleanNick(safeStr(targetNickRaw, LIMITS.NICK_MAX)).toLowerCase();
+      const usersMap = await redis.hGetAll(K.roomUsers(roomId));
+      const targetSocketId = Object.keys(usersMap).find((id) =>
+        getCleanNick(usersMap[id]).toLowerCase() === cleanTarget
+      );
+
+      if (!targetSocketId) return socket.emit("error-message", "User not found.");
+
+      const oldNick = usersMap[targetSocketId];
+      if (!String(oldNick).startsWith("@")) return socket.emit("error-message", "That user is not an operator.");
+
+      const newNick = getCleanNick(oldNick);
+      await redis.hSet(K.roomUsers(roomId), targetSocketId, newNick);
+
+      io.to(roomId).emit("user-nick-updated", targetSocketId, newNick);
+      io.to(roomId).emit("new-message", roomId, "Server", `${newNick} is no longer an Operator (-o).`, "sys_" + Date.now());
     });
 
-    socket.on('transcription-result', (targetId, text, isFinal) => {
-        io.to(targetId).emit('transcription-data', socket.id, text, isFinal);
+    socket.on("command-voice", async (roomIdRaw, targetNickRaw) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+
+      if (!(await canOp(roomId))) return;
+
+      const cleanTarget = getCleanNick(safeStr(targetNickRaw, LIMITS.NICK_MAX)).toLowerCase();
+      const usersMap = await redis.hGetAll(K.roomUsers(roomId));
+      const targetSocketId = Object.keys(usersMap).find((id) =>
+        getCleanNick(usersMap[id]).toLowerCase() === cleanTarget
+      );
+      if (!targetSocketId) return;
+
+      const oldNick = usersMap[targetSocketId];
+      if (String(oldNick).startsWith("@")) return socket.emit("error-message", "User is already an Operator (already has voice).");
+      if (String(oldNick).startsWith("+")) return socket.emit("error-message", "User already has voice.");
+
+      const baseNick = getCleanNick(oldNick);
+      const newNick = "+" + baseNick;
+      await redis.hSet(K.roomUsers(roomId), targetSocketId, newNick);
+
+      io.to(roomId).emit("user-nick-updated", targetSocketId, newNick);
+      io.to(roomId).emit("new-message", roomId, "Server", `${baseNick} received voice (+v).`, "sys_" + Date.now());
     });
-    
-    socket.on('send-message', (r, s, m, msgId) => {
-        const roomId = r.toLowerCase(); 
-        const finalId = msgId || Date.now().toString(); 
-       
-        const config = roomConfigs[roomId];
-        if (config && config.isModerated) {
-            if (!rooms[roomId]) return;
-            const senderNick = rooms[roomId][socket.id];
-            if (!senderNick || (!senderNick.startsWith('@') && !senderNick.startsWith('+'))) {
-                socket.emit('error-message', "Chat in moderated mode (+m). You do not have permission to speak.");
-                return; 
-            }
+
+    socket.on("command-devoice", async (roomIdRaw, targetNickRaw) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+
+      if (!(await canOp(roomId))) {
+        socket.emit("error-message", "Only operators can manage voice.");
+        return;
+      }
+
+      const cleanTarget = getCleanNick(safeStr(targetNickRaw, LIMITS.NICK_MAX)).toLowerCase();
+      const usersMap = await redis.hGetAll(K.roomUsers(roomId));
+      const targetSocketId = Object.keys(usersMap).find((id) =>
+        getCleanNick(usersMap[id]).toLowerCase() === cleanTarget
+      );
+      if (!targetSocketId) return socket.emit("error-message", "User not found.");
+
+      const oldNick = usersMap[targetSocketId];
+      if (!String(oldNick).startsWith("+")) return socket.emit("error-message", "User does not have voice status (+).");
+
+      const newNick = getCleanNick(oldNick);
+      await redis.hSet(K.roomUsers(roomId), targetSocketId, newNick);
+
+      io.to(roomId).emit("user-nick-updated", targetSocketId, newNick);
+      io.to(roomId).emit("new-message", roomId, "Server", `${newNick} lost voice status (-v).`, "sys_" + Date.now());
+    });
+
+    socket.on("command-moderate", async (roomIdRaw, stateRaw) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+
+      if (!(await canOp(roomId))) {
+        socket.emit("error-message", "You do not have OP permissions.");
+        return;
+      }
+
+      const isNowModerated = (String(stateRaw) === "on");
+      const config = await getRoomConfig(roomId);
+      if (isNowModerated === !!config.isModerated) return;
+
+      await setRoomConfig(roomId, { isModerated: isNowModerated });
+
+      const updated = await getRoomConfig(roomId);
+      io.to(roomId).emit(
+        "room-info-updated",
+        updated.topic,
+        !!updated.password,
+        false,
+        null,
+        updated.nameColor,
+        !!updated.isModerated,
+        true
+      );
+
+      io.to(roomId).emit("room-mode-updated", !!updated.isModerated);
+    });
+
+    /* ===================== typing ===================== */
+    socket.on("typing-start", (roomIdRaw, nicknameRaw) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+      const nickname = safeStr(nicknameRaw, LIMITS.NICK_MAX);
+      socket.to(roomId).emit("remote-typing-start", roomId, socket.id, nickname);
+    });
+
+    socket.on("typing-stop", (roomIdRaw) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+      socket.to(roomId).emit("remote-typing-stop", roomId, socket.id);
+    });
+
+    /* ===================== OP settings ===================== */
+    socket.on("op-update-settings", async (roomIdRaw, newTopicRaw, newPasswordRaw, newColorRaw, newIsModerated) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+
+      const myNick = await redis.hGet(K.roomUsers(roomId), socket.id);
+      if (!myNick || !String(myNick).startsWith("@")) {
+        socket.emit("error-message", "You do not have Operator permissions (@).");
+        return;
+      }
+
+      const newTopic = safeStr(newTopicRaw, LIMITS.TOPIC_MAX);
+      const newPassword = safeStr(newPasswordRaw, LIMITS.PASS_MAX);
+      const newColor = safeStr(newColorRaw, 32) || "#00b8ff";
+      const newModerated = !!newIsModerated;
+
+      const old = await getRoomConfig(roomId);
+
+      await setRoomConfig(roomId, {
+        topic: newTopic,
+        password: newPassword,
+        nameColor: newColor,
+        isModerated: newModerated
+      });
+
+      const updated = await getRoomConfig(roomId);
+
+      const oldHasPassword = !!old.password;
+      const newHasPassword = !!updated.password;
+      const topicChanged = (old.topic !== updated.topic);
+      const modeChanged = (!!old.isModerated !== !!updated.isModerated);
+
+      let passwordAction = null;
+      if (!oldHasPassword && newHasPassword) passwordAction = "added";
+      else if (oldHasPassword && !newHasPassword) passwordAction = "removed";
+
+      io.to(roomId).emit(
+        "room-info-updated",
+        updated.topic,
+        newHasPassword,
+        topicChanged,
+        passwordAction,
+        updated.nameColor,
+        !!updated.isModerated,
+        modeChanged
+      );
+
+      socket.emit("op-settings-saved");
+      io.emit("server-room-list-update", await getPublicRoomList());
+    });
+
+    /* ===================== Global transcription ===================== */
+    socket.on("toggle-global-transcription", (roomIdRaw, isActive) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+      io.to(roomId).emit("global-transcription-status", !!isActive);
+    });
+
+    socket.on("global-transcript-chunk", (roomIdRaw, data) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+      io.to(roomId).emit("receive-global-transcript", data);
+    });
+
+    /* ===================== Admin ===================== */
+    socket.on("admin-login", (passwordRaw) => {
+      const pass = String(passwordRaw ?? "");
+      if (pass === ADMIN_PASSWORD) {
+        admins.add(socket.id);
+        socket.emit("admin-login-success");
+        sendAdminData(socket.id);
+        logToAdmin(`Admin logged in: ${socket.id}`);
+      } else {
+        socket.emit("admin-login-fail");
+        logToAdmin(`Admin login failed from IP: ${clientIp}`);
+      }
+    });
+
+    socket.on("admin-ban-ip", async (targetSocketId) => {
+      if (!admins.has(socket.id)) return;
+
+      const targetSocket = io.sockets.sockets.get(targetSocketId);
+      if (!targetSocket) return;
+
+      const targetIp = getClientIp(targetSocket);
+      await banIp(targetIp);
+
+      targetSocket.emit("kicked-by-admin", "You have been permanently banned.");
+      targetSocket.disconnect(true);
+
+      logToAdmin(`IP BAN Executed on ${targetIp}`);
+    });
+
+    socket.on("admin-toggle-lock", async (roomIdRaw) => {
+      if (!admins.has(socket.id)) return;
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+
+      const conf = await getRoomConfig(roomId);
+      await setRoomConfig(roomId, { isLocked: !conf.isLocked });
+    });
+
+    socket.on("admin-set-password", async (roomIdRaw, newPassRaw) => {
+      if (!admins.has(socket.id)) return;
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+
+      await setRoomConfig(roomId, { password: safeStr(newPassRaw, LIMITS.PASS_MAX) });
+      io.emit("server-room-list-update", await getPublicRoomList());
+    });
+
+    socket.on("admin-kick-user", (targetSocketId) => {
+      if (!admins.has(socket.id)) return;
+      const targetSocket = io.sockets.sockets.get(targetSocketId);
+      if (!targetSocket) return;
+
+      targetSocket.emit("kicked-by-admin", "Kicked by admin.");
+      targetSocket.disconnect(true);
+    });
+
+    socket.on("admin-close-room", async (roomIdRaw) => {
+      if (!admins.has(socket.id)) return;
+      const targetRoomId = normalizeRoomId(roomIdRaw);
+      if (!targetRoomId) return;
+
+      io.to(targetRoomId).emit("room-closed-by-admin", targetRoomId);
+
+      // remove all users from the room in redis and clean room keys
+      const users = await redis.hGetAll(K.roomUsers(targetRoomId));
+      const p = redis.multi();
+      for (const sid of Object.keys(users)) {
+        p.sRem(K.userRooms(sid), targetRoomId);
+      }
+      p.del(K.roomUsers(targetRoomId));
+      p.del(K.roomConfig(targetRoomId));
+      p.del(K.roomMessages(targetRoomId));
+      p.del(K.roomWB(targetRoomId));
+      p.del(K.roomCreator(targetRoomId));
+      p.sRem(K.roomsIndex(), targetRoomId);
+      await p.exec();
+
+      io.emit("server-room-list-update", await getPublicRoomList());
+    });
+
+    socket.on("admin-refresh", () => {
+      if (admins.has(socket.id)) sendAdminData(socket.id);
+    });
+
+    /* ===================== Per-user transcription ===================== */
+    socket.on("request-transcription", (targetId, requesterId, enable) => {
+      io.to(targetId).emit("transcription-request", requesterId, enable);
+    });
+
+    socket.on("transcription-result", (targetId, text, isFinal) => {
+      io.to(targetId).emit("transcription-data", socket.id, text, isFinal);
+    });
+
+    /* ===================== Chat ===================== */
+    socket.on("send-message", async (rRaw, sRaw, mRaw, msgIdRaw) => {
+      if (!allow(socket, "chat")) return;
+
+      const roomId = normalizeRoomId(rRaw);
+      if (!roomId) return;
+
+      const sender = safeStr(sRaw, LIMITS.NICK_MAX + 2);
+      const text = safeStr(mRaw, LIMITS.MSG_MAX);
+      const finalId = safeStr(msgIdRaw, 64) || Date.now().toString();
+      if (!text) return;
+
+      const myNick = await redis.hGet(K.roomUsers(roomId), socket.id);
+      if (!myNick) return;
+
+      const config = await getRoomConfig(roomId);
+      if (config.isModerated) {
+        if (!String(myNick).startsWith("@") && !String(myNick).startsWith("+")) {
+          socket.emit("error-message", "Chat in moderated mode (+m). You do not have permission to speak.");
+          return;
         }
+      }
 
-        if (!roomMessages[roomId]) roomMessages[roomId] = [];
-        
-        roomMessages[roomId].push({
-            sender: s,
-            text: m,
-            id: finalId,
-            timestamp: Date.now(),
-            type: 'public' 
-        });
+      const msgObj = {
+        sender,
+        text,
+        id: finalId,
+        timestamp: Date.now(),
+        type: "public"
+      };
 
-        if (roomMessages[roomId].length > 100) roomMessages[roomId].shift();
-
-        socket.to(roomId).emit('new-message', roomId, s, m, finalId);
-    });
-    
-    socket.on('msg-read', (roomId, messageId, readerNickname) => {
-        io.to(roomId).emit('msg-read-update', messageId, readerNickname);
-    });
-    socket.on('send-private-message', (r, rid, s, m) => io.to(rid).emit('new-private-message', s, m));
-	// --- GESTIONE WHITEBOARD (Sostituisci il blocco precedente con questo) ---
-
-    socket.on('wb-draw', (roomId, data) => {
-        if (!roomWhiteboards[roomId]) roomWhiteboards[roomId] = [];
-        roomWhiteboards[roomId].push(data); // Salva il tratto in memoria
-        socket.to(roomId).emit('wb-draw', data); // Invia agli altri
+      await pushRoomMessage(roomId, msgObj);
+      socket.to(roomId).emit("new-message", roomId, sender, text, finalId);
     });
 
-    socket.on('wb-clear', (roomId) => {
-        if (roomWhiteboards[roomId]) roomWhiteboards[roomId] = []; // Pulisce memoria server
-        io.to(roomId).emit('wb-clear'); // Pulisce client
+    socket.on("msg-read", (roomIdRaw, messageId, readerNickname) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+      io.to(roomId).emit("msg-read-update", messageId, readerNickname);
     });
 
-    socket.on('wb-undo', (roomId) => {
-        if (roomWhiteboards[roomId] && roomWhiteboards[roomId].length > 0) {
-            roomWhiteboards[roomId].pop(); // Rimuove l'ultimo tratto dal server
-            // Invia l'intero storico aggiornato a tutti per assicurare la sincronia
-            io.to(roomId).emit('wb-history', roomWhiteboards[roomId]); 
+    socket.on("send-private-message", (rRaw, receiverId, sRaw, mRaw) => {
+      if (!allow(socket, "chat")) return;
+      const sender = safeStr(sRaw, LIMITS.NICK_MAX + 2);
+      const text = safeStr(mRaw, LIMITS.MSG_MAX);
+      if (!receiverId) return;
+      io.to(receiverId).emit("new-private-message", sender, text);
+    });
+
+    /* ===================== Whiteboard ===================== */
+    socket.on("wb-draw", async (roomIdRaw, data) => {
+      if (!allow(socket, "wb")) return;
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+
+      const approx = (() => {
+        try { return JSON.stringify(data).length; } catch { return 0; }
+      })();
+      if (approx > LIMITS.WB_EVENT_MAX_BYTES) return;
+
+      await pushWB(roomId, data);
+      socket.to(roomId).emit("wb-draw", data);
+    });
+
+    socket.on("wb-clear", async (roomIdRaw) => {
+      if (!allow(socket, "wb")) return;
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+
+      await clearWB(roomId);
+      io.to(roomId).emit("wb-clear");
+    });
+
+    socket.on("wb-undo", async (roomIdRaw) => {
+      if (!allow(socket, "wb")) return;
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+
+      await undoWB(roomId);
+      io.to(roomId).emit("wb-history", await getWB(roomId));
+    });
+
+    socket.on("wb-request-history", async (roomIdRaw) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+
+      socket.emit("wb-history", await getWB(roomId));
+    });
+
+    /* ===================== WebRTC signaling ===================== */
+    socket.on("offer", (id, o) => {
+      if (allow(socket, "sig")) io.to(id).emit("offer", socket.id, o);
+    });
+    socket.on("answer", (id, a) => {
+      if (allow(socket, "sig")) io.to(id).emit("answer", socket.id, a);
+    });
+    socket.on("candidate", (id, c) => {
+      if (allow(socket, "sig")) io.to(id).emit("candidate", socket.id, c);
+    });
+
+    socket.on("audio-status-changed", (roomIdRaw, t) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+      socket.to(roomId).emit("audio-status-changed", socket.id, t);
+    });
+
+    socket.on("video-status-changed", (roomIdRaw, isEnabled) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+      socket.to(roomId).emit("remote-video-status-changed", socket.id, !!isEnabled);
+    });
+
+    socket.on("stream-type-changed", (roomIdRaw, ratio) => {
+      const roomId = normalizeRoomId(roomIdRaw);
+      if (!roomId) return;
+      socket.to(roomId).emit("remote-stream-type-changed", socket.id, ratio);
+    });
+
+    /* ===================== DISCONNECT ===================== */
+    socket.on("disconnect", async (reason) => {
+      rateBucket.delete(socket.id);
+      admins.delete(socket.id);
+
+      try {
+        const roomIds = await getUserRooms(socket.id);
+        for (const roomId of roomIds) {
+          const nickname = await redis.hGet(K.roomUsers(roomId), socket.id);
+          await removeUserFromRoom(roomId, socket.id);
+
+          if (nickname) {
+            socket.to(roomId).emit("peer-left", roomId, socket.id, nickname);
+            socket.to(roomId).emit("remote-typing-stop", roomId, socket.id);
+            io.to(roomId).emit("update-user-list", roomId, await getRoomUsers(roomId));
+          }
+
+          await deleteRoomIfEmpty(roomId);
         }
-    });
+        await redis.del(K.userRooms(socket.id));
+      } catch (e) {
+        console.error("Disconnect cleanup error:", e);
+      }
 
-    socket.on('wb-request-history', (roomId) => {
-        if (roomWhiteboards[roomId]) {
-            socket.emit('wb-history', roomWhiteboards[roomId]);
-        }
-    });
-    
-    // -----------------------------------------------------------------------
-    socket.on('offer', (id, o) => io.to(id).emit('offer', socket.id, o));
-    socket.on('answer', (id, a) => io.to(id).emit('answer', socket.id, a));
-    socket.on('candidate', (id, c) => io.to(id).emit('candidate', socket.id, c));
-    socket.on('audio-status-changed', (r, t) => socket.to(r).emit('audio-status-changed', socket.id, t));
-	socket.on('video-status-changed', (roomId, isEnabled) => {
-        socket.to(roomId).emit('remote-video-status-changed', socket.id, isEnabled);
-    });
-    socket.on('stream-type-changed', (r, ratio) => socket.to(r).emit('remote-stream-type-changed', socket.id, ratio));
+      try {
+        io.emit("server-room-list-update", await getPublicRoomList());
+      } catch {}
 
-    socket.on('disconnect', (reason) => {
-        if (admins.has(socket.id)) admins.delete(socket.id);
-        
-        let updateNeeded = false;
-
-        for (const roomId in rooms) {
-            if (rooms[roomId][socket.id]) {
-                const nickname = rooms[roomId][socket.id];
-                
-                delete rooms[roomId][socket.id];
-                updateNeeded = true;
-                
-                socket.to(roomId).emit('peer-left', roomId, socket.id, nickname);
-                socket.to(roomId).emit('remote-typing-stop', roomId, socket.id);
-
-                if (Object.keys(rooms[roomId]).length === 0) {
-                    delete rooms[roomId];
-                    delete roomConfigs[roomId];
-                    if (roomMessages[roomId]) delete roomMessages[roomId];
-					if (roomWhiteboards[roomId]) delete roomWhiteboards[roomId];
-                }
-            }
-        }
-        
-        if (updateNeeded) {
-            broadcastAdminUpdate();
-            io.emit('server-room-list-update', getPublicRoomList());
-        }
+      logToAdmin(`Disconnected: ${socket.id} (${reason || "unknown"})`);
     });
+  })().catch((e) => {
+    console.error("Connection init error:", e);
+    socket.disconnect(true);
+  });
 });
 
-function getPublicRoomList() {
-    const list = [];
-    for(const [id, users] of Object.entries(rooms)) {
-        const conf = roomConfigs[id] || {};
-        list.push({
-            name: id,
-            count: Object.keys(users).length,
-            isLocked: !!conf.isLocked,
-            hasPass: !!conf.password
-        });
-    }
-    return list;
-}
-
+/* ===================== Start ===================== */
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+initRedisAndAdapter()
+  .then(() => {
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  })
+  .catch((err) => {
+    console.error("Failed to init Redis:", err);
+    process.exit(1);
+  });
