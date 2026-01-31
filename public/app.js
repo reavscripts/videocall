@@ -3279,9 +3279,8 @@ function initializeSocket(){
 });
 
 setTimeout(() => {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }, 50);
-    });
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}, 50);
 
   
   socket.on('new-message', (roomId, sender, message, msgId) => {
