@@ -460,7 +460,7 @@ io.on("connection", (socket) => {
       );
 
       // send history + wb history
-      socket.emit("chat-history", await getRoomMessages(roomId));
+      socket.emit("chat-history", roomId, await getRoomMessages(roomId));
       const wbHist = await getWB(roomId);
       if (wbHist.length) socket.emit("wb-history", wbHist);
 

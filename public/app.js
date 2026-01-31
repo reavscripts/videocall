@@ -1663,8 +1663,7 @@ function handleJoinCommand(roomName, password = "") {
 }
 
 async function switchChannel(newRoomId, newPassword = "") {
-    newRoomId = newRoomId.toLowerCase();
-    
+    newRoomId = String(newRoomId || "").trim().replace(/^#/, "").toLowerCase();
     if (currentRoomId === newRoomId) return;
 
     if (currentRoomId && socket && socket.connected) {
@@ -3233,9 +3232,18 @@ function initializeSocket(){
       }
   });
   
-  socket.on('chat-history', (history) => {
-    if (!currentRoomId) return;
-    const rId = currentRoomId.toLowerCase();
+  socket.on('chat-history', (roomIdOrHistory, maybeHistory) => {
+    // Backward compat: server may send only (history)
+    const roomId = Array.isArray(roomIdOrHistory) ? currentRoomId : roomIdOrHistory;
+    const history = Array.isArray(roomIdOrHistory) ? roomIdOrHistory : maybeHistory;
+
+    if (!roomId || !currentRoomId) return;
+
+    const rid = String(roomId).trim().replace(/^#/, '').toLowerCase();
+    const cid = String(currentRoomId).trim().replace(/^#/, '').toLowerCase();
+
+    // Se arriva la history di un altro canale (race condition), la ignoriamo
+    if (rid !== cid) return;
 
     // 1) RESET UI (così non raddoppia mai)
     messagesContainer.innerHTML = '';
@@ -3250,8 +3258,8 @@ function initializeSocket(){
         cleanHistory.push(msg);
     }
 
-    // 3) Memorizza lo stato del canale
-    roomChatsData[rId] = cleanHistory.map(m => ({
+    // 3) Memorizza lo stato del canale (chiave sempre normalizzata)
+    roomChatsData[rid] = cleanHistory.map(m => ({
         sender: m.sender,
         text: m.text,
         type: m.type || 'public',
@@ -3268,14 +3276,18 @@ function initializeSocket(){
     setTimeout(() => {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }, 50);
+});
+
+setTimeout(() => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }, 50);
     });
 
   
   socket.on('new-message', (roomId, sender, message, msgId) => {
-    const rId = roomId.toLowerCase();
-    const cId = currentRoomId ? currentRoomId.toLowerCase() : "";
-
-    if (rId === cId) {
+    const rId = String(roomId || '').trim().replace(/^#/, '').toLowerCase();
+    const cId = currentRoomId ? String(currentRoomId).trim().replace(/^#/, '').toLowerCase() : "";
+if (rId === cId) {
         addChatMessage(sender, message, false, 'public', msgId);
     } else {
         if (!roomChatsData[rId]) roomChatsData[rId] = [];
