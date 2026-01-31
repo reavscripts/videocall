@@ -1794,8 +1794,10 @@ async function switchChannel(newRoomId, newPassword = "") {
     monitorLocalAudio(isAudioEnabled);
 
     document.getElementById('room-name-display').textContent = `#${newRoomId}`;
-    loadChatFromMemory(newRoomId); 
-    renderSidebarChannels(); 
+    // Reset chat UI before restoring cached messages (prevents duplicates)
+    if (messagesContainer) messagesContainer.innerHTML = '';
+    loadChatFromMemory(newRoomId);
+renderSidebarChannels(); 
 
     const url = new URL(window.location);
     url.searchParams.set('room', newRoomId);
@@ -3232,21 +3234,42 @@ function initializeSocket(){
   });
   
   socket.on('chat-history', (history) => {
-      history.forEach(msg => {
-          const isMe = (msg.sender === userNickname);
-          const msgType = msg.type || 'public';
-          addChatMessage(msg.sender, msg.text, isMe, msgType, msg.id);
-      });
+    if (!currentRoomId) return;
+    const rId = currentRoomId.toLowerCase();
 
-      const divider = document.createElement('div');
-      divider.className = 'chat-divider';
-      divider.innerHTML = `<span>${t('previous_history')}</span>`;     
-      messagesContainer.appendChild(divider);
-      
-      setTimeout(() => {
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      }, 50);
-  });
+    // 1) RESET UI (così non raddoppia mai)
+    messagesContainer.innerHTML = '';
+
+    // 2) Dedup per id (se arrivano ripetuti)
+    const seen = new Set();
+    const cleanHistory = [];
+    for (const msg of (history || [])) {
+        const id = msg?.id || `${msg?.sender}|${msg?.timestamp}|${msg?.text}`;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        cleanHistory.push(msg);
+    }
+
+    // 3) Memorizza lo stato del canale
+    roomChatsData[rId] = cleanHistory.map(m => ({
+        sender: m.sender,
+        text: m.text,
+        type: m.type || 'public',
+        id: m.id,
+        timestamp: m.timestamp
+    }));
+
+    // 4) Render history (NO divider automatico)
+    cleanHistory.forEach(msg => {
+        const isMe = (msg.sender === userNickname);
+        addChatMessage(msg.sender, msg.text, isMe, msg.type || 'public', msg.id, false);
+    });
+
+    setTimeout(() => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }, 50);
+    });
+
   
   socket.on('new-message', (roomId, sender, message, msgId) => {
     const rId = roomId.toLowerCase();
