@@ -781,6 +781,10 @@ function initSpeechRecognition() {
     };
 }
 
+function normalizeRoomId(roomId) {
+    return String(roomId || '').trim().replace(/^#/, '').toLowerCase();
+}
+
 function t(key) {
     if (TRANSLATIONS[APP_LANGUAGE] && TRANSLATIONS[APP_LANGUAGE].js[key]) {
         return TRANSLATIONS[APP_LANGUAGE].js[key];
@@ -1650,7 +1654,8 @@ function sendMessage(contentOverride = null) {
 }
 
 function handleJoinCommand(roomName, password = "") {
-    if (roomName === currentRoomId) {
+    roomName = normalizeRoomId(roomName);
+    if (roomName === normalizeRoomId(currentRoomId)) {
         addChatMessage('System', `You are already in #${roomName}.`, false, 'system');
         return;
     }
@@ -1663,7 +1668,7 @@ function handleJoinCommand(roomName, password = "") {
 }
 
 async function switchChannel(newRoomId, newPassword = "") {
-    newRoomId = String(newRoomId || "").trim().replace(/^#/, "").toLowerCase();
+    newRoomId = normalizeRoomId(newRoomId);
     if (currentRoomId === newRoomId) return;
 
     if (currentRoomId && socket && socket.connected) {
@@ -3231,24 +3236,14 @@ function initializeSocket(){
           toggleWhiteboardButton.classList.add('has-notification'); 
       }
   });
-  
-  socket.on('chat-history', (roomIdOrHistory, maybeHistory) => {
-    // Backward compat: server may send only (history)
-    const roomId = Array.isArray(roomIdOrHistory) ? currentRoomId : roomIdOrHistory;
-    const history = Array.isArray(roomIdOrHistory) ? roomIdOrHistory : maybeHistory;
 
-    if (!roomId || !currentRoomId) return;
 
-    const rid = String(roomId).trim().replace(/^#/, '').toLowerCase();
-    const cid = String(currentRoomId).trim().replace(/^#/, '').toLowerCase();
+socket.on('chat-history', (roomId, history) => {
+    const rid = normalizeRoomId(roomId);
+    const cid = normalizeRoomId(currentRoomId);
+    if (!rid || !cid) return;
 
-    // Se arriva la history di un altro canale (race condition), la ignoriamo
-    if (rid !== cid) return;
-
-    // 1) RESET UI (così non raddoppia mai)
-    messagesContainer.innerHTML = '';
-
-    // 2) Dedup per id (se arrivano ripetuti)
+    // If history arrives for a different room (race), just store it and do NOT touch UI
     const seen = new Set();
     const cleanHistory = [];
     for (const msg of (history || [])) {
@@ -3258,7 +3253,7 @@ function initializeSocket(){
         cleanHistory.push(msg);
     }
 
-    // 3) Memorizza lo stato del canale (chiave sempre normalizzata)
+    // Store canonical history for that room
     roomChatsData[rid] = cleanHistory.map(m => ({
         sender: m.sender,
         text: m.text,
@@ -3267,7 +3262,10 @@ function initializeSocket(){
         timestamp: m.timestamp
     }));
 
-    // 4) Render history (NO divider automatico)
+    // Render only if user is currently viewing that room
+    if (rid !== cid) return;
+
+    messagesContainer.innerHTML = '';
     cleanHistory.forEach(msg => {
         const isMe = (msg.sender === userNickname);
         addChatMessage(msg.sender, msg.text, isMe, msg.type || 'public', msg.id, false);
@@ -3276,11 +3274,10 @@ function initializeSocket(){
     setTimeout(() => {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }, 50);
-});
-
-setTimeout(() => {
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}, 50);
+});setTimeout(() => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }, 50);
+    });
 
   
   socket.on('new-message', (roomId, sender, message, msgId) => {
@@ -3802,12 +3799,13 @@ if (opSaveBtn) {
 }
 
 function saveCurrentChatToMemory() {
-    if (currentRoomId && !roomChatsData[currentRoomId]) {
-        roomChatsData[currentRoomId] = [];
+    if (currentRoomId && !roomChatsData[normalizeRoomId(currentRoomId)]) {
+        roomChatsData[normalizeRoomId(currentRoomId)] = [];
     }
 }
 
 function loadChatFromMemory(roomId) {
+    roomId = normalizeRoomId(roomId);
     if (roomChatsData[roomId]) {
         roomChatsData[roomId].forEach(msg => {
             const isMe = msg.sender === userNickname;
